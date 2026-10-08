@@ -1,0 +1,122 @@
+{
+  "brand": "Mystic Sand",
+  "meta": {
+    "title": "Mystic Sand — Timeless scents that capture the moment",
+    "description": "Eau de parfum, body and home fragrance. Made in Kuwait. Free delivery across Kuwait over KWD 25."
+  },
+  "skipToContent": "Skip to content",
+  "close": "Close",
+  "free": "Free",
+  "loading": "Loading…",
+  "quantityFor": "Quantity for {name}",
+  "decrease": "Decrease quantity",
+  "increase": "Increase quantity",
+  "maxReached": "Maximum quantity reached",
+  "announcement": {
+    "delivery": "Free delivery across Kuwait on orders over {amount}",
+    "payment": "Pay securely with KNET, Apple Pay or card",
+    "gift": "Complimentary gift wrapping on every order",
+    "label": "Announcements"
+  },
+  "header": {
+    "country": "Kuwait · KWD",
+    "search": "Search",
+    "orders": "My orders",
+    "bag": "Bag",
+    "bagWithCount": "{count, plural, =0 {Bag, empty} one {Bag, # item} other {Bag, # items}}",
+    "menu": "Menu",
+    "home": "Mystic Sand — home",
+    "secureCheckout": "Secure checkout",
+    "backToBag": "Back to bag"
+  },
+  "language": {
+    "label": "Language",
+    "switchTo": "العربية",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "nav": {
+    "main": "Main navigation",
+    "perfumes": "Perfumes",
+    "body": "Body",
+    "home": "Home",
+    "gifts": "Gifts",
+    "story": "Our Story",
+    "trilogy": "The Trilogy",
+    "allPerfumes": "All perfumes",
+    "roomSprays": "Room & linen sprays",
+    "oudChips": "Natural oud chips",
+    "allHome": "All home fragrance",
+    "shopAll": "Shop all",
+    "contact": "Contact",
+    "faq": "FAQ"
+  },
+  "search": {
+    "label": "Search the collection",
+    "placeholder": "Search perfumes, notes, gifts…",
+    "trending": "Trending",
+    "topProducts": "Top products",
+    "results": "{count, plural, =0 {No results} one {# result} other {# results}}",
+    "noResults": "Nothing found for “{query}”. Try “oud”, “rose” or “gift”.",
+    "clear": "Clear",
+    "submit": "Search"
+  },
+  "bag": {
+    "added": "Added to your bag",
+    "addedAnnounce": "{name} added to your bag",
+    "viewBag": "View bag",
+    "checkout": "Checkout",
+    "maxReached": "You can add up to {max} of this item.",
+    "removed": "{name} removed",
+    "removedAnnounce": "{name} removed from your bag",
+    "undo": "Undo"
+  },
+  "product": {
+    "addToBag": "Add to bag",
+    "quickAdd": "Add {name} to bag",
+    "chooseSize": "Choose size",
+    "new": "New",
+    "set": "Gift set",
+    "soldOut": "Sold out",
+    "from": "From {price}"
+  },
+  "footer": {
+    "tagline": "Timeless scents that capture the moment. Made in Kuwait.",
+    "follow": "Follow us",
+    "shop": "Shop",
+    "care": "Customer care",
+    "legal": "Legal",
+    "signup": "Sign up",
+    "signupText": "Be the first to know about new drops and private offers.",
+    "email": "Email address",
+    "subscribe": "Subscribe",
+    "subscribed": "Thank you — you’re on the list.",
+    "delivery": "Delivery",
+    "returns": "Returns & exchange",
+    "payment": "Payment methods",
+    "faq": "FAQ",
+    "contact": "Contact us",
+    "terms": "Terms & conditions",
+    "privacy": "Privacy policy",
+    "orders": "My orders",
+    "rights": "© 2026 Mystic Sand. All rights reserved.",
+    "payWith": "Secure payment",
+    "whatsapp": "WhatsApp"
+  },
+  "demo": {
+    "label": "Demo",
+    "title": "Presenter tools",
+    "fillAddress": "Fill sample Kuwait address",
+    "filled": "Sample address filled in",
+    "reset": "Reset demo data",
+    "resetDone": "Demo data cleared",
+    "outcome": "Next payment result",
+    "hide": "Hide demo tools"
+  },
+  "promo": {
+    "applied": "Code {code} applied — {percent}% off",
+    "invalid": "This code isn’t valid.",
+    "expired": "This code has expired."
+  },
+  "simulation": "Simulation — no money moves and no card details are collected."
+}

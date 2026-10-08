@@ -1,0 +1,363 @@
+{
+  "lifestyle/candles-duo": {
+    "w": 1600,
+    "h": 1600,
+    "widths": [
+      640,
+      1024,
+      1600
+    ],
+    "kind": "photo"
+  },
+  "lifestyle/hourglass-candles": {
+    "w": 1600,
+    "h": 1066,
+    "widths": [
+      640,
+      1024,
+      1600
+    ],
+    "kind": "photo"
+  },
+  "lifestyle/roses-iii": {
+    "w": 1600,
+    "h": 1066,
+    "widths": [
+      640,
+      1024,
+      1600
+    ],
+    "kind": "photo"
+  },
+  "lifestyle/trio-basket": {
+    "w": 1600,
+    "h": 1600,
+    "widths": [
+      640,
+      1024,
+      1600
+    ],
+    "kind": "photo"
+  },
+  "products/aura/can": {
+    "w": 1444,
+    "h": 1444,
+    "widths": [
+      480,
+      960,
+      1444
+    ],
+    "kind": "packshot"
+  },
+  "products/cafe/bottle": {
+    "w": 1128,
+    "h": 1128,
+    "widths": [
+      480,
+      960,
+      1128
+    ],
+    "kind": "packshot"
+  },
+  "products/dune/bottle": {
+    "w": 1583,
+    "h": 1583,
+    "widths": [
+      480,
+      960,
+      1583
+    ],
+    "kind": "packshot"
+  },
+  "products/home-trio": {
+    "w": 1609,
+    "h": 1609,
+    "widths": [
+      480,
+      960,
+      1600
+    ],
+    "kind": "packshot"
+  },
+  "products/home-trio-alt": {
+    "w": 1453,
+    "h": 1453,
+    "widths": [
+      480,
+      960,
+      1453
+    ],
+    "kind": "packshot"
+  },
+  "products/i/bottle": {
+    "w": 1383,
+    "h": 1383,
+    "widths": [
+      480,
+      960,
+      1383
+    ],
+    "kind": "packshot"
+  },
+  "products/i/box": {
+    "w": 1061,
+    "h": 1061,
+    "widths": [
+      480,
+      960,
+      1061
+    ],
+    "kind": "packshot"
+  },
+  "products/i/box-angle": {
+    "w": 1050,
+    "h": 1050,
+    "widths": [
+      480,
+      960,
+      1050
+    ],
+    "kind": "packshot"
+  },
+  "products/i/with-box": {
+    "w": 1289,
+    "h": 1289,
+    "widths": [
+      480,
+      960,
+      1289
+    ],
+    "kind": "packshot"
+  },
+  "products/ii/bottle": {
+    "w": 1383,
+    "h": 1383,
+    "widths": [
+      480,
+      960,
+      1383
+    ],
+    "kind": "packshot"
+  },
+  "products/ii/box": {
+    "w": 1056,
+    "h": 1056,
+    "widths": [
+      480,
+      960,
+      1056
+    ],
+    "kind": "packshot"
+  },
+  "products/ii/box-angle": {
+    "w": 1050,
+    "h": 1050,
+    "widths": [
+      480,
+      960,
+      1050
+    ],
+    "kind": "packshot"
+  },
+  "products/ii/with-box": {
+    "w": 1294,
+    "h": 1294,
+    "widths": [
+      480,
+      960,
+      1294
+    ],
+    "kind": "packshot"
+  },
+  "products/iii/bottle": {
+    "w": 1367,
+    "h": 1367,
+    "widths": [
+      480,
+      960,
+      1367
+    ],
+    "kind": "packshot"
+  },
+  "products/iii/box": {
+    "w": 1056,
+    "h": 1056,
+    "widths": [
+      480,
+      960,
+      1056
+    ],
+    "kind": "packshot"
+  },
+  "products/iii/box-angle": {
+    "w": 1050,
+    "h": 1050,
+    "widths": [
+      480,
+      960,
+      1050
+    ],
+    "kind": "packshot"
+  },
+  "products/iii/with-box": {
+    "w": 1317,
+    "h": 1317,
+    "widths": [
+      480,
+      960,
+      1317
+    ],
+    "kind": "packshot"
+  },
+  "products/mist/bottle": {
+    "w": 1628,
+    "h": 1628,
+    "widths": [
+      480,
+      960,
+      1600
+    ],
+    "kind": "packshot"
+  },
+  "products/oasis/bottle": {
+    "w": 1583,
+    "h": 1583,
+    "widths": [
+      480,
+      960,
+      1583
+    ],
+    "kind": "packshot"
+  },
+  "products/oud-chips/chips": {
+    "w": 1462,
+    "h": 1462,
+    "widths": [
+      480,
+      960,
+      1462
+    ],
+    "kind": "packshot"
+  },
+  "products/oud/bottle": {
+    "w": 1078,
+    "h": 1078,
+    "widths": [
+      480,
+      960,
+      1078
+    ],
+    "kind": "packshot"
+  },
+  "products/trilogy-set/bottles": {
+    "w": 1291,
+    "h": 1291,
+    "widths": [
+      480,
+      960,
+      1291
+    ],
+    "kind": "packshot"
+  },
+  "products/trilogy-set/boxes": {
+    "w": 1514,
+    "h": 1514,
+    "widths": [
+      480,
+      960,
+      1514
+    ],
+    "kind": "packshot"
+  },
+  "products/trilogy-set/boxes-tight": {
+    "w": 1282,
+    "h": 1282,
+    "widths": [
+      480,
+      960,
+      1282
+    ],
+    "kind": "packshot"
+  },
+  "renders/aura": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  },
+  "renders/cafe": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  },
+  "renders/dune": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  },
+  "renders/i": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  },
+  "renders/ii": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  },
+  "renders/iii": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  },
+  "renders/mist": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  },
+  "renders/oasis": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  },
+  "renders/oud": {
+    "w": 1024,
+    "h": 1024,
+    "widths": [
+      640,
+      1024
+    ],
+    "kind": "render"
+  }
+}
