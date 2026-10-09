@@ -1,123 +1,62 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { InstagramIcon, PaymentMarks, WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Logo } from "@/components/brand/logo";
-import { categories } from "@/data/categories";
+import { ltr } from "@/components/content/values";
 import { site, whatsappLink } from "@/data/site";
-import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { NewsletterForm } from "./newsletter-form";
+import { formatKuwaitPhone } from "@/lib/phone";
 
-type Column = { title: string; links: Array<{ href: string; label: string }> };
+const contactLink =
+  "inline-flex min-h-11 items-center gap-3 text-[15px] font-light text-cream/90 underline-offset-4 transition-colors hover:text-cream hover:underline";
 
-function FooterColumn({ column }: { column: Column }) {
-  const links = (
-    <ul className="space-y-1.5">
-      {column.links.map((l) => (
-        <li key={l.href + l.label}>
-          <Link href={l.href} className="inline-block py-1 text-[14px] font-light text-cream/90 hover:text-cream hover:underline">
-            {l.label}
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-  return (
-    <>
-      {/* Mobile: accordion */}
-      <details className="group border-b border-cream/20 lg:hidden">
-        <summary className="caps flex min-h-14 cursor-pointer list-none items-center justify-between text-[15px] [&::-webkit-details-marker]:hidden">
-          {column.title}
-          <span aria-hidden className="text-xl leading-none group-open:hidden">
-            +
-          </span>
-          <span aria-hidden className="hidden text-xl leading-none group-open:inline">
-            −
-          </span>
-        </summary>
-        <div className="pb-5">{links}</div>
-      </details>
-      {/* Desktop */}
-      <div className="hidden lg:block">
-        <h2 className="caps mb-5 text-[15px]">{column.title}</h2>
-        {links}
-      </div>
-    </>
-  );
-}
-
-/** Racing-green footer (Amouage's black footer, in the brand's accent colour). */
+/**
+ * Racing-green footer, kept minimal at the client's request: the logo, Instagram and
+ * the WhatsApp number, then the legal line and the accepted payment methods.
+ */
 export async function Footer() {
   const t = await getTranslations("common");
   const locale = (await getLocale()) as Locale;
-
-  const columns: Column[] = [
-    {
-      title: t("footer.shop"),
-      links: categories.map((c) => ({ href: `/shop/${c.slug}`, label: c.name[locale] })),
-    },
-    {
-      title: t("footer.care"),
-      links: [
-        { href: "/delivery", label: t("footer.delivery") },
-        { href: "/refund-policy", label: t("footer.returns") },
-        { href: "/faq#payment", label: t("footer.payment") },
-        { href: "/faq", label: t("footer.faq") },
-        { href: "/contact", label: t("footer.contact") },
-        { href: "/orders", label: t("footer.orders") },
-      ],
-    },
-    {
-      title: t("footer.legal"),
-      links: [
-        { href: "/terms", label: t("footer.terms") },
-        { href: "/privacy", label: t("footer.privacy") },
-      ],
-    },
-  ];
+  const handle = `@${site.instagram.handle}`;
+  // site.whatsapp is international ("965…"); show it the way the rest of the site writes numbers.
+  const whatsappNumber = formatKuwaitPhone(site.whatsapp.replace(/^965/, ""));
 
   return (
-    <footer className="bg-racing text-cream">
-      <div className="mx-auto max-w-[1720px] px-6 pt-16 pb-6 md:pt-[90px]">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))_minmax(0,1.4fr)] lg:gap-8">
-          <div className="space-y-5 text-center lg:text-start">
-            <Logo variant="full" className="mx-auto h-16 w-auto text-cream lg:mx-0" title={t("brand")} />
-            <p className="mx-auto max-w-xs text-[14px] font-light text-cream/85 lg:mx-0">{t("footer.tagline")}</p>
-            <div className="flex items-center justify-center gap-1 lg:justify-start">
-              <span className="text-[13px] text-cream/70">{t("footer.follow")}</span>
+    <footer className="bg-racing text-cream [&_:focus-visible]:outline-cream">
+      <div className="mx-auto max-w-[1720px] px-6 pt-16 pb-6 md:pt-20">
+        <div className="flex flex-col items-center gap-8 text-center">
+          <Logo variant="full" className="h-20 w-auto text-cream md:h-24" title={t("brand")} />
+          <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-1">
+            <li>
               <a
                 href={site.instagram.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex size-11 items-center justify-center hover:opacity-75"
-                aria-label="Instagram @mystic.sand"
+                aria-label={`Instagram ${handle}`}
+                className={contactLink}
               >
                 <InstagramIcon className="size-5" />
+                <bdi dir="ltr">{handle}</bdi>
               </a>
+            </li>
+            <li>
               <a
                 href={whatsappLink(t("brand"))}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex size-11 items-center justify-center hover:opacity-75"
-                aria-label={t("footer.whatsapp")}
+                aria-label={`${t("footer.whatsapp")} ${ltr(whatsappNumber)}`}
+                className={contactLink}
               >
                 <WhatsAppIcon className="size-5" />
+                <bdi dir="ltr" className="figures">
+                  {whatsappNumber}
+                </bdi>
               </a>
-            </div>
-          </div>
-          <div className="border-t border-cream/20 lg:contents lg:border-0">
-            {columns.map((c) => (
-              <FooterColumn key={c.title} column={c} />
-            ))}
-          </div>
-          <div className="mx-auto w-full max-w-md space-y-4 lg:max-w-none">
-            <h2 className="caps text-[15px]">{t("footer.signup")}</h2>
-            <p className="text-[14px] font-light text-cream/85">{t("footer.signupText")}</p>
-            <NewsletterForm />
-          </div>
+            </li>
+          </ul>
         </div>
 
         <div className="mt-14 flex flex-col items-center gap-5 border-t border-cream/25 pt-6 md:flex-row md:justify-between">
-          <div className="flex flex-col items-center gap-1 text-[12px] font-light text-cream/75 md:items-start">
+          <div className="flex flex-col items-center gap-1 text-center text-[12px] font-light text-cream/75 md:items-start md:text-start">
             <span>{t("footer.rights")}</span>
             <span>
               {site.trade.name[locale]} · <bdi>{site.trade.cr}</bdi> · <bdi dir="ltr">{site.phoneDisplay}</bdi>

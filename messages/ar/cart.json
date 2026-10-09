@@ -13,7 +13,7 @@
   "subtotal": "المجموع الفرعي",
   "discount": "الخصم ({code})",
   "delivery": "التوصيل",
-  "deliveryHint": "توصيل عادي داخل الكويت",
+  "deliveryHint": "عادي",
   "total": "الإجمالي",
   "checkout": "إتمام الشراء",
   "expressCheckout": "دفع سريع",

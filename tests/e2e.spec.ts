@@ -143,6 +143,18 @@ test.describe("navigation and media", () => {
     }
   });
 
+  test("the footer is minimal and there is no sign-up", async ({ page }) => {
+    await page.goto("/en/");
+    const footer = page.locator("footer");
+    // Only Instagram and WhatsApp are links; no sign-up form anywhere.
+    await expect(footer.getByRole("link")).toHaveText(["@mystic.sand", "+965 9000 0000"]);
+    await expect(page.getByRole("textbox")).toHaveCount(0);
+    await expect(page.getByText("Stay in the moment")).toHaveCount(0);
+    await expect(footer.getByText("© 2026 Mystic Sand. All rights reserved.")).toBeVisible();
+    await expect(footer.getByText(/Mystic Sand General Trading · CR No\. 000000/)).toBeVisible();
+    await expect(footer.getByText("Secure payment")).toBeVisible();
+  });
+
   test("product photos show one at a time, with arrows", async ({ page }) => {
     await page.goto("/en/product/i/");
     const counter = page.getByTestId("gallery-counter");

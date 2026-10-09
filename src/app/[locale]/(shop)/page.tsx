@@ -4,7 +4,6 @@ import { AuraFeature } from "@/components/home/aura-feature";
 import { BrandFilm } from "@/components/home/brand-film";
 import { ImagePanel } from "@/components/home/image-panel";
 import { InstagramBand } from "@/components/home/instagram-band";
-import { NewsletterBand } from "@/components/home/newsletter-band";
 import { ServiceStrip } from "@/components/home/service-strip";
 import { SignatureDuo } from "@/components/home/signature-duo";
 import { VideoHero } from "@/components/home/video-hero";
@@ -70,7 +69,6 @@ export default async function HomePage({ params }: Props) {
 
       <ServiceStrip />
       <InstagramBand />
-      <NewsletterBand />
     </>
   );
 }

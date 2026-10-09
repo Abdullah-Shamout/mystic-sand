@@ -157,10 +157,16 @@ export function CheckoutFlow() {
 
   /** Express: the form's details when complete, otherwise the (simulated) wallet's. */
   const openExpressSheet = useCallback(() => {
+    // Same rule as Pay: items that are no longer available have to leave the bag first.
+    const { priced, missing } = priceLines(useBag.getState().lines);
+    if (priced.length === 0 || missing.length > 0) {
+      openBag();
+      return;
+    }
     const values = getValues();
     const details = detailsComplete(values) ? values : { ...values, ...SAMPLE_DETAILS };
     setSheet({ open: true, details: withoutTerms(details) });
-  }, [getValues]);
+  }, [getValues, openBag]);
 
   // "Apple Pay" from the bag drawer or product page lands here with ?express=applepay (once).
   useEffect(() => {

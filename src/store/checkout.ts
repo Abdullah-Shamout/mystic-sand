@@ -142,9 +142,19 @@ export const useCheckout = create<CheckoutState>()(
     }),
     {
       name: "ms-checkout",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({ draft: s.draft, remembered: s.remembered, orders: s.orders, lastOrderId: s.lastOrderId }),
+      // v1 priced orders with free delivery over KWD 25. Unpaid ones are dropped so they
+      // can't be paid at the old total; paid ones stay in the order history.
+      migrate: (persisted) => {
+        const p = (persisted ?? {}) as Partial<Pick<CheckoutState, "draft" | "remembered" | "orders" | "lastOrderId">>;
+        const orders = Object.fromEntries(
+          Object.entries(p.orders ?? {}).filter(([, o]) => o.status === "paid" || o.status === "confirming"),
+        );
+        const lastOrderId = p.lastOrderId && orders[p.lastOrderId] ? p.lastOrderId : null;
+        return { draft: currentFields(p.draft), remembered: p.remembered ?? null, orders, lastOrderId };
+      },
       // Old drafts may miss fields added later, or keep removed ones (the gift options).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<CheckoutState>;

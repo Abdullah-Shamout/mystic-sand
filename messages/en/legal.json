@@ -1,7 +1,7 @@
 {
   "shared": {
     "lastUpdated": "Last updated {date}",
-    "date": "8 October 2026",
+    "date": "9 October 2026",
     "draftTitle": "Draft for review by Mystic Sand",
     "draftText": "This page is a working draft. Fees, timings, company and contact details must be confirmed by Mystic Sand, and the text reviewed by a qualified legal adviser in Kuwait before launch.",
     "contents": "On this page",
@@ -48,7 +48,7 @@
       "prices": {
         "title": "Prices and payment",
         "body": [
-          "All prices are shown in Kuwaiti Dinar (KWD) and are the final prices you pay for the products. Any delivery fee is shown separately in your bag and at checkout, and the full total, including delivery, is shown before you pay. There are no hidden charges.",
+          "All prices are shown in Kuwaiti Dinar (KWD) and are the final prices you pay for the products. The delivery fee is shown separately in your bag and at checkout, and the full total, including delivery, is shown before you pay. There are no hidden charges.",
           "You can pay with KNET, Apple Pay, or a Visa or Mastercard card. Payments are processed securely by our licensed payment provider: your card number, PIN and verification codes are entered only on KNET’s or the provider’s secure page. We never see or store your card details.",
           "We don’t charge an extra fee for any payment method.",
           "If a product is listed at an incorrect price because of an obvious error, we’ll contact you before dispatch. You can then confirm the order at the correct price or cancel it for a full refund."
@@ -346,13 +346,13 @@
               ]
             }
           },
-          "The delivery fee is added to every order and shown in your bag and at checkout, before you pay."
+          "A delivery fee applies to every order."
         ]
       },
       "price": {
         "title": "The price you pay",
         "body": [
-          "The fee for your chosen delivery option is shown in your bag and at checkout, and the full total — products plus delivery — is shown before you pay. Nothing more is charged on delivery."
+          "Your bag shows the standard delivery fee; at checkout you see the fee for the option you choose, and the full total — products plus delivery — before you pay. Nothing more is charged on delivery."
         ]
       },
       "express": {

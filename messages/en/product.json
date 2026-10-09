@@ -23,7 +23,7 @@
     "expressLater": "Express delivery from <b>{time}</b> today",
     "expressTomorrow": "Express delivery from <b>{time}</b> tomorrow",
     "standard": "Standard delivery arrives <b>{day}</b>",
-    "perks": "Standard delivery {amount} · {d}-day returns on unopened items"
+    "perks": "Delivery from {amount} · {d}-day returns on unopened items"
   },
   "gallery": {
     "label": "{name} — images",
@@ -53,7 +53,7 @@
     "express": "{fee}, daily from {opens} (Fridays from {friday}). Last orders at {last}.",
     "returnsTitle": "Returns",
     "returns": "Unopened items in their original packaging can be returned within {days, plural, one {a day} other {{d} days}}.",
-    "payment": "Pay with KNET, Apple Pay or card — never any extra fees.",
+    "payment": "Pay with KNET, Apple Pay or card — no extra charge for any payment method.",
     "deliveryLink": "Delivery information",
     "returnsLink": "Returns & exchange"
   },
