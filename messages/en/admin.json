@@ -386,7 +386,68 @@
   },
   "analysis": {
     "title": "Product analysis",
-    "meta": "Product analysis · Mystic Sand admin"
+    "meta": "Product analysis · Mystic Sand admin",
+    "note": "Units ordered per product, grouped by collection. Revenue is counted before order discounts.",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Name, type or SKU",
+    "periodLabel": "Period",
+    "sourceLabel": "Source",
+    "completedOnly": "Completed orders only",
+    "reset": "Reset filters",
+    "exportAll": "Export all collections",
+    "exporting": "Preparing…",
+    "exportError": "The export could not be created.",
+    "exportBtn": "Export",
+    "exportName": "Export the {name} collection",
+    "empty": "No products match your search.",
+    "sectionEmpty": "No products here match your search.",
+    "removedTitle": "Removed from catalog",
+    "removedIntro": "Lines whose product is no longer in the catalog — name and size are taken from the order.",
+    "alsoIn": "Also in {categories}",
+    "hidden": "Hidden",
+    "custom": "Custom",
+    "showSizes": "Sizes",
+    "hideSizes": "Hide sizes",
+    "unitsLabel": "units",
+    "stock": "{count, plural, =0 {Out of stock} one {# in stock} other {# in stock}}",
+    "ordersCount": "{count, plural, =0 {no orders} one {# order} other {# orders}}",
+    "col": {
+      "product": "Product",
+      "type": "Type",
+      "categories": "Collections",
+      "category": "Collection",
+      "sku": "SKU(s)",
+      "price": "Price",
+      "stock": "Stock",
+      "units": "Units ordered",
+      "orders": "Orders",
+      "revenue": "Revenue",
+      "hidden": "Hidden",
+      "custom": "Custom",
+      "size": "Size"
+    },
+    "summary": {
+      "units": "Units sold",
+      "orders": "Orders",
+      "revenue": "Revenue",
+      "best": "Best seller",
+      "noBest": "—"
+    },
+    "export": {
+      "sheets": {
+        "summary": "Summary",
+        "sizes": "Sizes",
+        "allProducts": "All products"
+      },
+      "summary": {
+        "field": "Field",
+        "value": "Value",
+        "filters": "Filters used",
+        "generated": "Generated"
+      },
+      "yes": "Yes",
+      "no": "No"
+    }
   },
   "settings": {
     "title": "Store settings",

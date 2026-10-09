@@ -386,7 +386,68 @@
   },
   "analysis": {
     "title": "تحليل المنتجات",
-    "meta": "تحليل المنتجات · إدارة Mystic Sand"
+    "meta": "تحليل المنتجات · إدارة Mystic Sand",
+    "note": "عدد الوحدات المطلوبة لكل منتج، مجمّعة حسب المجموعة. تُحتسب الإيرادات قبل خصومات الطلب.",
+    "searchLabel": "بحث",
+    "searchPlaceholder": "الاسم أو النوع أو رمز المنتج",
+    "periodLabel": "الفترة",
+    "sourceLabel": "المصدر",
+    "completedOnly": "الطلبات المنجزة فقط",
+    "reset": "إعادة تعيين التصفية",
+    "exportAll": "تصدير كل المجموعات",
+    "exporting": "جارٍ التحضير…",
+    "exportError": "تعذّر إنشاء الملف.",
+    "exportBtn": "تصدير",
+    "exportName": "تصدير مجموعة {name}",
+    "empty": "لا توجد منتجات مطابقة لبحثك.",
+    "sectionEmpty": "لا توجد منتجات مطابقة هنا.",
+    "removedTitle": "محذوف من الكتالوج",
+    "removedIntro": "أسطر لم يعد منتجها موجوداً في الكتالوج — الاسم والحجم مأخوذان من الطلب.",
+    "alsoIn": "أيضاً في {categories}",
+    "hidden": "مخفي",
+    "custom": "مُضاف",
+    "showSizes": "الأحجام",
+    "hideSizes": "إخفاء الأحجام",
+    "unitsLabel": "وحدة",
+    "stock": "{count, plural, =0 {نفد المخزون} one {# في المخزون} two {# في المخزون} few {# في المخزون} many {# في المخزون} other {# في المخزون}}",
+    "ordersCount": "{count, plural, =0 {لا طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلباً} other {# طلب}}",
+    "col": {
+      "product": "المنتج",
+      "type": "النوع",
+      "categories": "المجموعات",
+      "category": "المجموعة",
+      "sku": "رمز المنتج",
+      "price": "السعر",
+      "stock": "المخزون",
+      "units": "الوحدات المطلوبة",
+      "orders": "الطلبات",
+      "revenue": "الإيرادات",
+      "hidden": "مخفي",
+      "custom": "مُضاف",
+      "size": "الحجم"
+    },
+    "summary": {
+      "units": "الوحدات المباعة",
+      "orders": "الطلبات",
+      "revenue": "الإيرادات",
+      "best": "الأكثر مبيعاً",
+      "noBest": "—"
+    },
+    "export": {
+      "sheets": {
+        "summary": "الملخّص",
+        "sizes": "الأحجام",
+        "allProducts": "كل المنتجات"
+      },
+      "summary": {
+        "field": "البند",
+        "value": "القيمة",
+        "filters": "عوامل التصفية المستخدمة",
+        "generated": "تاريخ الإنشاء"
+      },
+      "yes": "نعم",
+      "no": "لا"
+    }
   },
   "settings": {
     "title": "إعدادات المتجر",

@@ -3,6 +3,8 @@ import { banks } from "@/data/banks";
 import { areaById, governorates } from "@/data/kuwait-areas";
 import type { Locale } from "@/i18n/routing";
 import { kuwaitClock } from "@/lib/delivery";
+import { formatAmount } from "@/lib/money";
+import type { AnalysisFilters, CategorySection, ProductAnalysis, ProductStat } from "./analytics";
 import { statusKind, type AdminOrder, type Filters, type Kpis } from "./orders";
 import arMessages from "../../../messages/ar/admin.json";
 import enMessages from "../../../messages/en/admin.json";
@@ -216,9 +218,240 @@ export function buildOrdersExport(input: {
   ];
 }
 
+/** The Kuwait calendar date as YYYY-MM-DD, for file names. */
+function kuwaitDate(now: Date): string {
+  const c = kuwaitClock(now);
+  return `${c.year}-${String(c.month).padStart(2, "0")}-${String(c.day).padStart(2, "0")}`;
+}
+
 /** mystic-sand-orders-YYYY-MM-DD.xlsx using the Kuwait calendar date. */
 export function ordersFileName(now: Date): string {
-  const c = kuwaitClock(now);
-  const date = `${c.year}-${String(c.month).padStart(2, "0")}-${String(c.day).padStart(2, "0")}`;
-  return `mystic-sand-orders-${date}.xlsx`;
+  return `mystic-sand-orders-${kuwaitDate(now)}.xlsx`;
+}
+
+// ── Product analysis export ────────────────────────────────────────────────────
+
+const bool = (value: boolean): XlsxCell => ({ value, type: Boolean });
+
+/** A single price as a KWD number, or a text "min – max" range when a product has several sizes. */
+function priceCell(min: number, max: number): XlsxCell {
+  if (min === max) return money(min);
+  return { value: `${formatAmount(min)} – ${formatAmount(max)}`, type: String, format: "@" };
+}
+
+/** A string-keyed admin translator for the given locale (keys are built dynamically). */
+function adminTranslator(locale: Locale): (key: string) => string {
+  const messages = locale === "ar" ? arMessages : enMessages;
+  const translator = createTranslator({
+    locale,
+    messages: { admin: messages },
+    namespace: "admin",
+    timeZone: "Asia/Kuwait",
+  });
+  return translator as unknown as (key: string) => string;
+}
+
+/** Header row + one row per product for a category / all-products sheet. */
+function productRows(
+  stats: ProductStat[],
+  t: (key: string) => string,
+  locale: Locale,
+  categoryNameOf?: (stat: ProductStat) => string,
+): { data: XlsxCell[][]; columns: Array<{ width?: number }> } {
+  const c = (key: string) => header(t(`analysis.col.${key}`));
+  const withCategories = Boolean(categoryNameOf);
+  const head: XlsxCell[] = [
+    c("product"),
+    c("type"),
+    ...(withCategories ? [c("categories")] : []),
+    c("sku"),
+    c("price"),
+    c("stock"),
+    c("units"),
+    c("orders"),
+    c("revenue"),
+    c("hidden"),
+    c("custom"),
+  ];
+  const data: XlsxCell[][] = [head];
+  for (const s of stats) {
+    data.push([
+      label(s.name),
+      label(s.type[locale]),
+      ...(categoryNameOf ? [label(categoryNameOf(s))] : []),
+      text(s.skus.join(", ")),
+      priceCell(s.priceMinFils, s.priceMaxFils),
+      count(s.stock),
+      count(s.units),
+      count(s.orders),
+      money(s.revenueFils),
+      bool(s.hidden),
+      bool(s.custom),
+    ]);
+  }
+  const columns = [
+    { width: 24 },
+    { width: 20 },
+    ...(withCategories ? [{ width: 22 }] : []),
+    { width: 22 },
+    { width: 14 },
+    { width: 9 },
+    { width: 13 },
+    { width: 9 },
+    { width: 12 },
+    { width: 9 },
+    { width: 9 },
+  ];
+  return { data, columns };
+}
+
+/** The per-size sheet (one row per SKU across the given products). */
+function sizesSheet(stats: ProductStat[], t: (key: string) => string, locale: Locale): XlsxSheet {
+  const data: XlsxCell[][] = [
+    [
+      header(t("analysis.col.product")),
+      header(t("analysis.col.size")),
+      header(t("analysis.col.sku")),
+      header(t("analysis.col.units")),
+      header(t("analysis.col.revenue")),
+    ],
+  ];
+  const seen = new Set<string>();
+  for (const s of stats) {
+    if (seen.has(s.slug)) continue;
+    seen.add(s.slug);
+    for (const size of s.sizes) {
+      data.push([label(s.name), label(size.size[locale]), text(size.sku), count(size.units), money(size.revenueFils)]);
+    }
+  }
+  return {
+    data,
+    sheet: sheetName(t("analysis.export.sheets.sizes")),
+    columns: [{ width: 24 }, { width: 18 }, { width: 22 }, { width: 13 }, { width: 12 }],
+    stickyRowsCount: 1,
+    rightToLeft: locale === "ar",
+  };
+}
+
+function filterRows(filters: AnalysisFilters, now: Date, t: (key: string) => string): XlsxCell[][] {
+  const rangeLabel =
+    filters.range === "custom"
+      ? [filters.from, filters.to].filter(Boolean).join(" → ") || t("filters.range.custom")
+      : t(`filters.range.${filters.range}`);
+  return [
+    [label(t("analysis.export.summary.filters")), null],
+    [label(t("filters.rangeLabel")), label(rangeLabel)],
+    [label(t("filters.sourceLabel")), label(t(`filters.source.${filters.source}`))],
+    [label(t("analysis.completedOnly")), label(t(filters.completedOnly ? "analysis.export.yes" : "analysis.export.no"))],
+    [label(t("filters.searchLabel")), text(filters.query)],
+    [label(t("analysis.export.summary.generated")), dateCell(now.toISOString())],
+  ];
+}
+
+/** Per-category workbook: the category sheet plus a per-size sheet, honouring the current search. */
+export function buildCategoryExport(input: {
+  section: CategorySection;
+  filters: AnalysisFilters;
+  locale: Locale;
+  now: Date;
+}): XlsxSheet[] {
+  const { section, filters, locale, now } = input;
+  const t = adminTranslator(locale);
+  const rtl = locale === "ar";
+  const { data, columns } = productRows(section.products, t, locale);
+  return [
+    {
+      data,
+      sheet: sheetName(section.name[locale]),
+      columns,
+      stickyRowsCount: 1,
+      rightToLeft: rtl,
+    },
+    sizesSheet(section.products, t, locale),
+    {
+      data: filterRows(filters, now, t),
+      sheet: sheetName(t("analysis.export.sheets.summary")),
+      columns: [{ width: 24 }, { width: 28 }],
+      rightToLeft: rtl,
+    },
+  ];
+}
+
+/** All-collections workbook: Summary · one sheet per category · All products (each product once). */
+export function buildAllCategoriesExport(input: {
+  analysis: ProductAnalysis;
+  filters: AnalysisFilters;
+  locale: Locale;
+  now: Date;
+}): XlsxSheet[] {
+  const { analysis, filters, locale, now } = input;
+  const t = adminTranslator(locale);
+  const rtl = locale === "ar";
+  const nameBySlug = new Map(analysis.sections.map((s) => [s.slug, s.name[locale]]));
+  const categoryNameOf = (stat: ProductStat): string =>
+    [stat.category, ...stat.alsoIn].map((c) => nameBySlug.get(c) ?? c).join(", ");
+
+  // ── Summary sheet ────────────────────────────────────────────────────────────
+  const { summary } = analysis;
+  const summaryData: XlsxCell[][] = [
+    [header(t("analysis.export.summary.field")), header(t("analysis.export.summary.value"))],
+    [label(t("analysis.summary.units")), count(summary.units)],
+    [label(t("analysis.summary.orders")), count(summary.orders)],
+    [label(t("analysis.summary.revenue")), money(summary.revenueFils)],
+    [
+      label(t("analysis.summary.best")),
+      label(summary.bestSeller ? `${summary.bestSeller.name} (${summary.bestSeller.units})` : t("analysis.summary.noBest")),
+    ],
+    [null, null],
+    [
+      header(t("analysis.col.category")),
+      header(t("analysis.col.units")),
+      header(t("analysis.col.orders")),
+      header(t("analysis.col.revenue")),
+    ],
+    ...analysis.sections.map((s) => [label(s.name[locale]), count(s.units), count(s.orders), money(s.revenueFils)]),
+    [null, null],
+    ...filterRows(filters, now, t),
+  ];
+
+  const categorySheets: XlsxSheet[] = analysis.sections.map((section) => {
+    const { data, columns } = productRows(section.products, t, locale);
+    return {
+      data,
+      sheet: sheetName(section.name[locale]),
+      columns,
+      stickyRowsCount: 1,
+      rightToLeft: rtl,
+    };
+  });
+
+  const all = productRows(analysis.products, t, locale, categoryNameOf);
+
+  return [
+    {
+      data: summaryData,
+      sheet: sheetName(t("analysis.export.sheets.summary")),
+      columns: [{ width: 24 }, { width: 16 }, { width: 10 }, { width: 14 }],
+      stickyRowsCount: 1,
+      rightToLeft: rtl,
+    },
+    ...categorySheets,
+    {
+      data: all.data,
+      sheet: sheetName(t("analysis.export.sheets.allProducts")),
+      columns: all.columns,
+      stickyRowsCount: 1,
+      rightToLeft: rtl,
+    },
+  ];
+}
+
+/** mystic-sand-<category>-YYYY-MM-DD.xlsx (the slug keeps the name file-system safe). */
+export function categoryFileName(slug: string, now: Date): string {
+  return `mystic-sand-${slug}-${kuwaitDate(now)}.xlsx`;
+}
+
+/** mystic-sand-products-YYYY-MM-DD.xlsx for the all-collections export. */
+export function analysisFileName(now: Date): string {
+  return `mystic-sand-products-${kuwaitDate(now)}.xlsx`;
 }

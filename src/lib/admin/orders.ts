@@ -111,13 +111,23 @@ function inputDayOrdinal(value: string | undefined): number | null {
   return Math.floor(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) / DAY);
 }
 
-function inRange(placedAt: string, filters: Filters, now: Date): boolean {
-  if (filters.range === "all") return true;
+/**
+ * Kuwait-day range test shared by the orders dashboard and the product analysis page, so both
+ * read "today / last 7 / last 30 / this month / all / custom" the same way. "Now" is passed in.
+ */
+export function inDateRange(
+  placedAt: string,
+  range: RangeFilter,
+  from: string | undefined,
+  to: string | undefined,
+  now: Date,
+): boolean {
+  if (range === "all") return true;
   const nowC = kuwaitClock(now);
   const day = kuwaitDayOrdinal(placedAt);
   const nowDay = Math.floor(Date.UTC(nowC.year, nowC.month - 1, nowC.day) / DAY);
 
-  switch (filters.range) {
+  switch (range) {
     case "today":
       return day === nowDay;
     case "7d":
@@ -129,15 +139,19 @@ function inRange(placedAt: string, filters: Filters, now: Date): boolean {
       return c.year === nowC.year && c.month === nowC.month;
     }
     case "custom": {
-      const from = inputDayOrdinal(filters.from);
-      const to = inputDayOrdinal(filters.to);
-      if (from !== null && day < from) return false;
-      if (to !== null && day > to) return false;
+      const f = inputDayOrdinal(from);
+      const tt = inputDayOrdinal(to);
+      if (f !== null && day < f) return false;
+      if (tt !== null && day > tt) return false;
       return true;
     }
     default:
       return true;
   }
+}
+
+function inRange(placedAt: string, filters: Filters, now: Date): boolean {
+  return inDateRange(placedAt, filters.range, filters.from, filters.to, now);
 }
 
 /** Customer name (normalised), order number and phone (Latin digits) all match the query. */

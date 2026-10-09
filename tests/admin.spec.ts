@@ -643,3 +643,253 @@ test.describe("admin products", () => {
     await expect(page.getByRole("link", { name: "Back to products" })).toBeVisible();
   });
 });
+
+// ── Product analysis ──────────────────────────────────────────────────────────
+// Long flows on the desktop project. The far-future session opens the admin without signing in;
+// the sample orders are seeded by the shell on first visit.
+
+type FullLine = { slug: string; sku: string; qty: number; priceFils: number };
+type FullSample = { id: string; status: string; lines: FullLine[] };
+
+async function readSamplesFull(page: Page): Promise<FullSample[]> {
+  return page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem("ms-admin") || "{}");
+    return (raw.state?.samples ?? []) as FullSample[];
+  });
+}
+
+const paidSamples = (samples: FullSample[]) =>
+  samples.filter((o) => o.status === "paid" || o.status === "confirming");
+
+const section = (page: Page, slug: string) =>
+  page.locator(`[data-testid="analysis-section"][data-slug="${slug}"]`);
+const sectionRows = (page: Page, slug: string) =>
+  section(page, slug).locator('[data-testid="analysis-row"]');
+
+test.describe("admin product analysis", () => {
+  test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+
+  test("groups products by collection, with OUD in two collections and matching unit counts", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/analysis/");
+    await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
+    await expect(sectionRows(page, "oud")).toHaveCount(2);
+    await expect(sectionRows(page, "body")).toHaveCount(1);
+    await expect(sectionRows(page, "home")).toHaveCount(3);
+
+    const samples = paidSamples(await readSamplesFull(page));
+    expect(samples.length).toBe(30);
+    const unitsBySlug: Record<string, number> = {};
+    for (const o of samples) for (const l of o.lines) unitsBySlug[l.slug] = (unitsBySlug[l.slug] ?? 0) + l.qty;
+
+    // OUD is listed under both Perfumes and Oud, with the same (joined-by-slug) unit count.
+    const perfOud = section(page, "perfumes").locator('[data-testid="analysis-row"][data-slug="oud"]');
+    const oudOud = section(page, "oud").locator('[data-testid="analysis-row"][data-slug="oud"]');
+    await expect(perfOud).toHaveCount(1);
+    await expect(oudOud).toHaveCount(1);
+    const oudUnits = String(unitsBySlug["oud"] ?? 0);
+    expect(await perfOud.getAttribute("data-units")).toBe(oudUnits);
+    expect(await oudOud.getAttribute("data-units")).toBe(oudUnits);
+
+    // The "Also in" note names the OTHER collections relative to the section it sits in.
+    await expect(perfOud).toContainText("Also in Oud");
+    await expect(oudOud).toContainText("Also in Perfumes");
+
+    // Every product row shows exactly the sum of its sample line quantities.
+    for (const slug of Object.keys(unitsBySlug)) {
+      const row = page.locator(`[data-testid="analysis-row"][data-slug="${slug}"]`).first();
+      expect(await row.getAttribute("data-units"), slug).toBe(String(unitsBySlug[slug]));
+    }
+
+    // Section totals add up from their rows.
+    for (const slug of ["perfumes", "oud", "body", "home"]) {
+      const rows = sectionRows(page, slug);
+      const count = await rows.count();
+      let sum = 0;
+      for (let i = 0; i < count; i++) sum += Number(await rows.nth(i).getAttribute("data-units"));
+      const total = Number(await section(page, slug).getAttribute("data-units"));
+      expect(sum, slug).toBe(total);
+    }
+  });
+
+  test("search narrows to the matching products and a nonsense query shows the empty state", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/analysis/");
+    await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
+
+    const search = page.getByTestId("analysis-search");
+    await search.fill("oud");
+    // OUD (name + SKU) and Natural Oud Chips (name) only.
+    await expect.poll(() => sectionRows(page, "oud").count()).toBe(2);
+    await expect(section(page, "oud").locator('[data-testid="analysis-row"][data-slug="oud-chips"]')).toHaveCount(1);
+    await expect(section(page, "perfumes").locator('[data-testid="analysis-row"]')).toHaveCount(1);
+    await expect(section(page, "perfumes").locator('[data-testid="analysis-row"][data-slug="oud"]')).toHaveCount(1);
+
+    await search.fill("zzqqxx-nothing");
+    await expect(page.getByTestId("analysis-empty")).toBeVisible();
+    await expect(page.locator('[data-testid="analysis-section"]')).toHaveCount(0);
+  });
+
+  test("completed-only never raises units and the 7-day period never raises them either", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/analysis/");
+    await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
+
+    const samples = paidSamples(await readSamplesFull(page));
+    const admin = await readAdmin(page);
+    const doneIds = new Set(Object.keys(admin.fulfillment));
+    let expectedDoneUnits = 0;
+    for (const o of samples) {
+      if (o.status !== "paid" || !doneIds.has(o.id)) continue;
+      for (const l of o.lines) expectedDoneUnits += l.qty;
+    }
+
+    const allUnits = await readInt(page, "kpi-analysis-units-value");
+
+    await page.getByTestId("analysis-completed").check();
+    const doneUnits = await readInt(page, "kpi-analysis-units-value");
+    expect(doneUnits).toBeLessThanOrEqual(allUnits);
+    expect(doneUnits).toBe(expectedDoneUnits);
+
+    await page.getByTestId("analysis-completed").uncheck();
+    await page.getByLabel("Period").selectOption("7d");
+    const weekUnits = await readInt(page, "kpi-analysis-units-value");
+    expect(weekUnits).toBeLessThanOrEqual(allUnits);
+  });
+
+  test("a per-category export downloads an .xlsx that unzips to one of its products", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/analysis/");
+    await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByTestId("analysis-export-perfumes").click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^mystic-sand-perfumes-\d{4}-\d{2}-\d{2}\.xlsx$/);
+
+    const buf = fs.readFileSync((await download.path())!);
+    expect(buf.subarray(0, 2).toString("latin1")).toBe("PK");
+    const files = unzipSync(new Uint8Array(buf));
+    const xml = Object.entries(files)
+      .filter(([name]) => name.endsWith(".xml"))
+      .map(([, data]) => strFromU8(data))
+      .join("\n");
+    expect(xml).toContain("III"); // a Perfumes product
+  });
+
+  test("the all-collections export has a Summary, four collection sheets and All products", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/analysis/");
+    await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByTestId("analysis-export-all").click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^mystic-sand-products-\d{4}-\d{2}-\d{2}\.xlsx$/);
+
+    const buf = fs.readFileSync((await download.path())!);
+    const files = unzipSync(new Uint8Array(buf));
+    const workbook = strFromU8(files["xl/workbook.xml"]);
+    for (const name of ["Summary", "Perfumes", "Oud", "Body", "Home", "All products"]) {
+      expect(workbook, name).toContain(`name="${name}"`);
+    }
+  });
+
+  test("the Arabic analysis export is right-to-left", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/ar/admin/analysis/");
+    await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByTestId("analysis-export-all").click(),
+    ]);
+    const buf = fs.readFileSync((await download.path())!);
+    const files = unzipSync(new Uint8Array(buf));
+    const xml = Object.entries(files)
+      .filter(([name]) => name.includes("worksheets"))
+      .map(([, data]) => strFromU8(data))
+      .join("\n");
+    expect(xml).toContain('rightToLeft="1"');
+  });
+
+  test("a store product shows under its collection and an unknown slug goes to Removed", async ({ page }) => {
+    await signIn(page);
+    await page.addInitScript(() => {
+      const product = {
+        slug: "c-amber-analysis",
+        name: "Amber Analysis",
+        category: "body",
+        type: { en: "All Over Spray", ar: "بخاخ معطّر للجسم" },
+        tagline: { en: "A warm amber veil.", ar: "وشاح عنبري دافئ." },
+        description: { en: "A warm amber veil for skin.", ar: "وشاح عنبري دافئ للبشرة." },
+        howTo: { en: "Spray.", ar: "رشّ." },
+        variants: [{ sku: "MS-AMBAN", size: { en: "100 ml", ar: "100 مل" }, priceFils: 9500, stock: 5 }],
+        images: { card: "renders/aura", gallery: ["renders/aura"] },
+        related: [],
+        aliases: [],
+        todo: [],
+      };
+      localStorage.setItem(
+        "ms-catalog",
+        JSON.stringify({ state: { edits: { patches: {}, added: [product], categories: {} } }, version: 1 }),
+      );
+      const iso = new Date().toISOString();
+      const order = {
+        id: "MS-50002",
+        createdAt: iso,
+        locale: "en",
+        lines: [
+          { sku: "MS-AMBAN", slug: "c-amber-analysis", qty: 3, priceFils: 9500, name: "Amber Analysis", size: { en: "100 ml", ar: "100 مل" }, image: "renders/aura" },
+          { sku: "MS-GHOST", slug: "ghost-product", qty: 2, priceFils: 5000, name: "Ghosted Scent", size: { en: "50 ml", ar: "50 مل" }, image: "renders/aura" },
+        ],
+        totals: { itemCount: 5, subtotalFils: 38500, discountFils: 0, deliveryFils: 1000, totalFils: 39500 },
+        details: {
+          name: "Analysis Tester", phone: "99001122", email: "", areaId: "salmiya", housing: "house",
+          block: "1", street: "Street 1", avenue: "", building: "5", floor: "", apartment: "",
+          mapsLink: "", notes: "", deliveryMethod: "standard", paymentMethod: "knet", saveDetails: true,
+        },
+        promoCode: null,
+        bagKey: "MS-AMBANx3|standard|",
+        method: "knet",
+        status: "paid",
+        attempts: [
+          { method: "knet", result: "CAPTURED", paymentId: "100123456789012345", trackId: "MS-50002", tranId: "123456789012345", ref: "123456789012", auth: "123456", postDate: "1009", amountFils: 39500, at: iso },
+        ],
+        finalizedAt: iso,
+      };
+      localStorage.setItem(
+        "ms-checkout",
+        JSON.stringify({ state: { draft: {}, remembered: null, orders: { "MS-50002": order }, lastOrderId: "MS-50002" }, version: 2 }),
+      );
+    });
+
+    await page.goto("/en/admin/analysis/");
+    const bodyRow = section(page, "body").locator('[data-testid="analysis-row"][data-slug="c-amber-analysis"]');
+    await expect(bodyRow).toHaveCount(1);
+    expect(await bodyRow.getAttribute("data-units")).toBe("3");
+    await expect(bodyRow.getByText("Custom", { exact: true })).toBeVisible();
+
+    const removed = page.locator('[data-testid="analysis-removed-row"][data-slug="ghost-product"]');
+    await expect(removed).toHaveCount(1);
+    await expect(removed.getByText("Ghosted Scent")).toBeVisible();
+    expect(await removed.getAttribute("data-units")).toBe("2");
+  });
+
+  test("the analysis page opens without console errors in English and Arabic", async ({ page }) => {
+    await signIn(page);
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+    page.on("console", (m) => {
+      if (m.type() === "error") errors.push(`console: ${m.text()}`);
+    });
+    for (const url of ["/en/admin/analysis/", "/ar/admin/analysis/"]) {
+      await page.goto(url, { waitUntil: "networkidle" });
+      await expect(page.getByTestId("kpi-analysis-units-value")).toBeVisible();
+      await page.waitForTimeout(400);
+    }
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+});
