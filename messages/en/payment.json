@@ -1,1 +1,226 @@
-{}
+{
+  "meta": {
+    "payTitle": "Secure payment",
+    "resultTitle": "Payment result"
+  },
+  "gateway": {
+    "title": "Secure payment (simulation)",
+    "merchant": "Merchant",
+    "amount": "Amount",
+    "trackId": "Track ID",
+    "session": "Session ends in",
+    "sessionWarning": "One minute left in your payment session.",
+    "stepsLabel": "Payment steps",
+    "stepOf": "Step {current} of {total}",
+    "completed": "completed",
+    "cancel": "Cancel payment",
+    "secureNote": "Card details are entered only on your bank’s secure page — never on this website.",
+    "methodKnet": "Paying with KNET",
+    "methodCard": "Paying by card: Visa or Mastercard"
+  },
+  "steps": {
+    "bank": {
+      "label": "Bank",
+      "title": "Select your bank",
+      "text": "Choose the bank that issued your KNET card.",
+      "error": "Choose your bank to continue.",
+      "continue": "Continue"
+    },
+    "knetCard": {
+      "label": "Card details",
+      "title": "Card details",
+      "text": "On KNET’s page you enter your card number, expiry date and PIN. This demo never asks for them.",
+      "bank": "Bank",
+      "change": "Change",
+      "number": "Card number",
+      "expiry": "Expiry date",
+      "pin": "PIN",
+      "submit": "Submit"
+    },
+    "confirm": {
+      "label": "Confirm",
+      "title": "Confirm your payment",
+      "text": "Please review the details below, then confirm.",
+      "bank": "Bank",
+      "card": "Card",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "otp": {
+      "label": "SMS code",
+      "title": "Verification code",
+      "text": "{bank} has sent a six-digit code by SMS to the mobile number registered with your card.",
+      "yourBank": "Your bank",
+      "code": "Demo code",
+      "note": "On the real page you would type this code. Here it is shown for the demo — there is nothing to enter.",
+      "expires": "Code expires in",
+      "expired": "This code has expired. Request a new one to continue.",
+      "resend": "Send a new code",
+      "resent": "A new code has been sent.",
+      "confirm": "Confirm"
+    },
+    "card": {
+      "label": "Card details",
+      "title": "Pay by card",
+      "text": "On your bank’s secure page you enter your card number, expiry date and security code. This demo never asks for them.",
+      "number": "Card number",
+      "expiry": "Expiry date",
+      "cvv": "Security code",
+      "pay": "Pay <price>{amount}</price>"
+    },
+    "secure": {
+      "label": "Verification",
+      "title": "Verify it’s you",
+      "text": "Your bank confirms card payments with 3-D Secure — a one-time code or an approval in its app.",
+      "request": "Approve a payment of <price>{amount}</price> to <brand>Mystic Sand</brand>?",
+      "note": "In this demo nothing is sent to your phone — simply approve.",
+      "approve": "Approve",
+      "cancel": "Cancel"
+    },
+    "processing": {
+      "title": "Processing your payment",
+      "text": "Please keep this page open — this only takes a moment."
+    }
+  },
+  "demo": {
+    "title": "Demo controls",
+    "hint": "Choose how this simulated payment ends. KNET’s real page has no such controls.",
+    "legend": "Payment result",
+    "captured": "Approved — the amount is captured",
+    "notCaptured": "Declined by the bank",
+    "canceled": "Cancelled by the shopper",
+    "pending": "Confirmed by the bank a few seconds later"
+  },
+  "fields": {
+    "title": "Payment details",
+    "result": "Result",
+    "paymentId": "Payment ID",
+    "tranId": "Transaction ID",
+    "trackId": "Track ID",
+    "ref": "Reference No.",
+    "auth": "Auth code",
+    "postDate": "Post date",
+    "amount": "Amount",
+    "method": "Method",
+    "dateTime": "Date & time"
+  },
+  "status": {
+    "captured": "Paid",
+    "notCaptured": "Not paid",
+    "canceled": "Cancelled",
+    "pending": "Awaiting confirmation"
+  },
+  "methods": {
+    "knet": "KNET",
+    "card": "Card",
+    "applepay": "Apple Pay"
+  },
+  "success": {
+    "title": "Thank you, <bdi>{name}</bdi>",
+    "titleNoName": "Thank you",
+    "confirmed": "Your order <bdi>{id}</bdi> is confirmed",
+    "text": "Your payment has been received, and your order is being prepared with care.",
+    "announce": "Payment successful. Order {id} is confirmed.",
+    "deliveryStandard": "Standard delivery · arriving {day}",
+    "deliveryExpress": "Express delivery · {hours, plural, one {within an hour} other {within {hoursText} hours}}, by {time}",
+    "actions": "Order actions",
+    "print": "Print / save invoice",
+    "share": "Share on WhatsApp",
+    "continue": "Continue shopping",
+    "shareText": "Mystic Sand — order {id}\n{lines}\nTotal: {total}\nPaid with {method} · Ref. {ref}"
+  },
+  "timeline": {
+    "label": "Order status",
+    "confirmed": "Confirmed",
+    "preparing": "Preparing",
+    "shipped": "Out for delivery",
+    "delivered": "Delivered"
+  },
+  "summary": {
+    "title": "Order summary",
+    "qty": "Qty {qty}",
+    "subtotal": "Subtotal",
+    "discount": "Discount ({code})",
+    "discountNoCode": "Discount",
+    "delivery": "Delivery",
+    "giftWrap": "Gift wrapping",
+    "total": "Total"
+  },
+  "delivery": {
+    "title": "Delivery",
+    "address": "Delivery address",
+    "method": "Delivery method",
+    "standard": "Standard delivery",
+    "express": "Express delivery",
+    "block": "Block",
+    "street": "Street",
+    "avenue": "Avenue",
+    "house": "House",
+    "building": "Building",
+    "floor": "Floor",
+    "apartment": "Apartment",
+    "office": "Office",
+    "notes": "Notes for the driver",
+    "map": "Open the location in Maps"
+  },
+  "gift": {
+    "title": "Gift",
+    "wrap": "Gift wrapping",
+    "to": "For",
+    "phone": "Recipient’s mobile",
+    "message": "Gift message",
+    "hidePrices": "Prices won’t appear in the package"
+  },
+  "failed": {
+    "title": "Payment not completed",
+    "declined": "Your bank didn’t approve the payment.",
+    "canceled": "You cancelled the payment.",
+    "timeout": "Your secure payment session timed out.",
+    "awaiting": "This order is still waiting for payment.",
+    "reassurance": "You have not been charged. Your bag and details are saved.",
+    "order": "Order <bdi>{id}</bdi>",
+    "retryKnet": "Try again with KNET",
+    "retryCard": "Try again with card",
+    "otherMethod": "Choose another payment method",
+    "help": "Need a hand? WhatsApp us",
+    "helpText": "Hello Mystic Sand, I need help paying for order {id}."
+  },
+  "pending": {
+    "title": "Confirming with your bank…",
+    "text": "Your bank is confirming the payment. This usually takes a few seconds — please keep this page open.",
+    "status": "Waiting for your bank’s confirmation"
+  },
+  "notFound": {
+    "title": "We can’t find this order on this device",
+    "order": "Order number",
+    "text": "Orders are saved in the browser they were placed from. WhatsApp us with the order number and we’ll look it up for you.",
+    "textNoId": "WhatsApp us and we’ll help you find your order.",
+    "whatsapp": "WhatsApp us",
+    "whatsappText": "Hello Mystic Sand, I’m asking about order {id}.",
+    "whatsappTextNoId": "Hello Mystic Sand, I need help with an order.",
+    "shop": "Back to the shop"
+  },
+  "invoice": {
+    "title": "Invoice",
+    "demo": "Demo copy — simulated payment",
+    "cr": "Commercial registration",
+    "orderNo": "Order No.",
+    "date": "Date",
+    "customer": "Customer",
+    "address": "Delivery address",
+    "deliveryMethod": "Delivery",
+    "item": "Item",
+    "qty": "Qty",
+    "unitPrice": "Unit price",
+    "amount": "Amount",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "delivery": "Delivery fee",
+    "giftWrap": "Gift wrapping",
+    "free": "Free",
+    "total": "Total",
+    "currency": "Amounts in Kuwaiti dinars (KWD)",
+    "payment": "Payment",
+    "footer": "Thank you for choosing Mystic Sand. Unopened items may be returned within {days, plural, one {{daysText} day} other {{daysText} days}}."
+  }
+}

@@ -1,1 +1,398 @@
-{}
+{
+  "shared": {
+    "lastUpdated": "Last updated {date}",
+    "date": "8 October 2026",
+    "draftTitle": "Draft for review by Mystic Sand",
+    "draftText": "This page is a working draft. Fees, timings, company and contact details must be confirmed by Mystic Sand, and the text reviewed by a qualified legal adviser in Kuwait before launch.",
+    "contents": "On this page",
+    "questionsTitle": "Questions?",
+    "questionsText": "We’re happy to help with anything in this policy — just send us a message.",
+    "whatsapp": "Chat on WhatsApp",
+    "whatsappMessage": "Hello Mystic Sand, I have a question about your policies.",
+    "newTab": "opens in a new tab",
+    "related": "Related pages",
+    "faq": "Frequently asked questions"
+  },
+  "terms": {
+    "meta": {
+      "title": "Terms & conditions",
+      "description": "The terms that apply when you use the Mystic Sand website and shop with us in Kuwait."
+    },
+    "eyebrow": "Legal",
+    "title": "Terms & conditions",
+    "intro": "Welcome to Mystic Sand. These terms explain how you can use this website and buy from us. By placing an order, you agree to them, so please read them carefully. If anything is unclear, <contact>contact us</contact> and we’ll be happy to help.",
+    "sections": {
+      "seller": {
+        "title": "Who we are",
+        "body": [
+          "This website is operated by {tradeName}, a company registered in the State of Kuwait under commercial registration {cr}. Mystic Sand is our trade name.",
+          "You can reach us on <whatsapp>WhatsApp</whatsapp>, by phone on <tel>{phone}</tel> or by email at <mail>{email}</mail>."
+        ]
+      },
+      "using": {
+        "title": "Using this website",
+        "body": [
+          "You may use this website to browse our products and to place orders for personal use. To buy from us, you must be at least 18 years old, or have the consent of a parent or guardian.",
+          "Please give accurate details when you order — especially your name, mobile number and delivery address — so we can deliver your order and contact you about it.",
+          "You agree not to misuse the website, for example by trying to access it without permission or by interfering with how it works."
+        ]
+      },
+      "products": {
+        "title": "Our products",
+        "body": [
+          "We describe our fragrances as accurately as we can. Photographs are for illustration, and colours, packaging and labels may differ slightly from what you see on screen.",
+          "Fragrance notes describe the character of each scent; they are not a list of ingredients. Our products contain alcohol and aromatic ingredients. If your skin is sensitive, test a small amount first, and stop using a product if irritation occurs.",
+          "Perfumes and room sprays are flammable. Keep them away from heat, flames and direct sunlight, and out of the reach of children."
+        ]
+      },
+      "prices": {
+        "title": "Prices and payment",
+        "body": [
+          "All prices are shown in Kuwaiti Dinar (KWD) and are the final prices you pay for the products. Any delivery fee is shown separately in your bag and at checkout, and the full total, including delivery, is shown before you pay. There are no hidden charges.",
+          "You can pay with KNET, Apple Pay, or a Visa or Mastercard card. Payments are processed securely by our licensed payment provider: your card number, PIN and verification codes are entered only on KNET’s or the provider’s secure page. We never see or store your card details.",
+          "We don’t charge an extra fee for any payment method.",
+          "If a product is listed at an incorrect price because of an obvious error, we’ll contact you before dispatch. You can then confirm the order at the correct price or cancel it for a full refund."
+        ]
+      },
+      "orders": {
+        "title": "Your order",
+        "body": [
+          "Your order is confirmed once your payment is successful. You’ll see a confirmation page with your order number (for example MS-10234), and we may also confirm it by WhatsApp or SMS.",
+          "We issue an invoice for every order, in Arabic and English.",
+          "We may cancel an order if a product is unavailable, if we can’t deliver to the address given, or if we suspect fraud. If we do, we’ll tell you and refund the full amount to your original payment method."
+        ]
+      },
+      "delivery": {
+        "title": "Delivery",
+        "body": [
+          "We deliver within the State of Kuwait only. Fees, timings and options are explained in our <delivery>delivery policy</delivery>. Responsibility for your order passes to you once it has been delivered to the address you gave us."
+        ]
+      },
+      "returns": {
+        "title": "Returns, exchanges and refunds",
+        "body": [
+          "You can return or exchange unopened items within {returnsWindow} of delivery, and faulty or incorrect items are always replaced or refunded in full. All the details are in our <returns>returns & exchange policy</returns>."
+        ]
+      },
+      "gifts": {
+        "title": "Gift orders",
+        "body": [
+          "When you send a gift, you confirm that the recipient is happy for you to share their name, mobile number and address with us for delivery. Prices are not shown on gift orders unless you choose otherwise."
+        ]
+      },
+      "promotions": {
+        "title": "Promotions and codes",
+        "body": [
+          "Promotional codes are valid for a limited time, can’t be exchanged for cash and can’t be combined unless we say otherwise. One code can be used per order."
+        ]
+      },
+      "ip": {
+        "title": "Intellectual property",
+        "body": [
+          "The Mystic Sand name, the hourglass emblem, our photographs, films and all other content on this website belong to us or are used with permission. They may not be copied or used without our written consent."
+        ]
+      },
+      "liability": {
+        "title": "Our responsibility to you",
+        "body": [
+          "We are responsible for delivering products that match their description and are fit for use. We are not responsible for losses that were not foreseeable, or for delays caused by events beyond our reasonable control, such as severe weather or public emergencies.",
+          "Nothing in these terms limits your rights as a consumer under the laws of the State of Kuwait."
+        ]
+      },
+      "law": {
+        "title": "Governing law and language",
+        "body": [
+          "These terms are governed by the laws of the State of Kuwait, and the courts of Kuwait have jurisdiction over any dispute. We always aim to resolve any concern directly and amicably first, so please <contact>contact us</contact>.",
+          "These terms are available in Arabic and English. If there is any difference between the two, the Arabic version prevails."
+        ]
+      },
+      "changes": {
+        "title": "Changes to these terms",
+        "body": [
+          "We may update these terms from time to time. The version that applies to your order is the one published on this website when you place it."
+        ]
+      }
+    }
+  },
+  "privacy": {
+    "meta": {
+      "title": "Privacy policy",
+      "description": "How Mystic Sand collects, uses and protects your personal information when you shop with us."
+    },
+    "eyebrow": "Legal",
+    "title": "Privacy policy",
+    "intro": "Your privacy matters to us. This policy explains what information we collect when you visit our website or shop with us, why we collect it and how we keep it safe. In short: we only use your details to look after your order and your questions, and we never sell them.",
+    "sections": {
+      "controller": {
+        "title": "Who is responsible for your data",
+        "body": [
+          "{tradeName} (“Mystic Sand”, “we”) is responsible for the personal information described in this policy. You can contact us about privacy at any time by email at <mail>{email}</mail> or on <whatsapp>WhatsApp</whatsapp>."
+        ]
+      },
+      "collect": {
+        "title": "What we collect",
+        "body": [
+          "When you place an order, we collect:",
+          {
+            "list": [
+              "Your name, your mobile number and, if you choose to give it, your email address.",
+              "Your delivery address — area, block, street, avenue, house or building, floor and apartment — and any directions or map link you add.",
+              "Gift details, such as the recipient’s name and mobile number, and your message.",
+              "What you ordered, the amount paid and your delivery choice."
+            ]
+          },
+          "When you contact us or sign up for our newsletter, we collect the details you share with us, such as your name, mobile number, email address and message."
+        ]
+      },
+      "payments": {
+        "title": "Payment information",
+        "body": [
+          "Payments are handled by our licensed payment provider, together with KNET and the card networks. Your card number, expiry date, PIN and bank verification codes are entered only on their secure pages. They never reach us, and we never store them.",
+          "We receive only the result of your payment and its reference numbers (such as the payment ID, transaction ID and authorisation code), which we keep with your order."
+        ]
+      },
+      "use": {
+        "title": "How we use your information",
+        "body": [
+          {
+            "list": [
+              "To process, prepare and deliver your order, and to contact you about it by WhatsApp, SMS or phone.",
+              "To handle returns, exchanges and refunds, and to answer your questions.",
+              "To issue invoices and meet our legal and accounting obligations.",
+              "To prevent fraud and keep our website secure.",
+              "With your consent, to send you news and offers. You can unsubscribe at any time."
+            ]
+          }
+        ]
+      },
+      "never": {
+        "title": "What we never do",
+        "body": [
+          "We never sell or rent your personal information, and we don’t share it with anyone for their own marketing."
+        ]
+      },
+      "share": {
+        "title": "Who we share it with",
+        "body": [
+          "We share only what is needed, with trusted partners who help us run our service:",
+          {
+            "list": [
+              "Delivery partners, who receive your name, mobile number and address to deliver your order.",
+              "Our payment provider, KNET and the banks, to process payments and refunds.",
+              "Technology providers who host our website and systems."
+            ]
+          },
+          "We may also disclose information when the law requires it, for example to the competent authorities in Kuwait."
+        ]
+      },
+      "device": {
+        "title": "Information stored on your device",
+        "body": [
+          "This website uses your browser’s local storage — not advertising cookies — to make shopping easier. It remembers:",
+          {
+            "list": [
+              "Your shopping bag, so it’s still there when you come back.",
+              "Your checkout details, if you choose to save them. They stay on your device only.",
+              "Your recent orders, so you can find them under <orders>My orders</orders>.",
+              "Your language preference."
+            ]
+          },
+          "You can clear this information at any time by deleting this site’s data in your browser settings."
+        ]
+      },
+      "security": {
+        "title": "How we protect your information",
+        "body": [
+          "Our website uses a secure, encrypted connection (HTTPS). Access to customer information is limited to the people who need it to serve you, and payments are processed by a provider that meets international card-security standards (PCI DSS)."
+        ]
+      },
+      "retention": {
+        "title": "How long we keep it",
+        "body": [
+          "We keep order information for as long as we need it to deliver your order and provide after-sales service, and for as long as the law requires us to keep records such as invoices. Newsletter details are kept until you unsubscribe."
+        ]
+      },
+      "rights": {
+        "title": "Your choices and rights",
+        "body": [
+          "You can ask us at any time to see the personal information we hold about you, to correct it or to delete it, unless the law requires us to keep it. You can also opt out of marketing messages whenever you like. Just <contact>contact us</contact>."
+        ]
+      },
+      "children": {
+        "title": "Children",
+        "body": [
+          "Our website is not intended for children under 18, and we don’t knowingly collect their personal information."
+        ]
+      },
+      "changes": {
+        "title": "Changes to this policy",
+        "body": [
+          "We may update this policy from time to time. We’ll always publish the latest version here, with the date it was last updated."
+        ]
+      }
+    }
+  },
+  "refund": {
+    "meta": {
+      "title": "Returns & exchange",
+      "description": "Returns, exchanges and refunds at Mystic Sand: what can be returned, how to start a return and how refunds work in Kuwait."
+    },
+    "eyebrow": "Customer care",
+    "title": "Returns & exchange",
+    "intro": "We want you to love every Mystic Sand fragrance. If something isn’t right, you can return or exchange it within {returnsWindow} of delivery. Here’s how it works.",
+    "sections": {
+      "promise": {
+        "title": "Our returns promise",
+        "body": [
+          "You can return or exchange any product within {returnsWindow} of delivery, as long as it is:",
+          {
+            "list": [
+              "Unopened and unused, with its cellophane and seal intact.",
+              "In its original box and packaging.",
+              "Returned with your order number."
+            ]
+          }
+        ]
+      },
+      "exceptions": {
+        "title": "What we can’t accept",
+        "body": [
+          "For hygiene and safety reasons, we can’t accept returns of:",
+          {
+            "list": [
+              "Fragrances that have been opened, sprayed or used.",
+              "Oud chips once their packaging has been opened.",
+              "Products without their original box or packaging."
+            ]
+          },
+          "This doesn’t apply to faulty or incorrect items — see below."
+        ]
+      },
+      "faulty": {
+        "title": "Damaged, faulty or incorrect items",
+        "body": [
+          "If your order arrives damaged, faulty or not as ordered, please send us a photo on <whatsapp>WhatsApp</whatsapp> within 48 hours of delivery. We’ll collect the item and replace it, or refund you in full — including the delivery fee — at no cost to you."
+        ]
+      },
+      "how": {
+        "title": "How to return or exchange",
+        "body": [
+          {
+            "list": [
+              "Message us on <whatsapp>WhatsApp</whatsapp> or call <tel>{phone}</tel> with your order number and the item you’d like to return or exchange.",
+              "We’ll arrange a convenient time to collect it from your address in Kuwait.",
+              "Once it reaches us, we’ll check the item and confirm your refund or exchange within two working days."
+            ]
+          }
+        ]
+      },
+      "exchanges": {
+        "title": "Exchanges",
+        "body": [
+          "You can exchange an item for another product of the same or a different value. If the new item costs more, you pay the difference; if it costs less, we refund the difference to your original payment method."
+        ]
+      },
+      "refunds": {
+        "title": "Refunds",
+        "body": [
+          "Approved refunds are made to your original payment method — your KNET card, Apple Pay or credit card — for the price of the returned items. We can’t refund in cash or to a different card.",
+          "Banks usually take 5 to 10 working days to show a refund on your statement.",
+          "For change-of-mind returns, the original delivery fee is not refunded. If the item was faulty or incorrect, we refund the delivery fee too."
+        ]
+      },
+      "cancel": {
+        "title": "Cancelling an order",
+        "body": [
+          "You can cancel your order free of charge until it leaves us — simply message us with your order number. Once it is on its way, it can be returned under this policy."
+        ]
+      },
+      "gifts": {
+        "title": "Gifts",
+        "body": [
+          "Gift recipients can exchange unopened items within {returnsWindow} of delivery. Refunds are always made to the person who paid for the order."
+        ]
+      },
+      "rights": {
+        "title": "Your rights",
+        "body": [
+          "This policy does not affect your rights as a consumer under the laws of the State of Kuwait."
+        ]
+      }
+    }
+  },
+  "delivery": {
+    "meta": {
+      "title": "Delivery",
+      "description": "Delivery fees and timings across Kuwait, express delivery and gift deliveries from Mystic Sand."
+    },
+    "eyebrow": "Customer care",
+    "title": "Delivery",
+    "intro": "We deliver across Kuwait, carefully packed and on time. The delivery fee and the total you pay are always shown before payment — no surprises.",
+    "sections": {
+      "areas": {
+        "title": "Where we deliver",
+        "body": [
+          "We deliver to every area of Kuwait, across all six governorates: Capital, Hawalli, Farwaniya, Mubarak Al-Kabeer, Ahmadi and Jahra. We don’t ship outside Kuwait at the moment."
+        ]
+      },
+      "options": {
+        "title": "Delivery options and fees",
+        "body": [
+          {
+            "table": {
+              "head": ["Option", "Fee", "Delivery time"],
+              "rows": [
+                ["Standard", "{standardFee} — free on orders of {freeOver} or more", "Arrives {standardWhen}"],
+                ["Express", "{expressFee}", "Within {expressWindow} of ordering, for orders placed between {opens} and {lastOrder} (from {fridayOpens} on Fridays)"]
+              ]
+            }
+          },
+          "Free standard delivery applies when your products total {freeOver} or more after any discount."
+        ]
+      },
+      "price": {
+        "title": "The price you pay",
+        "body": [
+          "The fee for your chosen delivery option is shown in your bag and at checkout, and the full total — products plus delivery — is shown before you pay. Nothing more is charged on delivery."
+        ]
+      },
+      "express": {
+        "title": "Express delivery hours",
+        "body": [
+          "Express delivery is available every day from {opens} until {lastOrder} (from {fridayOpens} on Fridays). Outside these hours, checkout shows when express delivery will be available again, and standard delivery stays open.",
+          "During public holidays such as Eid, and in exceptional circumstances, delivery may take longer. We’ll always let you know."
+        ]
+      },
+      "address": {
+        "title": "Your address",
+        "body": [
+          "A complete address helps our drivers find you quickly. At checkout, please give your area, block, street, avenue (if any) and house or building number — and for apartments and offices, the floor and apartment or office number. A Google Maps link or a short note for the driver is always welcome."
+        ]
+      },
+      "receiving": {
+        "title": "Receiving your order",
+        "body": [
+          "Our driver will call or message you on your mobile number before arriving. If we can’t reach you, we’ll try again on the next working day; after two unsuccessful attempts, we’ll contact you to arrange a new time."
+        ]
+      },
+      "gifts": {
+        "title": "Gift deliveries",
+        "body": [
+          "Sending a gift? Add the recipient’s details at checkout. Prices are not included with gift orders unless you choose otherwise, and our driver will contact the recipient to arrange delivery."
+        ]
+      },
+      "tracking": {
+        "title": "Following your order",
+        "body": [
+          "After payment, you’ll see your order number on the confirmation page, and we’ll keep you updated on WhatsApp. You can also find your recent orders under <orders>My orders</orders> on the same device."
+        ]
+      },
+      "damage": {
+        "title": "Damaged on arrival",
+        "body": [
+          "Please check your order when it arrives. If anything is damaged, send us a photo on <whatsapp>WhatsApp</whatsapp> within 48 hours and we’ll put it right — see our <returns>returns & exchange policy</returns>."
+        ]
+      }
+    }
+  }
+}

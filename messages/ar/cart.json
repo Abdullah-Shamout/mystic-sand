@@ -1,7 +1,12 @@
 {
+  "meta": {
+    "title": "حقيبة التسوق"
+  },
   "title": "حقيبة التسوق",
   "titleWithCount": "حقيبة التسوق ({count})",
   "pageTitle": "حقيبة التسوق",
+  "summaryTitle": "ملخص الطلب",
+  "freeDeliveryLabel": "التقدم نحو التوصيل المجاني",
   "empty": "حقيبة التسوق فارغة",
   "emptyText": "اكتشف عطوراً خالدة تأسر اللحظة.",
   "continue": "متابعة التسوق",

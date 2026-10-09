@@ -26,6 +26,8 @@ export const ApplePayLogo = (p: { className?: string; label?: string }) => (
   <SimpleIconSvg icon={siApplepay} className={cn("h-11 w-auto", p.className)} label={p.label ?? "Apple Pay"} />
 );
 
+const METHOD_NAMES = { knet: "KNET", applepay: "Apple Pay", visa: "Visa", mastercard: "Mastercard" } as const;
+
 /** Payment marks: KNET as a neutral text badge (official artwork comes from the acquiring bank). */
 export function PaymentMarks({
   className,
@@ -41,7 +43,10 @@ export function PaymentMarks({
     tone === "dark" ? "border-cream/30 bg-cream text-ink" : "border-line bg-paper text-ink",
   );
   return (
-    <ul className={cn("flex flex-wrap items-center gap-1.5", className)} aria-label="KNET, Apple Pay, Visa, Mastercard">
+    <ul
+      className={cn("flex flex-wrap items-center gap-1.5", className)}
+      aria-label={methods.map((m) => METHOD_NAMES[m]).join(", ")}
+    >
       {methods.includes("knet") && (
         <li className={box}>
           <span className="text-[10px] font-semibold tracking-[0.12em]">KNET</span>

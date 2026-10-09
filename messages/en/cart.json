@@ -1,7 +1,12 @@
 {
+  "meta": {
+    "title": "Your bag"
+  },
   "title": "Bag",
   "titleWithCount": "Bag ({count})",
   "pageTitle": "Your bag",
+  "summaryTitle": "Order summary",
+  "freeDeliveryLabel": "Progress towards free delivery",
   "empty": "Your bag is empty",
   "emptyText": "Discover timeless scents that capture the moment.",
   "continue": "Continue shopping",

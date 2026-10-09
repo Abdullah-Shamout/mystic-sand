@@ -1,1 +1,216 @@
-{}
+{
+  "meta": {
+    "title": "Checkout"
+  },
+  "title": "Checkout",
+  "optional": "Optional",
+  "loading": "Preparing your checkout…",
+  "express": {
+    "title": "Express checkout",
+    "applePay": "Pay with Apple Pay",
+    "or": "or pay with KNET or card",
+    "instagramHint": "Apple Pay isn’t available inside Instagram — open this page in Safari to use it."
+  },
+  "returning": {
+    "title": "Deliver to",
+    "change": "Change",
+    "changeLabel": "Change your contact and delivery details"
+  },
+  "contact": {
+    "legend": "Contact",
+    "name": "Full name",
+    "phone": "Mobile number",
+    "phoneHint": "8 digits. The courier will call this number on delivery.",
+    "email": "Email",
+    "emailHint": "For your receipt and delivery updates."
+  },
+  "address": {
+    "legend": "Delivery address",
+    "intro": "We deliver to every area in Kuwait.",
+    "area": "Area",
+    "areaPlaceholder": "Search your area, e.g. Salmiya",
+    "areaHint": "Type in English or Arabic.",
+    "areaList": "Areas in Kuwait",
+    "areaNoResults": "No area matches “{query}”.",
+    "areaResults": "{count, plural, =0 {No areas found} one {# area found} other {# areas found}}",
+    "areaSelected": "{name} selected",
+    "governorate": "Governorate: {name}",
+    "housing": "Type of address",
+    "house": "House",
+    "apartment": "Apartment",
+    "office": "Office",
+    "block": "Block",
+    "street": "Street",
+    "avenue": "Avenue (Jadda)",
+    "houseNo": "House no.",
+    "buildingNo": "Building no.",
+    "floor": "Floor",
+    "apartmentNo": "Apartment no.",
+    "officeNo": "Office no.",
+    "mapsLink": "Google Maps link",
+    "mapsHint": "Paste your location pin to help the driver find you.",
+    "notes": "Notes for the driver",
+    "notesPlaceholder": "e.g. Please call when you arrive"
+  },
+  "format": {
+    "block": "Block {value}",
+    "street": "Street {value}",
+    "avenue": "Avenue {value}",
+    "house": "House {value}",
+    "building": "Building {value}",
+    "floor": "Floor {value}",
+    "apartment": "Apt. {value}",
+    "office": "Office {value}",
+    "separator": ", ",
+    "country": "Kuwait"
+  },
+  "delivery": {
+    "legend": "Delivery method",
+    "standard": "Standard delivery",
+    "standardTomorrow": "Arrives tomorrow, {day}",
+    "standardOn": "Arrives {day}",
+    "freeOver": "Free on orders over {amount}",
+    "express": "2-hour express",
+    "expressOpen": "Delivered within 2 hours — order within {time}",
+    "expressLaterToday": "Available today from {time}",
+    "expressTomorrow": "Available from {time} tomorrow",
+    "checking": "Checking today’s schedule…",
+    "expressClosed": "Express delivery has just closed for today, so we’ve switched your order to standard delivery."
+  },
+  "gift": {
+    "legend": "Gift",
+    "toggle": "This order is a gift",
+    "toggleNote": "Add a personal message and we’ll send it beautifully wrapped.",
+    "wrap": "Complimentary gift wrapping",
+    "wrapNote": "Our sand-coloured box, tied with a ribbon.",
+    "recipient": "Recipient’s name",
+    "recipientPhone": "Recipient’s mobile",
+    "recipientPhoneHint": "Only used if the courier needs directions.",
+    "message": "Gift message",
+    "messagePlaceholder": "A few words, handwritten on our card.",
+    "counter": "{count} of {max} characters",
+    "occasions": "Choose an occasion",
+    "insert": "Add “{text}” to the message",
+    "eid": "Eid Mubarak",
+    "ramadan": "Ramadan Kareem",
+    "birthday": "Happy birthday",
+    "congrats": "Congratulations",
+    "thanks": "Thank you",
+    "hidePrices": "Hide prices on the packing slip",
+    "hidePricesNote": "Your receipt reaches you by SMS and email instead."
+  },
+  "payment": {
+    "legend": "Payment",
+    "knet": "KNET",
+    "knetNote": "Debit card — you’ll be redirected to KNET",
+    "applePay": "Apple Pay",
+    "applePayNote": "Confirm with Face ID or Touch ID",
+    "card": "Credit / debit card",
+    "cardNote": "Visa and Mastercard, protected by 3-D Secure",
+    "nextKnet": "Next: enter your card number, PIN and your bank’s SMS code on KNET’s secure page.",
+    "nextCard": "Next: enter your card details and your bank’s verification code on the secure payment page.",
+    "nextApplePay": "Next: confirm the payment in the Apple Pay sheet.",
+    "save": "Save my details for next time",
+    "saveNote": "Kept on this device only, so your next order takes seconds.",
+    "terms": "I agree to the <terms>Terms & conditions</terms> and the <refund>Refund policy</refund>.",
+    "newTab": "(opens in a new tab)",
+    "pay": "Pay",
+    "secure": "Payments are processed by KNET and your bank. We never see your card details."
+  },
+  "summary": {
+    "title": "Order summary",
+    "show": "Show order summary",
+    "hide": "Hide order summary",
+    "edit": "Edit bag",
+    "qty": "Qty {qty}",
+    "deliveryStandard": "Delivery · Standard",
+    "deliveryExpress": "Delivery · Express",
+    "giftWrap": "Gift wrapping",
+    "complimentary": "Complimentary",
+    "finalNote": "Final price, including delivery. No hidden fees."
+  },
+  "promo": {
+    "toggle": "Have a code?",
+    "label": "Promo code",
+    "apply": "Apply",
+    "off": "{percent}% off",
+    "remove": "Remove code {code}",
+    "removed": "Code removed"
+  },
+  "errors": {
+    "summary": "{count, plural, one {Please check one detail} other {Please check # details}}",
+    "nameRequired": "Please enter your full name.",
+    "phoneRequired": "Please enter your mobile number.",
+    "phoneInvalid": "Please enter an 8-digit Kuwaiti mobile number.",
+    "phoneLandline": "Please use a mobile number — the courier will call it.",
+    "emailInvalid": "Please check your email address.",
+    "areaRequired": "Please choose your area from the list.",
+    "blockRequired": "Please enter the block number.",
+    "streetRequired": "Please enter the street name or number.",
+    "buildingRequired": "Please enter the house or building number.",
+    "floorRequired": "Please enter the floor.",
+    "apartmentRequired": "Please enter the apartment or office number.",
+    "termsRequired": "Please accept the terms to continue.",
+    "tooLong": "This is a little too long — please shorten it.",
+    "generic": "Please check this field."
+  },
+  "unavailable": {
+    "title": "Some items in your bag are no longer available.",
+    "action": "Review your bag"
+  },
+  "redirect": {
+    "knet": "Redirecting you to KNET’s secure page…",
+    "card": "Redirecting you to the secure payment page…",
+    "amount": "Amount to pay",
+    "dontClose": "Please don’t close this page."
+  },
+  "applePay": {
+    "dialogTitle": "Apple Pay",
+    "simulation": "Simulation",
+    "card": "Card",
+    "cardValue": "KNET Debit",
+    "shipTo": "Ship to",
+    "delivery": "Delivery",
+    "standard": "Standard",
+    "express": "Express, within 2 hours",
+    "contact": "Contact",
+    "subtotal": "Subtotal",
+    "payTo": "Pay {merchant}",
+    "confirm": "Confirm with Side Button",
+    "processing": "Processing…",
+    "done": "Done",
+    "terms": "By paying, you agree to our Terms & conditions and Refund policy."
+  },
+  "empty": {
+    "title": "Your bag is empty",
+    "text": "Choose a scent to begin — your details will be waiting for you here.",
+    "cta": "Start with the Trilogy",
+    "lastOrder": "View your last order {id}"
+  },
+  "orders": {
+    "meta": {
+      "title": "My orders"
+    },
+    "title": "My orders",
+    "note": "Orders placed on this device are listed here.",
+    "emptyTitle": "No orders yet",
+    "emptyText": "Once you check out, your orders and their receipts will be waiting for you here.",
+    "cta": "Discover the collection",
+    "placed": "Placed {date}",
+    "view": "View order",
+    "viewLabel": "View order {id}",
+    "items": "{count, plural, one {# item} other {# items}}",
+    "statuses": {
+      "paid": "Paid",
+      "pending": "Payment pending",
+      "failed": "Not completed",
+      "canceled": "Cancelled",
+      "confirming": "Confirming"
+    },
+    "methods": {
+      "knet": "KNET",
+      "applepay": "Apple Pay",
+      "card": "Card"
+    }
+  }
+}

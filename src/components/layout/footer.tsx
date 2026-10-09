@@ -23,7 +23,7 @@ function FooterColumn({ column }: { column: Column }) {
   return (
     <>
       {/* Mobile: accordion */}
-      <details className="group border-b border-cream/20 md:hidden">
+      <details className="group border-b border-cream/20 lg:hidden">
         <summary className="caps flex min-h-14 cursor-pointer list-none items-center justify-between text-[15px] [&::-webkit-details-marker]:hidden">
           {column.title}
           <span aria-hidden className="text-xl leading-none group-open:hidden">
@@ -36,7 +36,7 @@ function FooterColumn({ column }: { column: Column }) {
         <div className="pb-5">{links}</div>
       </details>
       {/* Desktop */}
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <h2 className="caps mb-5 text-[15px]">{column.title}</h2>
         {links}
       </div>
@@ -83,11 +83,11 @@ export async function Footer() {
   return (
     <footer className="bg-racing text-cream">
       <div className="mx-auto max-w-[1720px] px-6 pt-16 pb-6 md:pt-[90px]">
-        <div className="grid gap-10 md:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))_minmax(0,1.4fr)] md:gap-8">
-          <div className="space-y-5 text-center md:text-start">
-            <Logo variant="full" className="mx-auto h-16 w-auto text-cream md:mx-0" title={t("brand")} />
-            <p className="mx-auto max-w-xs text-[14px] font-light text-cream/85 md:mx-0">{t("footer.tagline")}</p>
-            <div className="flex items-center justify-center gap-1 md:justify-start">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))_minmax(0,1.4fr)] lg:gap-8">
+          <div className="space-y-5 text-center lg:text-start">
+            <Logo variant="full" className="mx-auto h-16 w-auto text-cream lg:mx-0" title={t("brand")} />
+            <p className="mx-auto max-w-xs text-[14px] font-light text-cream/85 lg:mx-0">{t("footer.tagline")}</p>
+            <div className="flex items-center justify-center gap-1 lg:justify-start">
               <span className="text-[13px] text-cream/70">{t("footer.follow")}</span>
               <a
                 href={site.instagram.url}
@@ -109,12 +109,12 @@ export async function Footer() {
               </a>
             </div>
           </div>
-          <div className="border-t border-cream/20 md:contents md:border-0">
+          <div className="border-t border-cream/20 lg:contents lg:border-0">
             {columns.map((c) => (
               <FooterColumn key={c.title} column={c} />
             ))}
           </div>
-          <div className="space-y-4">
+          <div className="mx-auto w-full max-w-md space-y-4 lg:max-w-none">
             <h2 className="caps text-[15px]">{t("footer.signup")}</h2>
             <p className="text-[14px] font-light text-cream/85">{t("footer.signupText")}</p>
             <NewsletterForm />

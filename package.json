@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/postbuild-export.mjs",
     "lint": "eslint src scripts",
     "typecheck": "next typegen && tsc --noEmit",
     "preview": "serve out -l 4318",

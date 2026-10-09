@@ -23,9 +23,10 @@ export const viewport: Viewport = {
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "common" });
+  // Origin only: file-based metadata images already carry the basePath (/<repo>/...).
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   return {
-    ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
+    ...(siteUrl ? { metadataBase: new URL(new URL(siteUrl).origin) } : {}),
     title: { default: t("meta.title"), template: `%s · ${t("brand")}` },
     description: t("meta.description"),
     // Demo site with placeholder prices and a simulated gateway: keep it out of search engines.

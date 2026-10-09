@@ -8,7 +8,7 @@ import type { Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
-import { formatKWD } from "@/lib/money";
+import { isolatedKWD } from "@/lib/money";
 import { useAddToBag } from "@/lib/use-add-to-bag";
 
 const SIZES = "(min-width: 1024px) 25vw, 50vw";
@@ -82,7 +82,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           <span
             className={cn(
               "caps pointer-events-none absolute start-4 top-4 border px-2 text-[10px] leading-5 font-medium",
-              soldOut ? "border-[#593E3D] bg-[#593E3D] text-cream" : "border-ink/70 text-ink/80",
+              soldOut ? "border-ink bg-ink text-cream" : "border-ink/70 text-ink/80",
             )}
           >
             {soldOut ? t("product.soldOut") : product.badge === "new" ? t("product.new") : t("product.set")}
@@ -109,7 +109,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
         </p>
         <p className="mt-1.5 text-[15px] font-medium">
           {multi ? (
-            t("product.from", { price: formatKWD(minPrice, locale) })
+            t("product.from", { price: isolatedKWD(minPrice, locale) })
           ) : (
             <Price fils={variant.priceFils} />
           )}

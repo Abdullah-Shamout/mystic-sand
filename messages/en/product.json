@@ -1,1 +1,72 @@
-{}
+{
+  "meta": {
+    "title": "{name} — {type}",
+    "description": "{tagline} {type}, {size}. Made in Kuwait, delivered across Kuwait."
+  },
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "shop": "Shop"
+  },
+  "trilogy": "The Trilogy",
+  "detailsHeading": "Product details",
+  "size": "Size",
+  "quantity": "Quantity",
+  "inBag": "{n} in your bag",
+  "gift": {
+    "label": "Make it a gift",
+    "noteFree": "Complimentary wrapping in our sand-coloured box, finished with a ribbon. Add your message at checkout.",
+    "notePaid": "Wrapped in our sand-coloured box with a ribbon, for {price}. Add your message at checkout."
+  },
+  "buyNow": "Buy now",
+  "applePay": "Buy with Apple Pay",
+  "notify": "Notify me on WhatsApp",
+  "notifyText": "Hello Mystic Sand, please let me know when {name} is back in stock.",
+  "help": "Questions? Chat with us on WhatsApp",
+  "helpText": "Hello Mystic Sand, I have a question about {name}.",
+  "delivery": {
+    "expressOpen": "Order within <b>{time}</b> for {h}-hour delivery today",
+    "expressLater": "Express delivery from <b>{time}</b> today",
+    "expressTomorrow": "Express delivery from <b>{time}</b> tomorrow",
+    "standard": "Standard delivery arrives <b>{day}</b>",
+    "perks": "Free delivery over {amount} · {d}-day returns on unopened items"
+  },
+  "gallery": {
+    "label": "{name} — images",
+    "position": "Image {index} of {total}",
+    "enlarge": "Enlarge image {index} of {total}",
+    "lightbox": "{name} — gallery",
+    "previous": "Previous image",
+    "next": "Next image"
+  },
+  "accordion": {
+    "description": "Description",
+    "howToWear": "How to wear",
+    "howToUse": "How to use",
+    "notes": "Notes",
+    "delivery": "Delivery & returns"
+  },
+  "notes": {
+    "title": "The notes",
+    "top": "Top notes",
+    "heart": "Heart notes",
+    "base": "Base notes"
+  },
+  "info": {
+    "standardTitle": "Standard delivery",
+    "standard": "{fee} anywhere in Kuwait, free on orders over {threshold}. Arrives {days, plural, one {the next day} other {within {d} days}}.",
+    "expressTitle": "{h}-hour express",
+    "express": "{fee}, daily from {opens} (Fridays from {friday}). Last orders at {last}.",
+    "returnsTitle": "Returns",
+    "returns": "Unopened items in their original packaging can be returned within {days, plural, one {a day} other {{d} days}}.",
+    "payment": "Pay with KNET, Apple Pay or card — never any extra fees.",
+    "deliveryLink": "Delivery information",
+    "returnsLink": "Returns & exchange"
+  },
+  "oud": {
+    "eyebrow": "The ingredient",
+    "title": "Natural oud",
+    "text": "Oud — the resin-rich heartwood of the agar tree — has perfumed the homes of the Gulf for generations. The same depth that gives <product>OUD</product> its character can fill your majlis: hand-selected chips, rising slowly from the mabkhara.",
+    "cta": "Discover"
+  },
+  "related": "You may also like"
+}

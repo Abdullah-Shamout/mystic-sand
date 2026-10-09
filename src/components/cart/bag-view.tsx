@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { ApplePayLogo, PaymentMarks } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/form";
@@ -12,7 +12,8 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { productBySku, productBySlug, trilogySlugs } from "@/data/products";
 import type { Product } from "@/data/types";
-import { Link } from "@/i18n/navigation";
+import { EXPRESS_APPLE_PAY_EVENT } from "@/components/checkout/events";
+import { Link, usePathname } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
@@ -46,18 +47,20 @@ function FreeDeliveryBar({ remaining, threshold }: { remaining: number; threshol
     wasUnlocked.current = unlocked;
   }, [unlocked, announce, t]);
   const pct = Math.min(100, Math.round(((threshold - Math.max(0, remaining)) / threshold) * 100));
+  const message = unlocked
+    ? t("freeDeliveryUnlocked")
+    : t("freeDeliveryProgress", { amount: isolatedKWD(remaining, locale) });
   return (
     <div className="bg-tile px-6 py-4">
-      <p className="text-[14px]">
-        {unlocked ? t("freeDeliveryUnlocked") : t("freeDeliveryProgress", { amount: isolatedKWD(remaining, locale) })}
-      </p>
+      <p className="text-[14px]">{message}</p>
       <div
         className="mt-2 h-[3px] w-full bg-line"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct}
-        aria-label={t("freeDeliveryUnlocked")}
+        aria-valuetext={message}
+        aria-label={t("freeDeliveryLabel")}
       >
         <div className="h-full bg-racing transition-[width] duration-500" style={{ width: `${pct}%` }} />
       </div>
@@ -118,7 +121,6 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
             </div>
             <div className="mt-auto flex items-center justify-between gap-3 pt-3">
               <QuantityStepper
-                size="sm"
                 value={line.qty}
                 max={maxQtyFor(line.sku)}
                 onChange={(q) => setQty(line.sku, q)}
@@ -127,7 +129,7 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
               <button
                 type="button"
                 onClick={() => removeLine(line.sku, line.product.name)}
-                className="min-h-9 text-[12px] underline underline-offset-4 hover:text-danger"
+                className="-me-2 min-h-11 px-2 text-[13px] underline underline-offset-4 hover:text-danger"
                 aria-label={t("removeItem", { name: line.product.name })}
               >
                 {t("remove")}
@@ -139,7 +141,7 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
       {missing.map((line) => (
         <li key={line.sku} className="flex items-center justify-between gap-4 px-6 py-4 text-[14px] text-danger">
           <span>{t("unavailable")}</span>
-          <button type="button" onClick={() => remove(line.sku)} className="underline underline-offset-4">
+          <button type="button" onClick={() => remove(line.sku)} className="min-h-11 underline underline-offset-4">
             {t("remove")}
           </button>
         </li>
@@ -148,19 +150,20 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function Upsells() {
+function Upsells({ heading: Heading = "h3" }: { heading?: "h2" | "h3" }) {
   const t = useTranslations("cart");
   const tc = useTranslations("common");
   const locale = useLocale() as Locale;
   const lines = useBag((s) => s.lines);
   const addToBag = useAddToBag();
+  const titleId = useId();
   const { title, products } = pickUpsells(lines);
   if (products.length === 0) return null;
   return (
-    <section className="px-6 py-5" aria-labelledby="upsell-title">
-      <h3 id="upsell-title" className="caps text-[13px] text-muted">
+    <section className="border-t border-line px-6 py-5" aria-labelledby={titleId}>
+      <Heading id={titleId} className="caps text-[13px] text-muted">
         {t(title)}
-      </h3>
+      </Heading>
       <ul className="mt-3 grid grid-cols-2 gap-3">
         {products.map((p) => (
           <li key={p.slug} className="flex flex-col bg-tile">
@@ -177,7 +180,7 @@ function Upsells() {
               <button
                 type="button"
                 onClick={() => addToBag(p, p.variants[0])}
-                className="caps mt-2 inline-flex h-9 items-center justify-center gap-1.5 border border-ink text-[12px] transition-colors hover:bg-ink hover:text-paper"
+                className="caps mt-2 inline-flex h-11 items-center justify-center gap-1.5 border border-ink text-[12px] transition-colors hover:bg-ink hover:text-paper"
                 aria-label={tc("product.quickAdd", { name: p.name })}
               >
                 <Plus className="size-3.5" strokeWidth={1.5} aria-hidden />
@@ -215,6 +218,7 @@ export function BagExtras() {
 
 export function BagSummary({ onNavigate, compact = false }: { onNavigate?: () => void; compact?: boolean }) {
   const t = useTranslations("cart");
+  const pathname = usePathname();
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
   const giftWrap = useBag((s) => s.giftWrap);
@@ -255,15 +259,42 @@ export function BagSummary({ onNavigate, compact = false }: { onNavigate?: () =>
         </div>
       </dl>
       <Button asChild size="lg" block className={cn(blocked && "pointer-events-none opacity-45")}>
-        <Link href="/checkout" onClick={onNavigate} aria-disabled={blocked || undefined} data-testid="bag-checkout">
+        <Link
+          href="/checkout"
+          onClick={(e) => {
+            // Unavailable items must be removed first (the link stays visible but inert).
+            if (blocked) e.preventDefault();
+            else onNavigate?.();
+          }}
+          aria-disabled={blocked || undefined}
+          tabIndex={blocked ? -1 : undefined}
+          data-testid="bag-checkout"
+        >
           {t("checkout")}
         </Link>
       </Button>
       <Link
         href="/checkout?express=applepay"
-        onClick={onNavigate}
-        className="flex h-12 w-full items-center justify-center bg-ink text-paper transition-opacity hover:opacity-90"
+        onClick={(e) => {
+          if (blocked) {
+            e.preventDefault();
+            return;
+          }
+          onNavigate?.();
+          // Already on /checkout, a query change doesn't remount the page: ask it directly.
+          if (/^\/checkout\/?$/.test(pathname)) {
+            e.preventDefault();
+            window.dispatchEvent(new Event(EXPRESS_APPLE_PAY_EVENT));
+          }
+        }}
+        aria-disabled={blocked || undefined}
+        tabIndex={blocked ? -1 : undefined}
+        className={cn(
+          "flex h-12 w-full items-center justify-center bg-ink text-paper transition-opacity hover:opacity-90",
+          blocked && "pointer-events-none opacity-45",
+        )}
         aria-label={t("applePay")}
+        data-testid="bag-applepay"
       >
         <ApplePayLogo className="h-11" label="" />
       </Link>
@@ -293,6 +324,7 @@ function EmptyBag({ onNavigate }: { onNavigate?: () => void }) {
 
 /** Body of the bag (shared by the drawer and /cart). Gated until the store is hydrated. */
 export function BagView({ onNavigate, variant = "drawer" }: { onNavigate?: () => void; variant?: "drawer" | "page" }) {
+  const t = useTranslations("cart");
   const mounted = useMounted();
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
@@ -314,12 +346,19 @@ export function BagView({ onNavigate, variant = "drawer" }: { onNavigate?: () =>
     <div className={cn(variant === "page" && "border border-line")}>
       <FreeDeliveryBar remaining={totals.freeDeliveryRemainingFils} threshold={totals.freeDeliveryThresholdFils} />
       <BagLines onNavigate={onNavigate} />
-      <div className="border-t border-line">
-        <Upsells />
-      </div>
+      <Upsells heading={variant === "page" ? "h2" : "h3"} />
       {variant === "drawer" && (
         <div className="border-t border-line">
           <BagExtras />
+          <div className="flex justify-center px-6 pb-5">
+            <Link
+              href="/cart"
+              onClick={onNavigate}
+              className="inline-flex min-h-11 items-center text-[13px] underline decoration-1 underline-offset-4 hover:decoration-2"
+            >
+              {t("viewFull")}
+            </Link>
+          </div>
         </div>
       )}
     </div>

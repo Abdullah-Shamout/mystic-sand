@@ -1,1 +1,260 @@
-{}
+{
+  "newTab": "opens in a new tab",
+  "story": {
+    "meta": {
+      "title": "Our story",
+      "description": "Mystic Sand is a Kuwaiti perfume house inspired by sand, time and the hourglass, creating timeless scents that capture the moment."
+    },
+    "eyebrow": "Our story",
+    "title": "Where time turns to scent",
+    "heroAlt": "Mystic Sand III beside a bouquet of deep pink roses",
+    "lede": "Mystic Sand was born in Kuwait from a simple belief: that a scent can hold a moment the way an hourglass holds time. Every bottle we make is an invitation to pause — and to remember.",
+    "chapters": {
+      "kuwait": {
+        "title": "Born in Kuwait",
+        "body": [
+          "Our story begins on the shores of the Gulf, where the desert meets the sea. We grew up with the scents of Kuwaiti homes: oud smoke drifting through the majlis, rose and saffron on a celebration night, the first coffee of the morning.",
+          "Mystic Sand carries those memories into a modern wardrobe of fragrance — composed with care, bottled in Kuwait and made to be worn every day."
+        ],
+        "alt": "Three Mystic Sand bottles in a woven basket trimmed with cowrie shells"
+      },
+      "hourglass": {
+        "title": "The hourglass",
+        "body": [
+          "Our emblem is an hourglass drawn in a single line: two triangles meeting at a point, with sand settling in fine lines at its base.",
+          "It is time made visible — every grain a second, every second a moment. A spray of perfume does what the hourglass cannot: it holds the moment still, and brings it back whenever you return to it."
+        ],
+        "logoLabel": "The Mystic Sand hourglass emblem"
+      },
+      "materials": {
+        "title": "The materials",
+        "body": [
+          "We begin with ingredients that carry a sense of place. Natural oud from Cambodia and India, deep and resinous. Saffron and Taif rose. Freshly brewed arabica, creamy lemon and vanilla.",
+          "Our oud chips are hand-selected agarwood for the mabkhara — the same fragrant smoke that has perfumed Gulf homes, clothes and guests for generations."
+        ],
+        "alt": "Pieces of natural agarwood",
+        "cta": "Shop natural oud"
+      },
+      "trilogy": {
+        "title": "The Trilogy",
+        "body": [
+          "<en>I</en>, <en>II</en> and <en>III</en> are three chapters of one story. <en>I</en> is a clean, luminous morning; <en>II</en> the warm glow of saffron and oud as evening falls; <en>III</en> the romance of rose in the golden hour.",
+          "Wear each one alone, or layer them to write a chapter of your own."
+        ],
+        "alt": "The three Trilogy bottles — I, II and III — side by side",
+        "cta": "Discover the Trilogy"
+      }
+    },
+    "filmCta": "Shop the collection",
+    "closing": {
+      "title": "Find your moment",
+      "text": "Explore the collection, or let us help you choose — we’re a message away.",
+      "cta": "Shop the collection",
+      "secondary": "Chat on WhatsApp",
+      "whatsappMessage": "Hello Mystic Sand, I’d like some help choosing a scent."
+    }
+  },
+  "contact": {
+    "meta": {
+      "title": "Contact us",
+      "description": "Reach Mystic Sand on WhatsApp, Instagram, phone or email. We’re here to help with orders, delivery and choosing a scent."
+    },
+    "title": "Contact us",
+    "subtitle": "A question about an order, a gift or choosing a scent? We’re here to help.",
+    "whatsapp": {
+      "title": "WhatsApp",
+      "text": "The quickest way to reach us. Send us a message and we’ll reply during opening hours.",
+      "cta": "Chat on WhatsApp",
+      "message": "Hello Mystic Sand, I have a question."
+    },
+    "channels": {
+      "title": "Other ways to reach us",
+      "instagram": "Instagram",
+      "phone": "Phone",
+      "email": "Email"
+    },
+    "hours": {
+      "title": "Opening hours",
+      "satThu": "Saturday – Thursday",
+      "satThuTime": "10 am – 10 pm",
+      "fri": "Friday",
+      "friTime": "2 pm – 10 pm",
+      "note": "Kuwait time"
+    },
+    "form": {
+      "title": "Send us a message",
+      "intro": "Leave your details and we’ll get back to you on WhatsApp or by phone.",
+      "name": "Full name",
+      "phone": "Mobile number",
+      "phoneHint": "Kuwaiti mobile number, 8 digits",
+      "message": "Your message",
+      "messageHint": "Up to 1,000 characters",
+      "submit": "Send message",
+      "errorSummary": "Please check the fields marked below.",
+      "errors": {
+        "nameRequired": "Please enter your name.",
+        "phoneRequired": "Please enter your mobile number.",
+        "phoneInvalid": "Please enter a valid Kuwaiti mobile number (8 digits).",
+        "phoneLandline": "Please use a mobile number, so we can reach you on WhatsApp.",
+        "messageRequired": "Please write your message.",
+        "messageShort": "Please tell us a little more (at least 10 characters).",
+        "tooLong": "This is a little too long."
+      },
+      "successTitle": "Thank you — your message is on its way",
+      "successText": "We’ll get back to you on WhatsApp or by phone during our opening hours.",
+      "successAnnounce": "Message sent. Thank you.",
+      "whatsappCta": "Also send on WhatsApp",
+      "whatsappGreeting": "Hello Mystic Sand,",
+      "another": "Send another message"
+    }
+  },
+  "faq": {
+    "meta": {
+      "title": "Frequently asked questions",
+      "description": "Delivery across Kuwait, paying with KNET and Apple Pay, returns, gifting and choosing your Mystic Sand fragrance."
+    },
+    "title": "Frequently asked questions",
+    "subtitle": "Everything you need to know about ordering, delivery, payment and our fragrances.",
+    "topics": "Topics",
+    "whatsappMessage": "Hello Mystic Sand, I have a question.",
+    "groups": {
+      "orders": {
+        "title": "Orders & delivery",
+        "items": {
+          "where": {
+            "q": "Where do you deliver?",
+            "a": "We deliver to every area of Kuwait, across all six governorates. We don’t ship outside Kuwait at the moment."
+          },
+          "cost": {
+            "q": "How much does delivery cost?",
+            "a": "Standard delivery is {standardFee}, and free on orders of {freeOver} or more. Express delivery is {expressFee}. The delivery fee is always shown in your bag and at checkout, before you pay."
+          },
+          "time": {
+            "q": "How quickly will my order arrive?",
+            "a": "Standard orders arrive {standardWhen}. Express orders reach you within {expressWindow} when you order between {opens} and {lastOrder} (from {fridayOpens} on Fridays). Read more in our <delivery>delivery policy</delivery>."
+          },
+          "track": {
+            "q": "How can I follow my order?",
+            "a": "After payment you’ll see your order number (for example MS-10234), and we’ll keep you updated on WhatsApp. You can also find your recent orders under <orders>My orders</orders> on the same device."
+          },
+          "change": {
+            "q": "Can I change or cancel my order?",
+            "a": "Yes, as long as it hasn’t left us yet. Message us on <whatsapp>WhatsApp</whatsapp> with your order number as soon as possible, and we’ll take care of it."
+          }
+        }
+      },
+      "payment": {
+        "title": "Payment",
+        "items": {
+          "methods": {
+            "q": "Which payment methods do you accept?",
+            "a": "KNET, Apple Pay, and Visa or Mastercard cards. All prices are in Kuwaiti Dinar, and there is no extra fee for any payment method."
+          },
+          "knet": {
+            "q": "How does paying with KNET work?",
+            "a": "Choose KNET at checkout and you’ll be taken to KNET’s secure payment page, where you:",
+            "list": [
+              "Select your bank.",
+              "Enter your card number, expiry date and PIN.",
+              "Enter the code your bank sends by SMS, if it asks for one.",
+              "Confirm — you’ll return to our site with your order confirmation."
+            ]
+          },
+          "safe": {
+            "q": "Is my card safe?",
+            "a": "Yes. Your card number and PIN are entered only on KNET’s or our licensed payment provider’s secure page — never on this website. We never see or store your card details."
+          },
+          "applepay": {
+            "q": "Can I pay with Apple Pay?",
+            "a": "Yes, on iPhone, iPad and Mac using Safari. Apple Pay works with KNET debit cards from Kuwaiti banks as well as with credit cards. If you’re browsing inside Instagram, open the page in Safari to use Apple Pay."
+          },
+          "failed": {
+            "q": "My payment didn’t go through. Was I charged?",
+            "a": "If the payment wasn’t completed, you haven’t been charged. Your bag is saved, so you can try again with KNET or choose another method. If an amount was deducted but you didn’t receive a confirmation, <contact>contact us</contact> with your order number — banks usually reverse incomplete payments automatically."
+          },
+          "invoice": {
+            "q": "Will I receive an invoice?",
+            "a": "Yes. Every order comes with an invoice in Arabic and English, shown on your confirmation page and ready to print."
+          }
+        }
+      },
+      "products": {
+        "title": "Our fragrances",
+        "items": {
+          "authentic": {
+            "q": "Are your perfumes authentic?",
+            "a": "Every Mystic Sand fragrance is our own, made in Kuwait and sold directly by us — on this website, on Instagram and on WhatsApp. Each bottle leaves us sealed in its original box."
+          },
+          "longevity": {
+            "q": "How long does the scent last?",
+            "a": "Our eaux de parfum are made to stay with you through the day, and even longer on clothes. AURA is lighter by design, so refresh it whenever you like. Longevity always varies with skin and climate."
+          },
+          "choose": {
+            "q": "How do I choose a scent?",
+            "a": "Start with the mood you’d like to wear: <en>I</en> is fresh and woody, <en>II</en> warm with saffron and oud, <en>III</en> a romantic rose. <en>CAFÉ</en> is a coffee gourmand, and <en>OUD</en> a deep Gulf classic. To discover all three chapters, try the <set>Trilogy Set</set> — or message us on <whatsapp>WhatsApp</whatsapp> for a personal recommendation."
+          },
+          "store": {
+            "q": "How should I store my perfume?",
+            "a": "Keep it away from heat and direct sunlight, with the cap closed — and never leave it in a hot car. A cool drawer or cupboard keeps your fragrance at its best."
+          },
+          "skin": {
+            "q": "Can I wear your perfumes on sensitive skin?",
+            "a": "Our fragrances contain alcohol and aromatic ingredients. If your skin is sensitive, test a little on your inner arm first, and avoid spraying on irritated skin."
+          }
+        }
+      },
+      "returns": {
+        "title": "Returns & exchanges",
+        "items": {
+          "policy": {
+            "q": "Can I return or exchange an item?",
+            "a": "Yes — within {returnsWindow} of delivery, as long as the item is unopened, unused and in its original packaging with the seal intact. Read our full <returns>returns & exchange policy</returns>."
+          },
+          "how": {
+            "q": "How do I start a return?",
+            "a": "Message us on <whatsapp>WhatsApp</whatsapp> or call <tel>{phone}</tel> with your order number and the item you’d like to return or exchange. We’ll arrange a collection from your address in Kuwait."
+          },
+          "refund": {
+            "q": "When will I receive my refund?",
+            "a": "Once we’ve received and checked the item, we refund it to your original payment method — your KNET card, Apple Pay or credit card. Depending on your bank, it can take 5 to 10 working days to appear."
+          },
+          "damaged": {
+            "q": "What if my order arrives damaged or incorrect?",
+            "a": "We’re sorry! Send us a photo on <whatsapp>WhatsApp</whatsapp> within 48 hours of delivery, and we’ll replace the item or refund you in full, at no cost to you."
+          },
+          "opened": {
+            "q": "Can I return a perfume I’ve opened?",
+            "a": "For hygiene and safety reasons, we can’t accept opened or used fragrances unless they are faulty."
+          }
+        }
+      },
+      "gifting": {
+        "title": "Gifting",
+        "items": {
+          "wrap": {
+            "q": "Do you offer gift wrapping?",
+            "a": "Yes, and it’s complimentary on every order. Choose gift wrapping in your bag or at checkout, and your order will arrive in our sand-coloured box with a ribbon."
+          },
+          "message": {
+            "q": "Can I add a personal message?",
+            "a": "Of course. Write up to {messageMax} characters at checkout, and we’ll write it by hand on a card for you."
+          },
+          "direct": {
+            "q": "Can I send a gift directly to someone?",
+            "a": "Yes. Enter the recipient’s name, mobile number and address at checkout. Prices are hidden on gift orders by default, and our driver will contact the recipient to arrange delivery."
+          },
+          "recommend": {
+            "q": "Which gift do you recommend?",
+            "a": "The <set>Trilogy Set</set> is our most complete gift: all three eaux de parfum in their signature boxes. For a lighter touch, <en>AURA</en> makes a beautiful everyday treat."
+          }
+        }
+      }
+    },
+    "more": {
+      "title": "Still have a question?",
+      "text": "Our team is happy to help — on WhatsApp, by phone or by email.",
+      "whatsapp": "Chat on WhatsApp",
+      "contact": "Contact us"
+    }
+  }
+}

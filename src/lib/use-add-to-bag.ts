@@ -35,7 +35,8 @@ export function useAddToBag() {
       if (capped) {
         pushToast({ title: t("bag.maxReached", { max: maxQtyFor(variant.sku) }) });
       }
-      if (options.openDrawer) {
+      // Already looking at the bag (e.g. an upsell in the drawer): the drawer shows the change.
+      if (options.openDrawer || useUi.getState().bagOpen) {
         openBag();
         return;
       }

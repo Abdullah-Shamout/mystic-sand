@@ -76,7 +76,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
 
 export const Checkbox = forwardRef<
   HTMLInputElement,
-  Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & { label: React.ReactNode; description?: React.ReactNode }
+  Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "title"> & { label: React.ReactNode; description?: React.ReactNode }
 >(function Checkbox({ label, description, className, id, ...props }, ref) {
   const autoId = useId();
   const inputId = id ?? autoId;
@@ -100,7 +100,7 @@ export const Checkbox = forwardRef<
 /** Large selectable card used for delivery and payment choices. */
 export const RadioCard = forwardRef<
   HTMLInputElement,
-  Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "title"> & {
     title: React.ReactNode;
     description?: React.ReactNode;
     aside?: React.ReactNode;

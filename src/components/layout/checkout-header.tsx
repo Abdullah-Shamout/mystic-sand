@@ -3,16 +3,18 @@
 import { ArrowLeft, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Logo } from "@/components/brand/logo";
-import { Link } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useUi } from "@/store/ui";
 import { LanguageSwitcher } from "./language-switcher";
 
 /** Stripped-down header for checkout, payment and result pages. */
-export function CheckoutHeader({ showBack = true }: { showBack?: boolean }) {
+export function CheckoutHeader() {
   const t = useTranslations("common");
   const openBag = useUi((s) => s.openBag);
+  // After payment the bag is empty, so the confirmation page has no "Back to bag".
+  const showBack = !usePathname().startsWith("/checkout/result");
   return (
-    <header className="border-b border-ink/10 bg-ivory">
+    <header className="border-b border-ink/10 bg-ivory print:hidden">
       <div className="mx-auto grid h-16 max-w-[1200px] grid-cols-[1fr_auto_1fr] items-center px-4 md:h-20 md:px-6">
         <div className="flex items-center">
           {showBack && (

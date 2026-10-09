@@ -1,1 +1,22 @@
-{}
+{
+  "meta": {
+    "description": "{text} Free delivery across Kuwait on orders over {amount}."
+  },
+  "all": {
+    "title": "The Collection",
+    "description": "Timeless scents that capture the moment — for skin, for home and for giving. Made in Kuwait."
+  },
+  "filters": {
+    "label": "Categories",
+    "all": "All"
+  },
+  "productsHeading": "Products",
+  "count": "{count, plural, one {{n} product} other {{n} products}}",
+  "sort": {
+    "label": "Sort by",
+    "featured": "Featured",
+    "priceAsc": "Price: low to high",
+    "priceDesc": "Price: high to low",
+    "announce": "Sorted by {order}"
+  }
+}

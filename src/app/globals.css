@@ -114,6 +114,10 @@
   html:lang(ar) body {
     line-height: 1.9;
   }
+  /* Arabic display type stays light (the English serif headings are light too). */
+  html:lang(ar) .font-serif {
+    font-weight: 400;
+  }
 
   /* iOS zooms inputs under 16px. */
   input,

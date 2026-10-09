@@ -1,1 +1,102 @@
-{}
+{
+  "meta": {
+    "title": "Mystic Sand — Timeless scents from Kuwait",
+    "description": "Eaux de parfum, body and home fragrance made in Kuwait: the Trilogy, CAFÉ, OUD and AURA. Free delivery across Kuwait over {amount}, with KNET, Apple Pay or card."
+  },
+  "hero": {
+    "eyebrow": "Made in Kuwait",
+    "title": "Timeless scents that capture the moment",
+    "cta": "Discover",
+    "play": "Play background video",
+    "pause": "Pause background video"
+  },
+  "trilogy": {
+    "title": "The Trilogy",
+    "subtitle": "Three eaux de parfum, three chapters of one story."
+  },
+  "story": {
+    "title": "Born of sand and time",
+    "cta": "Our story",
+    "alt": "Mystic Sand I and II on a dark wooden tray beside an hourglass and black candles",
+    "altMobile": "Mystic Sand II and I among candles on a dark wooden tray"
+  },
+  "duo": {
+    "cta": "Shop now",
+    "alt": "{name} eau de parfum on a stone plinth against a warm sand-coloured wall"
+  },
+  "aura": {
+    "eyebrow": "New · All over spray",
+    "signature": "كل رشة، تأسر لحظة",
+    "tagline": "Every spray captures the moment",
+    "body": "A light, joyful veil of scent for skin, hair and clothes.",
+    "top": "Top",
+    "heart": "Heart",
+    "base": "Base",
+    "cta": "Discover AURA",
+    "alt": "AURA all over spray on stone plinths in soft afternoon light"
+  },
+  "film": {
+    "eyebrow": "The film",
+    "title": "Time, held in a bottle",
+    "body": "An hourglass turns. Sand slips through an open hand. Three bottles emerge from the dark. Our film is a short meditation on time — and on the moments worth keeping.",
+    "cta": "Read our story",
+    "playWithSound": "Play with sound",
+    "resume": "Play film",
+    "replay": "Watch again",
+    "pause": "Pause film",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "videoLabel": "Mystic Sand brand film"
+  },
+  "homeGrid": {
+    "title": "For the home",
+    "subtitle": "Room and linen mists, and natural oud for the mabkhara."
+  },
+  "gifting": {
+    "eyebrow": "Gifting",
+    "title": "The perfect gift",
+    "text": "All three chapters of the Trilogy, presented together in their signature boxes — a gift to be remembered.",
+    "perks": [
+      "Complimentary gift wrapping in our sand-coloured box",
+      "Your message, handwritten on a card",
+      "Delivered anywhere in Kuwait, with prices hidden"
+    ],
+    "cta": "Shop the Trilogy Set",
+    "secondary": "All gift sets",
+    "alt": "The Trilogy — I, II and III — in a woven basket trimmed with cowrie shells"
+  },
+  "services": {
+    "title": "Our services",
+    "delivery": {
+      "title": "Free delivery over {amount}",
+      "text": "Standard delivery to every area of Kuwait."
+    },
+    "express": {
+      "title": "Express in {window}",
+      "text": "Order by {lastOrder} for delivery the same day."
+    },
+    "gift": {
+      "title": "Complimentary gift wrapping",
+      "text": "With your message, handwritten on a card."
+    },
+    "payment": {
+      "title": "KNET, Apple Pay or card",
+      "text": "Card details are entered only on the secure payment page."
+    },
+    "whatsapp": {
+      "text": "Need help choosing a scent? We’re a message away.",
+      "cta": "Chat on WhatsApp",
+      "message": "Hello Mystic Sand, I’d like some help choosing a scent."
+    },
+    "newTab": "opens in a new tab"
+  },
+  "instagram": {
+    "subtitle": "Moments from our world, shared on Instagram.",
+    "follow": "Follow us",
+    "newTab": "opens in a new tab"
+  },
+  "newsletter": {
+    "title": "Stay in the moment",
+    "text": "New releases, private offers and stories from the house — straight to your inbox."
+  }
+}

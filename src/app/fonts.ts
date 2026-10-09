@@ -2,6 +2,7 @@ import {
   Cormorant_Garamond,
   IBM_Plex_Sans_Arabic,
   Jost,
+  Noto_Kufi_Arabic,
   Reem_Kufi,
 } from "next/font/google";
 import type { Locale } from "@/i18n/routing";
@@ -21,9 +22,19 @@ export const jost = Jost({
 });
 
 // Arabic faces are not preloaded so English pages don't download them.
+// Noto Kufi Arabic: a light geometric Kufi that sits well beside Cormorant and the
+// thin wordmark (Reem Kufi's lightest weight read too heavy at display sizes).
+export const kufiArabic = Noto_Kufi_Arabic({
+  subsets: ["arabic"],
+  weight: ["300", "400", "500"],
+  display: "swap",
+  preload: false,
+});
+
+// Only for the decorative Arabic tagline on the AURA panel (echoes the lettering on the can).
 export const reemKufi = Reem_Kufi({
   subsets: ["arabic"],
-  weight: ["400", "500"],
+  weight: ["500"],
   display: "swap",
   preload: false,
 });
@@ -46,7 +57,7 @@ export function fontStacks(locale: Locale) {
   if (locale === "ar") {
     return {
       sans: `${primaryFamily(jost)}, ${plexArabic.style.fontFamily}, system-ui, sans-serif`,
-      serif: `${primaryFamily(cormorant)}, ${reemKufi.style.fontFamily}, serif`,
+      serif: `${primaryFamily(cormorant)}, ${kufiArabic.style.fontFamily}, serif`,
     };
   }
   return {
