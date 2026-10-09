@@ -7,12 +7,203 @@
   },
   "viewStore": "View store",
   "logout": "Log out",
-  "notice": "Everything here is saved in this browser only.",
+  "notice": "Everything here is saved in this browser only · includes sample orders.",
   "signInTitle": "Admin sign in",
   "placeholder": "This section arrives in the next update.",
   "orders": {
     "title": "Orders",
-    "meta": "Orders · Mystic Sand admin"
+    "meta": "Orders · Mystic Sand admin",
+    "resultsCount": "{count, plural, =0 {No orders} one {# order} other {# orders}}",
+    "exportButton": "Export to Excel",
+    "exporting": "Preparing…",
+    "exportError": "The export could not be created.",
+    "filtersButton": "Filters",
+    "empty": "No orders match these filters.",
+    "showMore": "Show more",
+    "showing": "Showing {shown} of {total}",
+    "sortBy": "Sort by",
+    "sortDate": "Date",
+    "sortTotal": "Total",
+    "sortHintDate": "Sort by date",
+    "sortHintTotal": "Sort by total",
+    "itemsCount": "{count, plural, one {# item} other {# items}}",
+    "status": {
+      "done": "Done",
+      "pending": "Pending",
+      "confirming": "Confirming",
+      "unpaid": "Unpaid",
+      "failed": "Failed",
+      "canceled": "Canceled"
+    },
+    "source": {
+      "site": "Website",
+      "sample": "Sample"
+    },
+    "method": {
+      "knet": "KNET",
+      "applepay": "Apple Pay",
+      "card": "Card"
+    },
+    "delivery": {
+      "standard": "Standard",
+      "express": "Express"
+    },
+    "th": {
+      "number": "Order no.",
+      "date": "Date",
+      "customer": "Customer",
+      "area": "Area",
+      "items": "Items",
+      "delivery": "Delivery",
+      "payment": "Payment",
+      "total": "Total",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "markDone": "Mark done",
+    "markPending": "Mark pending",
+    "markedDone": "Order {id} marked done.",
+    "markedPending": "Order {id} moved back to pending.",
+    "undo": "Undo",
+    "cannotMarkDone": "Only paid orders can be marked done.",
+    "receipt": "Receipt",
+    "open": "Open",
+    "drawer": {
+      "title": "Order {id}",
+      "placed": "Placed",
+      "done": "Completed",
+      "customer": "Customer",
+      "phone": "Phone",
+      "email": "Email",
+      "language": "Language",
+      "langEn": "English",
+      "langAr": "Arabic",
+      "noEmail": "No email",
+      "notes": "Delivery notes",
+      "noNotes": "No notes.",
+      "copyNumber": "Copy order no.",
+      "copied": "Order number copied.",
+      "downloadPdf": "Download receipt",
+      "printReceipt": "Print receipt",
+      "whatsapp": "WhatsApp customer",
+      "noReceipt": "A receipt is available once a payment has been attempted."
+    },
+    "whatsapp": "Hello {name}, this is Mystic Sand about your order {id} (total {total}).",
+    "export": {
+      "sheets": {
+        "orders": "Orders",
+        "items": "Items",
+        "summary": "Summary"
+      },
+      "orders": {
+        "number": "Order no.",
+        "placed": "Placed",
+        "done": "Completed",
+        "status": "Status",
+        "source": "Source",
+        "customer": "Customer",
+        "phone": "Phone",
+        "email": "Email",
+        "area": "Area",
+        "governorate": "Governorate",
+        "address": "Address",
+        "delivery": "Delivery",
+        "method": "Payment",
+        "bank": "Bank",
+        "promo": "Promo",
+        "items": "Items",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "deliveryFee": "Delivery",
+        "total": "Total",
+        "paymentId": "Payment ID",
+        "tranId": "Transaction ID",
+        "ref": "Reference",
+        "auth": "Auth"
+      },
+      "items": {
+        "number": "Order no.",
+        "product": "Product",
+        "size": "Size",
+        "sku": "SKU",
+        "qty": "Qty",
+        "unitPrice": "Unit price",
+        "lineTotal": "Line total"
+      },
+      "summary": {
+        "field": "Field",
+        "value": "Value",
+        "filters": "Filters used",
+        "generated": "Generated",
+        "rows": "Orders in export"
+      },
+      "addr": {
+        "block": "Block",
+        "building": "Building",
+        "floor": "Floor",
+        "apartment": "Apt"
+      }
+    }
+  },
+  "kpi": {
+    "revenue": {
+      "label": "Revenue (completed)",
+      "products": "Products",
+      "delivery": "Delivery"
+    },
+    "completed": {
+      "label": "Completed orders"
+    },
+    "pending": {
+      "label": "Pending orders",
+      "value": "Worth {value}"
+    },
+    "average": {
+      "label": "Average order"
+    }
+  },
+  "filters": {
+    "searchLabel": "Search",
+    "searchPlaceholder": "Name or order number",
+    "rangeLabel": "Period",
+    "fulfillmentLabel": "Status",
+    "methodLabel": "Payment",
+    "deliveryLabel": "Delivery",
+    "sourceLabel": "Source",
+    "from": "From",
+    "to": "To",
+    "reset": "Reset",
+    "done": "Show results",
+    "fulfillment": {
+      "all": "All",
+      "pending": "Pending",
+      "done": "Done",
+      "unpaid": "Unpaid checkouts"
+    },
+    "range": {
+      "today": "Today",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "month": "This month",
+      "all": "All time",
+      "custom": "Custom"
+    },
+    "method": {
+      "all": "All methods",
+      "knet": "KNET",
+      "applepay": "Apple Pay",
+      "card": "Card"
+    },
+    "delivery": {
+      "all": "All delivery",
+      "standard": "Standard",
+      "express": "Express"
+    },
+    "source": {
+      "all": "All",
+      "site": "Website",
+      "sample": "Sample"
+    }
   },
   "products": {
     "title": "Products",

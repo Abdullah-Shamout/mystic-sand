@@ -7,12 +7,203 @@
   },
   "viewStore": "عرض المتجر",
   "logout": "تسجيل الخروج",
-  "notice": "كل ما هنا محفوظ في هذا المتصفح فقط.",
+  "notice": "كل ما هنا محفوظ في هذا المتصفح فقط · يشمل طلبات تجريبية.",
   "signInTitle": "دخول الإدارة",
   "placeholder": "سيصل هذا القسم في التحديث القادم.",
   "orders": {
     "title": "الطلبات",
-    "meta": "الطلبات · إدارة Mystic Sand"
+    "meta": "الطلبات · إدارة Mystic Sand",
+    "resultsCount": "{count, plural, =0 {لا توجد طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلباً} other {# طلب}}",
+    "exportButton": "تصدير إلى Excel",
+    "exporting": "جارٍ التحضير…",
+    "exportError": "تعذّر إنشاء الملف.",
+    "filtersButton": "عوامل التصفية",
+    "empty": "لا توجد طلبات مطابقة لعوامل التصفية.",
+    "showMore": "عرض المزيد",
+    "showing": "عرض {shown} من {total}",
+    "sortBy": "الترتيب حسب",
+    "sortDate": "التاريخ",
+    "sortTotal": "الإجمالي",
+    "sortHintDate": "ترتيب حسب التاريخ",
+    "sortHintTotal": "ترتيب حسب الإجمالي",
+    "itemsCount": "{count, plural, =0 {لا عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصراً} other {# عنصر}}",
+    "status": {
+      "done": "منجز",
+      "pending": "قيد التنفيذ",
+      "confirming": "قيد التأكيد",
+      "unpaid": "غير مدفوع",
+      "failed": "فشل",
+      "canceled": "ملغى"
+    },
+    "source": {
+      "site": "الموقع",
+      "sample": "تجريبي"
+    },
+    "method": {
+      "knet": "كي نت",
+      "applepay": "Apple Pay",
+      "card": "بطاقة"
+    },
+    "delivery": {
+      "standard": "عادي",
+      "express": "سريع"
+    },
+    "th": {
+      "number": "رقم الطلب",
+      "date": "التاريخ",
+      "customer": "العميل",
+      "area": "المنطقة",
+      "items": "العناصر",
+      "delivery": "التوصيل",
+      "payment": "الدفع",
+      "total": "الإجمالي",
+      "status": "الحالة",
+      "actions": "إجراءات"
+    },
+    "markDone": "وضع علامة منجز",
+    "markPending": "إرجاع إلى قيد التنفيذ",
+    "markedDone": "تم وضع الطلب {id} كمنجز.",
+    "markedPending": "أُرجع الطلب {id} إلى قيد التنفيذ.",
+    "undo": "تراجع",
+    "cannotMarkDone": "الطلبات المدفوعة فقط يمكن وضعها كمنجزة.",
+    "receipt": "الإيصال",
+    "open": "فتح",
+    "drawer": {
+      "title": "الطلب {id}",
+      "placed": "وقت الطلب",
+      "done": "وقت الإنجاز",
+      "customer": "العميل",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "language": "اللغة",
+      "langEn": "الإنجليزية",
+      "langAr": "العربية",
+      "noEmail": "لا يوجد بريد",
+      "notes": "ملاحظات التوصيل",
+      "noNotes": "لا توجد ملاحظات.",
+      "copyNumber": "نسخ رقم الطلب",
+      "copied": "تم نسخ رقم الطلب.",
+      "downloadPdf": "تنزيل الإيصال",
+      "printReceipt": "طباعة الإيصال",
+      "whatsapp": "مراسلة العميل على واتساب",
+      "noReceipt": "يتوفر الإيصال بعد محاولة الدفع."
+    },
+    "whatsapp": "مرحباً {name}، معك ميستك ساند بخصوص طلبك {id} (الإجمالي {total}).",
+    "export": {
+      "sheets": {
+        "orders": "الطلبات",
+        "items": "العناصر",
+        "summary": "الملخّص"
+      },
+      "orders": {
+        "number": "رقم الطلب",
+        "placed": "وقت الطلب",
+        "done": "وقت الإنجاز",
+        "status": "الحالة",
+        "source": "المصدر",
+        "customer": "العميل",
+        "phone": "الهاتف",
+        "email": "البريد الإلكتروني",
+        "area": "المنطقة",
+        "governorate": "المحافظة",
+        "address": "العنوان",
+        "delivery": "التوصيل",
+        "method": "الدفع",
+        "bank": "البنك",
+        "promo": "كود الخصم",
+        "items": "العناصر",
+        "subtotal": "المجموع الفرعي",
+        "discount": "الخصم",
+        "deliveryFee": "التوصيل",
+        "total": "الإجمالي",
+        "paymentId": "معرّف الدفع",
+        "tranId": "رقم العملية",
+        "ref": "المرجع",
+        "auth": "التفويض"
+      },
+      "items": {
+        "number": "رقم الطلب",
+        "product": "المنتج",
+        "size": "الحجم",
+        "sku": "رمز المنتج",
+        "qty": "الكمية",
+        "unitPrice": "سعر الوحدة",
+        "lineTotal": "إجمالي السطر"
+      },
+      "summary": {
+        "field": "البند",
+        "value": "القيمة",
+        "filters": "عوامل التصفية المستخدمة",
+        "generated": "تاريخ الإنشاء",
+        "rows": "عدد الطلبات في الملف"
+      },
+      "addr": {
+        "block": "قطعة",
+        "building": "مبنى",
+        "floor": "دور",
+        "apartment": "شقة"
+      }
+    }
+  },
+  "kpi": {
+    "revenue": {
+      "label": "الإيرادات (المنجزة)",
+      "products": "المنتجات",
+      "delivery": "التوصيل"
+    },
+    "completed": {
+      "label": "الطلبات المنجزة"
+    },
+    "pending": {
+      "label": "الطلبات قيد التنفيذ",
+      "value": "بقيمة {value}"
+    },
+    "average": {
+      "label": "متوسط الطلب"
+    }
+  },
+  "filters": {
+    "searchLabel": "بحث",
+    "searchPlaceholder": "الاسم أو رقم الطلب",
+    "rangeLabel": "الفترة",
+    "fulfillmentLabel": "الحالة",
+    "methodLabel": "الدفع",
+    "deliveryLabel": "التوصيل",
+    "sourceLabel": "المصدر",
+    "from": "من",
+    "to": "إلى",
+    "reset": "إعادة تعيين",
+    "done": "عرض النتائج",
+    "fulfillment": {
+      "all": "الكل",
+      "pending": "قيد التنفيذ",
+      "done": "منجز",
+      "unpaid": "طلبات غير مدفوعة"
+    },
+    "range": {
+      "today": "اليوم",
+      "7d": "آخر 7 أيام",
+      "30d": "آخر 30 يوماً",
+      "month": "هذا الشهر",
+      "all": "كل الأوقات",
+      "custom": "مخصّص"
+    },
+    "method": {
+      "all": "كل الطرق",
+      "knet": "كي نت",
+      "applepay": "Apple Pay",
+      "card": "بطاقة"
+    },
+    "delivery": {
+      "all": "كل أنواع التوصيل",
+      "standard": "عادي",
+      "express": "سريع"
+    },
+    "source": {
+      "all": "الكل",
+      "site": "الموقع",
+      "sample": "تجريبي"
+    }
   },
   "products": {
     "title": "المنتجات",

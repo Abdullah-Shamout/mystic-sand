@@ -19,6 +19,10 @@ const PERSISTED = {
   "ms-settings": useSettingsStore,
 } as const;
 
+// The admin store is loaded lazily so storefront pages never statically import it (nor the
+// sample generator it reaches). It is only touched when an ms-admin storage event actually fires.
+const rehydrateAdmin = () => void import("@/store/admin").then((m) => m.useAdminStore.persist.rehydrate());
+
 export function StorageSync() {
   const t = useTranslations("common");
   const pushToast = useUi((s) => s.pushToast);
@@ -28,11 +32,16 @@ export function StorageSync() {
       if (e.key === null) {
         // Whole store cleared: rehydrate everything and drop the upload cache.
         Object.values(PERSISTED).forEach((store) => void store.persist.rehydrate());
+        rehydrateAdmin();
         clearUploadCache();
         return;
       }
       if (e.key.startsWith("ms-img:")) {
         clearUploadCache();
+        return;
+      }
+      if (e.key === "ms-admin") {
+        rehydrateAdmin();
         return;
       }
       const store = PERSISTED[e.key as keyof typeof PERSISTED];

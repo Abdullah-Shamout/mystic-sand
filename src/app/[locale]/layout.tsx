@@ -44,6 +44,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   const t = await getTranslations("common");
   const dir = directionOf(locale);
   const stacks = fontStacks(locale);
+  // An Arabic-capable sans stack, exposed on every locale so the bilingual invoice renders
+  // Arabic with the web font even on English pages (used by the admin receipt PDF).
+  const arabicSans = fontStacks("ar").sans;
   // The admin namespace is heavy and only used by the back office; a nested provider in the
   // admin layout adds it back there, so storefront pages never ship it to the client.
   const messages = omit(await getMessages(), ["admin"]);
@@ -53,7 +56,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
       lang={locale}
       dir={dir}
       data-scroll-behavior="smooth"
-      style={{ "--ms-sans": stacks.sans, "--ms-serif": stacks.serif } as React.CSSProperties}
+      style={{ "--ms-sans": stacks.sans, "--ms-serif": stacks.serif, "--ms-sans-ar": arabicSans } as React.CSSProperties}
     >
       <body>
         <a

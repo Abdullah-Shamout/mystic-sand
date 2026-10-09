@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +9,7 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { endAdminSession, useAdminSession } from "@/lib/admin-auth";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
+import { useAdminStore } from "@/store/admin";
 import { useUi } from "@/store/ui";
 import { LoginForm } from "./login-form";
 
@@ -31,6 +33,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const pushToast = useUi((s) => s.pushToast);
+
+  // Seed the demo orders once, after sign-in (no-op if already seeded or cleared). "now" is read
+  // inside the effect, never during render.
+  useEffect(() => {
+    if (!session) return;
+    useAdminStore.getState().seedSamples(new Date().toISOString());
+  }, [session]);
 
   if (!mounted) return <AdminSkeleton />;
 
@@ -67,7 +76,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <LanguageSwitcher />
             <Link
               href="/"
-              className="caps hidden min-h-11 items-center text-[13px] underline-offset-4 transition-opacity hover:underline sm:inline-flex"
+              className="caps inline-flex min-h-11 items-center text-[13px] underline-offset-4 transition-opacity hover:underline"
             >
               {t("viewStore")}
             </Link>
@@ -105,9 +114,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
-      <p className="border-b border-line bg-sand/40 px-4 py-2 text-[13px] leading-snug text-ink lg:px-6">
-        {t("notice")}
-      </p>
+      <div className="border-b border-line bg-sand/40">
+        <p className="mx-auto w-full max-w-[1400px] px-4 py-2 text-[13px] leading-snug text-ink lg:px-6">
+          {t("notice")}
+        </p>
+      </div>
 
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-8 outline-none lg:px-6">
         {children}

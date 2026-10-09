@@ -86,10 +86,21 @@ const amount = (fils: number) => <bdi className="figures">{formatAmount(fils)}</
 const code = (value: string | undefined) => <bdi className="figures">{value || "—"}</bdi>;
 
 /**
- * Print-only invoice (hidden on screen): seller identity, order, items, delivery,
- * total and the KNET reference fields. TODO(client): trade name and CR in site.ts.
+ * Bilingual invoice: seller identity, order, items, delivery, total and the KNET reference
+ * fields. `variant` is "print" (hidden on screen, shown only when printing — the storefront
+ * receipt) or "document" (rendered as a visible block, for off-screen PDF capture in the admin).
+ * The font comes from --ms-sans-ar so Arabic renders with the web font on English pages too.
+ * TODO(client): trade name and CR in site.ts.
  */
-export function Invoice({ order, attempt }: { order: Order; attempt: PaymentRecord }) {
+export function Invoice({
+  order,
+  attempt,
+  variant = "print",
+}: {
+  order: Order;
+  attempt: PaymentRecord;
+  variant?: "print" | "document";
+}) {
   const settings = useLiveSettings();
   const d = order.details;
   const area = areaById(d.areaId);
@@ -101,7 +112,12 @@ export function Invoice({ order, attempt }: { order: Order; attempt: PaymentReco
   const { totals } = order;
 
   return (
-    <section dir="rtl" lang="ar" className="hidden text-[12px] leading-relaxed text-ink print:block">
+    <section
+      dir="rtl"
+      lang="ar"
+      style={{ fontFamily: "var(--ms-sans-ar)" }}
+      className={cn("text-[12px] leading-relaxed text-ink", variant === "print" ? "hidden print:block" : "block")}
+    >
       <div className="flex items-start justify-between gap-8 border-b-2 border-ink pb-4">
         <div>
           <p className="text-[16px] font-medium">{site.trade.name.ar}</p>
