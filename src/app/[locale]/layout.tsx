@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Providers } from "@/components/layout/providers";
 import { directionOf, routing } from "@/i18n/routing";
+import { omit } from "@/lib/omit";
 import { fontStacks } from "../fonts";
 import "../globals.css";
 
@@ -43,6 +44,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   const t = await getTranslations("common");
   const dir = directionOf(locale);
   const stacks = fontStacks(locale);
+  // The admin namespace is heavy and only used by the back office; a nested provider in the
+  // admin layout adds it back there, so storefront pages never ship it to the client.
+  const messages = omit(await getMessages(), ["admin"]);
 
   return (
     <html
@@ -58,7 +62,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
         >
           {t("skipToContent")}
         </a>
-        <NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
           <Providers dir={dir}>{children}</Providers>
         </NextIntlClientProvider>
       </body>

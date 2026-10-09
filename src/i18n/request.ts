@@ -13,6 +13,7 @@ export const namespaces = [
   "payment",
   "content",
   "legal",
+  "admin",
 ] as const;
 
 export default getRequestConfig(async ({ requestLocale }) => {

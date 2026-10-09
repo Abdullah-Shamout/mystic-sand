@@ -2,6 +2,7 @@
 
 import { Menu, ReceiptText, Search, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { AdminEntry } from "@/components/admin/admin-entry";
 import { Logo } from "@/components/brand/logo";
 import { Link } from "@/i18n/navigation";
 import { useMounted } from "@/lib/hooks";
@@ -72,7 +73,7 @@ export function Header() {
           </div>
         </div>
 
-        <Link href="/" aria-label={t("header.home")} className="flex items-center px-2">
+        <Link href="/" aria-label={t("header.home")} className="flex items-center px-1 lg:px-2">
           <Logo variant="full" className="h-11 w-auto lg:h-[64px]" title={t("brand")} />
         </Link>
 
@@ -96,6 +97,7 @@ export function Header() {
             <ReceiptText className="size-[21px]" strokeWidth={1.25} />
           </Link>
           <BagButton />
+          <AdminEntry />
         </div>
       </div>
     </header>

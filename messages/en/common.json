@@ -25,7 +25,22 @@
     "menu": "Menu",
     "home": "Mystic Sand — home",
     "secureCheckout": "Secure checkout",
-    "backToBag": "Back to bag"
+    "backToBag": "Back to bag",
+    "enter": "Enter",
+    "admin": "Admin"
+  },
+  "login": {
+    "title": "Admin sign in",
+    "username": "Username",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "keep": "Keep me signed in",
+    "submit": "Sign in",
+    "error": "Wrong username or password.",
+    "signedIn": "Signed in",
+    "signedOut": "Signed out",
+    "demoNote": "Demo access, saved in this browser only."
   },
   "language": {
     "label": "Language",

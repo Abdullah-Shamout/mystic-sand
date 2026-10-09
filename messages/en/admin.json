@@ -1,0 +1,29 @@
+{
+  "nav": {
+    "orders": "Orders",
+    "products": "Products",
+    "analysis": "Product analysis",
+    "settings": "Settings"
+  },
+  "viewStore": "View store",
+  "logout": "Log out",
+  "notice": "Everything here is saved in this browser only.",
+  "signInTitle": "Admin sign in",
+  "placeholder": "This section arrives in the next update.",
+  "orders": {
+    "title": "Orders",
+    "meta": "Orders · Mystic Sand admin"
+  },
+  "products": {
+    "title": "Products",
+    "meta": "Products · Mystic Sand admin"
+  },
+  "analysis": {
+    "title": "Product analysis",
+    "meta": "Product analysis · Mystic Sand admin"
+  },
+  "settings": {
+    "title": "Store settings",
+    "meta": "Store settings · Mystic Sand admin"
+  }
+}

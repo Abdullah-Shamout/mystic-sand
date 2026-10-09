@@ -1,0 +1,29 @@
+{
+  "nav": {
+    "orders": "الطلبات",
+    "products": "المنتجات",
+    "analysis": "تحليل المنتجات",
+    "settings": "الإعدادات"
+  },
+  "viewStore": "عرض المتجر",
+  "logout": "تسجيل الخروج",
+  "notice": "كل ما هنا محفوظ في هذا المتصفح فقط.",
+  "signInTitle": "دخول الإدارة",
+  "placeholder": "سيصل هذا القسم في التحديث القادم.",
+  "orders": {
+    "title": "الطلبات",
+    "meta": "الطلبات · إدارة Mystic Sand"
+  },
+  "products": {
+    "title": "المنتجات",
+    "meta": "المنتجات · إدارة Mystic Sand"
+  },
+  "analysis": {
+    "title": "تحليل المنتجات",
+    "meta": "تحليل المنتجات · إدارة Mystic Sand"
+  },
+  "settings": {
+    "title": "إعدادات المتجر",
+    "meta": "إعدادات المتجر · إدارة Mystic Sand"
+  }
+}
