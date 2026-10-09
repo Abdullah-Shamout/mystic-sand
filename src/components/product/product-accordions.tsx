@@ -1,17 +1,22 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 import { Accordion, type AccordionItem } from "@/components/ui/accordion";
 import { delivery } from "@/data/site";
 import type { Localized, Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { useLiveSettings } from "@/lib/live";
 import { isolatedKWD } from "@/lib/money";
-import { defaultSettings, feeFor } from "@/lib/settings";
+import { feeFor } from "@/lib/settings";
 
 const TIERS = ["top", "heart", "base"] as const;
 
 /** Description (open), Notes and Delivery & returns, under the buy buttons. */
-export async function ProductAccordions({ product, locale }: { product: Product; locale: Locale }) {
-  const t = await getTranslations("product");
+export function ProductAccordions({ product }: { product: Product }) {
+  const t = useTranslations("product");
+  const locale = useLocale() as Locale;
+  const settings = useLiveSettings();
   const join = (list: Localized[]) => list.map((note) => note[locale]).join(locale === "ar" ? "، " : ", ");
   const hours = delivery.express.windowMinutes / 60;
   const days = (n: number) => ({ days: n, d: String(n) });
@@ -62,7 +67,7 @@ export async function ProductAccordions({ product, locale }: { product: Product;
           <h4 className="font-medium">{t("info.standardTitle")}</h4>
           <p className="text-muted">
             {t("info.standard", {
-              fee: isolatedKWD(feeFor(defaultSettings, "standard"), locale),
+              fee: isolatedKWD(feeFor(settings, "standard"), locale),
               ...days(delivery.standard.leadDays),
             })}
           </p>
@@ -71,7 +76,7 @@ export async function ProductAccordions({ product, locale }: { product: Product;
           <h4 className="font-medium">{t("info.expressTitle", { hours, h: String(hours) })}</h4>
           <p className="text-muted">
             {t("info.express", {
-              fee: isolatedKWD(feeFor(defaultSettings, "express"), locale),
+              fee: isolatedKWD(feeFor(settings, "express"), locale),
               opens: delivery.express.opens,
               friday: delivery.express.fridayOpens,
               last: delivery.express.lastOrder,

@@ -2,12 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { Logo } from "@/components/brand/logo";
-import { ProductGrid } from "@/components/product/product-grid";
+import { CatalogGrid } from "@/components/product/catalog-grid";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
-import { useLiveCatalog } from "@/lib/live";
 import { useCheckout } from "@/store/checkout";
 import { iso } from "./form-helpers";
 
@@ -45,10 +43,6 @@ export function CheckoutSkeleton() {
 /** Empty bag on /checkout: an inline invitation (never a redirect), plus the last order if any. */
 export function CheckoutEmpty() {
   const t = useTranslations("checkout.empty");
-  const catalog = useLiveCatalog();
-  const trilogy = ["i", "ii", "iii"]
-    .map((slug) => catalog.bySlug.get(slug))
-    .filter((p): p is Product => p !== undefined && !p.hidden);
   const lastOrderId = useCheckout((s) => (s.lastOrderId && s.orders[s.lastOrderId] ? s.lastOrderId : null));
 
   return (
@@ -72,7 +66,7 @@ export function CheckoutEmpty() {
           )}
         </div>
       </div>
-      <ProductGrid products={trilogy} columns={3} />
+      <CatalogGrid slugs={["i", "ii", "iii"]} columns={3} />
     </div>
   );
 }

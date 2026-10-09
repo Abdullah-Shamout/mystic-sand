@@ -2,7 +2,6 @@
 
 import { useSelectedLayoutSegment } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { categoryBySlug } from "@/data/categories";
 import type { Locale } from "@/i18n/routing";
 import { productsIn } from "@/lib/catalog";
 import { useLiveCatalog } from "@/lib/live";
@@ -21,8 +20,8 @@ export function ShopFrame({ children }: { children: React.ReactNode }) {
   const locale = useLocale() as Locale;
   // The collection slug below /shop, or null on /shop itself.
   const segment = useSelectedLayoutSegment();
-  const category = segment ? categoryBySlug(segment) : undefined;
   const catalog = useLiveCatalog();
+  const category = segment ? catalog.categories.find((c) => c.slug === segment) : undefined;
   const count = category ? productsIn(catalog, category.slug).length : catalog.visible.length;
 
   return (

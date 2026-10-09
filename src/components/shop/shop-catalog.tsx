@@ -4,10 +4,10 @@ import { ChevronDown } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { ProductGrid } from "@/components/product/product-grid";
-import { categories } from "@/data/categories";
-import type { Product } from "@/data/types";
+import type { CategorySlug, Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { productsIn } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { useLiveCatalog } from "@/lib/live";
 import { useUi } from "@/store/ui";
@@ -52,10 +52,11 @@ export function ShopToolbar({ active, count }: { active: string; count: number }
   const sort = useSort();
   const sortId = useId();
   const chipsRef = useRef<HTMLUListElement>(null);
+  const catalog = useLiveCatalog();
 
   const chips = [
     { slug: "all", href: "/shop", label: t("filters.all") },
-    ...categories.map((c) => ({ slug: c.slug, href: `/shop/${c.slug}`, label: c.name[locale] })),
+    ...catalog.categories.map((c) => ({ slug: c.slug, href: `/shop/${c.slug}`, label: c.name[locale] })),
   ];
 
   // Phones: bring the active chip into view inside the scrolling row (never the page).
@@ -155,14 +156,12 @@ export function ShopToolbar({ active, count }: { active: string; count: number }
   );
 }
 
-/** The edge-to-edge grid of one collection, in the order chosen in the toolbar. */
-export function ShopGrid({ slugs }: { slugs: string[] }) {
+/** The edge-to-edge grid of one collection (or all), in the order chosen in the toolbar. */
+export function ShopGrid({ category }: { category: CategorySlug | null }) {
   const t = useTranslations("shop");
   const sort = useSort();
   const catalog = useLiveCatalog();
-  const list = slugs
-    .map((slug) => catalog.bySlug.get(slug))
-    .filter((p): p is Product => p !== undefined && !p.hidden);
+  const list: Product[] = category ? productsIn(catalog, category) : catalog.visible;
   const sorted =
     sort === "featured"
       ? list
@@ -171,7 +170,11 @@ export function ShopGrid({ slugs }: { slugs: string[] }) {
   return (
     <>
       <h2 className="sr-only">{t("productsHeading")}</h2>
-      <ProductGrid products={sorted} priorityCount={4} />
+      {sorted.length === 0 ? (
+        <p className="mx-auto max-w-md px-6 py-20 text-center text-[15px] text-muted">{t("empty")}</p>
+      ) : (
+        <ProductGrid products={sorted} priorityCount={4} />
+      )}
     </>
   );
 }

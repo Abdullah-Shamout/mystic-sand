@@ -9,6 +9,7 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import type { Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { productHref } from "@/lib/catalog";
 import { useLiveCatalog } from "@/lib/live";
 import { searchProducts } from "@/lib/search";
 import { useAddToBag } from "@/lib/use-add-to-bag";
@@ -25,7 +26,7 @@ function ResultRow({ product, onNavigate }: { product: Product; onNavigate: () =
   const multi = product.variants.length > 1;
   return (
     <li className="flex items-center gap-4 border-b border-line py-3">
-      <Link href={`/product/${product.slug}`} onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-4">
+      <Link href={productHref(product.slug)} onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-4">
         <span className="relative size-16 shrink-0 bg-tile">
           <ResponsiveImage image={product.images.card} alt="" sizes="64px" />
         </span>
@@ -43,7 +44,7 @@ function ResultRow({ product, onNavigate }: { product: Product; onNavigate: () =
       </span>
       {multi ? (
         <Link
-          href={`/product/${product.slug}`}
+          href={productHref(product.slug)}
           onClick={onNavigate}
           className="caps inline-flex h-10 items-center border border-ink px-3 text-[12px] hover:bg-ink hover:text-paper"
         >
@@ -143,7 +144,7 @@ export function SearchOverlay() {
                       const p = catalog.bySlug.get(slug);
                       return p && !p.hidden ? (
                         <li key={slug}>
-                          <Link href={`/product/${slug}`} onClick={close} className="text-[16px] hover:underline">
+                          <Link href={productHref(slug)} onClick={close} className="text-[16px] hover:underline">
                             <bdi lang="en">{p.name}</bdi>
                             <span className="text-muted"> — {p.type[locale]}</span>
                           </Link>
@@ -159,7 +160,7 @@ export function SearchOverlay() {
                       const p = catalog.bySlug.get(slug);
                       return p && !p.hidden ? (
                         <li key={slug}>
-                          <Link href={`/product/${slug}`} onClick={close} className="group block">
+                          <Link href={productHref(slug)} onClick={close} className="group block">
                             <span className="relative block aspect-square bg-tile">
                               <ResponsiveImage image={p.images.card} alt="" sizes="(min-width: 768px) 200px, 30vw" />
                             </span>

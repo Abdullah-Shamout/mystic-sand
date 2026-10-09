@@ -3,7 +3,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { ShopGrid } from "@/components/shop/shop-catalog";
 import { categories, categoryBySlug } from "@/data/categories";
-import { baseCatalog, productsIn } from "@/lib/catalog";
 import type { Locale } from "@/i18n/routing";
 
 type Props = { params: Promise<{ locale: string; category: string }> };
@@ -31,5 +30,5 @@ export default async function CategoryPage({ params }: Props) {
   setRequestLocale(locale);
   const category = categoryBySlug(slug);
   if (!category) notFound();
-  return <ShopGrid slugs={productsIn(baseCatalog, category.slug).map((p) => p.slug)} />;
+  return <ShopGrid category={category.slug} />;
 }

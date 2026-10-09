@@ -2,9 +2,10 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { InstagramIcon, PaymentMarks, WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Logo } from "@/components/brand/logo";
 import { ltr } from "@/components/content/values";
+import { LivePhone, LiveWhatsAppNumber, WhatsAppAnchor } from "@/components/settings/live";
 import { site } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
-import { defaultSettings, phoneDisplay, whatsappDisplay, whatsappHref } from "@/lib/settings";
+import { defaultSettings, whatsappDisplay } from "@/lib/settings";
 
 const contactLink =
   "inline-flex min-h-11 items-center gap-2.5 text-[14px] font-light text-cream/90 underline-offset-4 transition-colors hover:text-cream hover:underline";
@@ -18,7 +19,7 @@ export async function Footer() {
   const t = await getTranslations("common");
   const locale = (await getLocale()) as Locale;
   const handle = `@${site.instagram.handle}`;
-  // The WhatsApp number is stored international ("965…"); show it the way the rest of the site writes numbers.
+  // Accessible name uses the default number (the visible number below is live).
   const whatsappNumber = whatsappDisplay(defaultSettings);
 
   return (
@@ -29,7 +30,10 @@ export async function Footer() {
           <div className="flex flex-col gap-0.5 text-[12px] leading-relaxed font-light text-cream/75">
             <span>{t("footer.rights")}</span>
             <span>
-              {site.trade.name[locale]} · <bdi>{site.trade.cr}</bdi> · <bdi dir="ltr">{phoneDisplay(defaultSettings)}</bdi>
+              {site.trade.name[locale]} · <bdi>{site.trade.cr}</bdi> ·{" "}
+              <bdi dir="ltr">
+                <LivePhone />
+              </bdi>
             </span>
           </div>
         </div>
@@ -48,8 +52,8 @@ export async function Footer() {
             </a>
           </li>
           <li>
-            <a
-              href={whatsappHref(defaultSettings, t("brand"))}
+            <WhatsAppAnchor
+              text={t("brand")}
               target="_blank"
               rel="noreferrer"
               aria-label={`${t("footer.whatsapp")} ${ltr(whatsappNumber)}`}
@@ -57,9 +61,9 @@ export async function Footer() {
             >
               <WhatsAppIcon className="size-[18px]" />
               <bdi dir="ltr" className="figures">
-                {whatsappNumber}
+                <LiveWhatsAppNumber />
               </bdi>
-            </a>
+            </WhatsAppAnchor>
           </li>
         </ul>
 

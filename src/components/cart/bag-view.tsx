@@ -13,7 +13,7 @@ import type { Product } from "@/data/types";
 import { EXPRESS_APPLE_PAY_EVENT } from "@/components/checkout/events";
 import { Link, usePathname } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import type { Catalog } from "@/lib/catalog";
+import { productHref, type Catalog } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
 import { useLiveCatalog, useLiveSettings } from "@/lib/live";
@@ -78,7 +78,7 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
       {priced.map((line) => (
         <li key={line.sku} className="flex gap-4 px-6 py-5" data-testid="bag-line">
           <Link
-            href={`/product/${line.product.slug}`}
+            href={productHref(line.product.slug)}
             onClick={onNavigate}
             className="relative block size-[104px] shrink-0 bg-tile sm:size-[120px]"
             tabIndex={-1}
@@ -90,7 +90,7 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
-                  href={`/product/${line.product.slug}`}
+                  href={productHref(line.product.slug)}
                   onClick={onNavigate}
                   className="caps block truncate font-serif text-[18px] font-medium hover:underline"
                 >

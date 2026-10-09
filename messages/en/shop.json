@@ -11,6 +11,7 @@
     "all": "All"
   },
   "productsHeading": "Products",
+  "empty": "Nothing here yet — explore the other collections.",
   "count": "{count, plural, one {{n} product} other {{n} products}}",
   "sort": {
     "label": "Sort by",

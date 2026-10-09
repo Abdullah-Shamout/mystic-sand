@@ -8,6 +8,14 @@
     "shop": "Shop"
   },
   "trilogy": "The Trilogy",
+  "unavailable": {
+    "title": "No longer available",
+    "text": "This product isn’t available right now. Explore the rest of the collection.",
+    "cta": "Browse the shop"
+  },
+  "custom": {
+    "metaTitle": "Product"
+  },
   "detailsHeading": "Product details",
   "size": "Size",
   "quantity": "Quantity",

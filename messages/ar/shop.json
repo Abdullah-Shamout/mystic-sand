@@ -11,6 +11,7 @@
     "all": "الكل"
   },
   "productsHeading": "المنتجات",
+  "empty": "لا يوجد شيء هنا بعد — تصفّح المجموعات الأخرى.",
   "count": "{count, plural, one {منتج واحد} two {منتجان} few {{n} منتجات} many {{n} منتجاً} other {{n} منتج}}",
   "sort": {
     "label": "ترتيب حسب",

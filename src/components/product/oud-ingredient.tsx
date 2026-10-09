@@ -1,20 +1,24 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Reveal } from "@/components/ui/reveal";
 import { Link } from "@/i18n/navigation";
-import { baseCatalog } from "@/lib/catalog";
+import { productHref } from "@/lib/catalog";
+import { useLiveProduct } from "@/lib/live";
 
 const CHIPS_SLUG = "oud-chips";
 
 /**
  * OUD only: the raw ingredient, with a path to the Natural Oud Chips. The packshot is
  * cropped in close, so it reads as the wood itself rather than a repeat of the gallery.
+ * Shown only while the chips are visible in the live catalog, with their live name.
  */
-export async function OudIngredient() {
-  const t = await getTranslations("product.oud");
-  const chips = baseCatalog.bySlug.get(CHIPS_SLUG);
-  if (!chips) return null;
+export function OudIngredient() {
+  const t = useTranslations("product.oud");
+  const chips = useLiveProduct(CHIPS_SLUG);
+  if (!chips || chips.hidden) return null;
 
   return (
     <section aria-labelledby="oud-title" className="grid bg-tile md:grid-cols-2">
@@ -35,7 +39,7 @@ export async function OudIngredient() {
           {t.rich("text", { product: (chunks) => <bdi lang="en">{chunks}</bdi> })}
         </p>
         <Button asChild variant="secondary" className="mt-8">
-          <Link href={`/product/${CHIPS_SLUG}`}>
+          <Link href={productHref(CHIPS_SLUG)}>
             {t("cta")} <bdi lang="en">{chips.name}</bdi>
           </Link>
         </Button>

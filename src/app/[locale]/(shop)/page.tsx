@@ -7,15 +7,10 @@ import { InstagramBand } from "@/components/home/instagram-band";
 import { ServiceStrip } from "@/components/home/service-strip";
 import { SignatureDuo } from "@/components/home/signature-duo";
 import { VideoHero } from "@/components/home/video-hero";
-import { ProductGrid } from "@/components/product/product-grid";
+import { CatalogGrid } from "@/components/product/catalog-grid";
 import { SectionTitle } from "@/components/ui/section-title";
-import type { Product } from "@/data/types";
-import { baseCatalog } from "@/lib/catalog";
 
 type Props = { params: Promise<{ locale: string }> };
-
-const pick = (slugs: string[]) =>
-  slugs.map((slug) => baseCatalog.bySlug.get(slug)).filter((p): p is Product => Boolean(p));
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
@@ -38,7 +33,7 @@ export default async function HomePage({ params }: Props) {
 
       <section>
         <SectionTitle title={t("trilogy.title")} subtitle={t("trilogy.subtitle")} />
-        <ProductGrid products={pick(["i", "ii", "iii"])} columns={3} />
+        <CatalogGrid slugs={["i", "ii", "iii"]} columns={3} />
       </section>
 
       <ImagePanel
@@ -65,7 +60,7 @@ export default async function HomePage({ params }: Props) {
 
       <section>
         <SectionTitle title={t("homeGrid.title")} subtitle={t("homeGrid.subtitle")} />
-        <ProductGrid products={pick(["oasis", "mist", "dune", "oud-chips"])} />
+        <CatalogGrid slugs={["oasis", "mist", "dune", "oud-chips"]} />
       </section>
 
       <ServiceStrip />

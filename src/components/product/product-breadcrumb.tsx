@@ -1,4 +1,6 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 import type { Category } from "@/data/categories";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -6,8 +8,9 @@ import type { Locale } from "@/i18n/routing";
 const link = "inline-flex min-h-11 items-center transition-colors hover:text-ink hover:underline underline-offset-4";
 
 /** Shop / category / product — small, muted, above the eyebrow. ("Home" is also a category.) */
-export async function ProductBreadcrumb({ name, category, locale }: { name: string; category?: Category; locale: Locale }) {
-  const t = await getTranslations("product.breadcrumb");
+export function ProductBreadcrumb({ name, category }: { name: string; category?: Category }) {
+  const t = useTranslations("product.breadcrumb");
+  const locale = useLocale() as Locale;
   return (
     <nav aria-label={t("label")} className="-my-2">
       <ol className="flex flex-wrap items-center gap-x-2 text-[13px] text-muted">

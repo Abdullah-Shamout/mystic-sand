@@ -7,6 +7,7 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import type { Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { productHref } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { isolatedKWD } from "@/lib/money";
 import { useAddToBag } from "@/lib/use-add-to-bag";
@@ -26,7 +27,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const variant = product.variants[0];
   const multi = product.variants.length > 1;
   const soldOut = product.variants.every((v) => v.stock <= 0);
-  const href = `/product/${product.slug}`;
+  const href = productHref(product.slug);
   const minPrice = Math.min(...product.variants.map((v) => v.priceFils));
   const image = product.images.hover ?? product.images.card;
 

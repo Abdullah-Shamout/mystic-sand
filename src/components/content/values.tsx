@@ -1,12 +1,12 @@
+import type { RichTranslationValues } from "next-intl";
+import { LiveFee, LivePhone } from "@/components/settings/live";
 import { delivery, payments, site } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { isolatedKWD } from "@/lib/money";
-import { defaultSettings, feeFor, phoneDisplay, telHref as telHrefFor } from "@/lib/settings";
+import { defaultSettings, feeFor, phoneDisplay } from "@/lib/settings";
 
 /** Left-to-right isolate for phone numbers, times and IDs inside running Arabic text. */
 export const ltr = (text: string) => `⁦${text}⁩`;
-
-export const telHref = telHrefFor(defaultSettings);
 
 // Arabic counted nouns change form with the number. These forms read naturally
 // after a preposition: "خلال ساعتين", "خلال 3 أيام", "خلال 14 يوماً".
@@ -45,8 +45,9 @@ export function standardWhen(locale: Locale) {
 
 /**
  * Store facts injected into content and policy messages ({standardFee}, {returnsWindow}…),
- * so copy never drifts from the settings in src/data/site.ts. All values are strings:
- * ICU would format numbers with Arabic-Indic digits, and the site uses Latin digits.
+ * so copy never drifts from the settings. The fee/phone values here are the defaults; the
+ * live values are injected by liveStoreValues below. All values are strings: ICU would
+ * format numbers with Arabic-Indic digits, and the site uses Latin digits.
  */
 export function storeValues(locale: Locale): Record<string, string> {
   return {
@@ -66,4 +67,19 @@ export function storeValues(locale: Locale): Record<string, string> {
     returnsWindow: formatDays(delivery.returnsDays, locale),
     otpFrom: isolatedKWD(payments.otpFromFils, locale),
   };
+}
+
+/**
+ * storeValues with the delivery fees and phone swapped for live client elements, so content
+ * and policy pages follow the admin's settings. These are only ever passed to `t.rich`, which
+ * renders element values as-is at runtime; RichTranslationValues' type doesn't allow React
+ * elements, hence the single cast.
+ */
+export function liveStoreValues(locale: Locale): RichTranslationValues {
+  return {
+    ...storeValues(locale),
+    standardFee: <LiveFee key="standardFee" kind="standard" />,
+    expressFee: <LiveFee key="expressFee" kind="express" />,
+    phone: <LivePhone key="phone" isolate />,
+  } as unknown as RichTranslationValues;
 }

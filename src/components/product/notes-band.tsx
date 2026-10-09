@@ -1,4 +1,6 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 import { Logo } from "@/components/brand/logo";
 import { Reveal } from "@/components/ui/reveal";
 import type { Notes } from "@/data/types";
@@ -12,8 +14,9 @@ const COLUMNS = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3" 
  * Echoes the brand's Instagram notes graphics: the sand of the profile, black serif
  * type and the hourglass mark — top, heart and base side by side.
  */
-export async function NotesBand({ notes, locale }: { notes: Notes; locale: Locale }) {
-  const t = await getTranslations("product.notes");
+export function NotesBand({ notes }: { notes: Notes }) {
+  const t = useTranslations("product.notes");
+  const locale = useLocale() as Locale;
   const tiers = TIERS.filter((tier) => notes[tier].length > 0);
   if (tiers.length === 0) return null;
 

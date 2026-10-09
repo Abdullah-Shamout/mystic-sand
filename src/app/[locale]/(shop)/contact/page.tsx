@@ -1,15 +1,15 @@
 import { Mail, Phone } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { ReactNode } from "react";
 import { InstagramIcon, WhatsAppIcon } from "@/components/brand/brand-icons";
 import { ContactForm, type ContactFormLabels } from "@/components/content/contact-form";
 import { linkClass } from "@/components/content/rich-tags";
-import { telHref } from "@/components/content/values";
+import { LivePhone, TelAnchor, WhatsAppAnchor } from "@/components/settings/live";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/section-title";
 import { site } from "@/data/site";
 import { cn } from "@/lib/cn";
-import { defaultSettings, phoneDisplay, whatsappHref } from "@/lib/settings";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -50,7 +50,8 @@ export default async function ContactPage({ params }: Props) {
     newTab: t("newTab"),
   };
 
-  const channels = [
+  type Channel = { icon: ReactNode; label: string; value?: string; href?: string; external?: boolean; tel?: boolean };
+  const channels: Channel[] = [
     {
       icon: <InstagramIcon className="size-[18px]" />,
       label: t("contact.channels.instagram"),
@@ -61,8 +62,7 @@ export default async function ContactPage({ params }: Props) {
     {
       icon: <Phone className="size-[18px]" strokeWidth={1.25} aria-hidden />,
       label: t("contact.channels.phone"),
-      value: phoneDisplay(defaultSettings),
-      href: telHref,
+      tel: true,
     },
     {
       icon: <Mail className="size-[18px]" strokeWidth={1.25} aria-hidden />,
@@ -90,11 +90,11 @@ export default async function ContactPage({ params }: Props) {
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-ink/80">{t("contact.whatsapp.text")}</p>
             <Button asChild size="lg" block className="mt-7">
-              <a href={whatsappHref(defaultSettings, t("contact.whatsapp.message"))} target="_blank" rel="noreferrer">
+              <WhatsAppAnchor text={t("contact.whatsapp.message")} target="_blank" rel="noreferrer">
                 <WhatsAppIcon className="size-[18px]" />
                 {t("contact.whatsapp.cta")}
                 <span className="sr-only">({t("newTab")})</span>
-              </a>
+              </WhatsAppAnchor>
             </Button>
           </section>
 
@@ -110,14 +110,20 @@ export default async function ContactPage({ params }: Props) {
                     {c.label}
                   </dt>
                   <dd>
-                    <a
-                      href={c.href}
-                      {...(c.external ? { target: "_blank", rel: "noreferrer" } : {})}
-                      className={cn(linkClass, "inline-flex min-h-11 items-center text-[15px]")}
-                    >
-                      <bdi dir="ltr">{c.value}</bdi>
-                      {c.external && <span className="sr-only"> ({t("newTab")})</span>}
-                    </a>
+                    {c.tel ? (
+                      <TelAnchor dir="ltr" className={cn(linkClass, "inline-flex min-h-11 items-center text-[15px]")}>
+                        <LivePhone />
+                      </TelAnchor>
+                    ) : (
+                      <a
+                        href={c.href}
+                        {...(c.external ? { target: "_blank", rel: "noreferrer" } : {})}
+                        className={cn(linkClass, "inline-flex min-h-11 items-center text-[15px]")}
+                      >
+                        <bdi dir="ltr">{c.value}</bdi>
+                        {c.external && <span className="sr-only"> ({t("newTab")})</span>}
+                      </a>
+                    )}
                   </dd>
                 </div>
               ))}

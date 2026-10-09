@@ -3,12 +3,12 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { FaqGroup } from "@/components/content/faq-group";
 import { richTags } from "@/components/content/rich-tags";
-import { storeValues } from "@/components/content/values";
+import { liveStoreValues } from "@/components/content/values";
+import { WhatsAppAnchor } from "@/components/settings/live";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { defaultSettings, whatsappHref } from "@/lib/settings";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -28,7 +28,7 @@ export default async function FaqPage({ params }: Props) {
   const t = await getTranslations("content");
   const topics = Object.entries(t.raw("faq.groups") as Record<string, FaqTopic>);
   const whatsappText = t("faq.whatsappMessage");
-  const values = { ...storeValues(locale as Locale), ...richTags(whatsappText) };
+  const values = { ...liveStoreValues(locale as Locale), ...richTags(whatsappText) };
 
   return (
     <>
@@ -91,11 +91,11 @@ export default async function FaqPage({ params }: Props) {
           <p className="mt-3 text-[15px] text-ink/80">{t("faq.more.text")}</p>
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild className="w-full sm:w-auto">
-              <a href={whatsappHref(defaultSettings, whatsappText)} target="_blank" rel="noreferrer">
+              <WhatsAppAnchor text={whatsappText} target="_blank" rel="noreferrer">
                 <WhatsAppIcon className="size-4" />
                 {t("faq.more.whatsapp")}
                 <span className="sr-only">({t("newTab")})</span>
-              </a>
+              </WhatsAppAnchor>
             </Button>
             <Button asChild variant="secondary" className="w-full sm:w-auto">
               <Link href="/contact">{t("faq.more.contact")}</Link>

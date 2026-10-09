@@ -1,24 +1,29 @@
+"use client";
+
 import { Clock, RotateCcw, ShieldCheck, Truck } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { useLocale, useTranslations } from "next-intl";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { expressWindow, formatDays, ltr, standardWhen } from "@/components/content/values";
+import { WhatsAppAnchor } from "@/components/settings/live";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { delivery } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
+import { useLiveSettings } from "@/lib/live";
 import { isolatedKWD } from "@/lib/money";
-import { defaultSettings, feeFor, whatsappHref } from "@/lib/settings";
+import { feeFor } from "@/lib/settings";
 
 /** Reassurance strip on racing green, ending with the WhatsApp concierge. */
-export async function ServiceStrip() {
-  const t = await getTranslations("home.services");
-  const locale = (await getLocale()) as Locale;
+export function ServiceStrip() {
+  const t = useTranslations("home.services");
+  const locale = useLocale() as Locale;
+  const settings = useLiveSettings();
 
   const items = [
     {
       icon: Truck,
       title: t("delivery.title"),
-      text: t("delivery.text", { fee: isolatedKWD(feeFor(defaultSettings, "standard"), locale), when: standardWhen(locale) }),
+      text: t("delivery.text", { fee: isolatedKWD(feeFor(settings, "standard"), locale), when: standardWhen(locale) }),
     },
     {
       icon: Clock,
@@ -47,11 +52,11 @@ export async function ServiceStrip() {
         <div className="mx-auto flex max-w-[1440px] flex-col items-center gap-6 px-6 py-10 text-center md:flex-row md:justify-center md:gap-10">
           <p className="font-serif text-[22px] leading-snug md:text-[24px]">{t("whatsapp.text")}</p>
           <Button asChild variant="outline-light">
-            <a href={whatsappHref(defaultSettings, t("whatsapp.message"))} target="_blank" rel="noreferrer">
+            <WhatsAppAnchor text={t("whatsapp.message")} target="_blank" rel="noreferrer">
               <WhatsAppIcon className="size-[18px]" />
               {t("whatsapp.cta")}
               <span className="sr-only">({t("newTab")})</span>
-            </a>
+            </WhatsAppAnchor>
           </Button>
         </div>
       </div>

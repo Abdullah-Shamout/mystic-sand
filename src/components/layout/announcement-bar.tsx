@@ -2,22 +2,26 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import type { Locale } from "@/i18n/routing";
 import { expressWindow } from "@/components/content/values";
+import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
+import { useLiveSettings } from "@/lib/live";
 
 /**
  * Green announcement ticker (Amouage: dark bar above the header, slow rotation).
  * The outgoing message rises and fades out first; the next one rises in after it,
- * so two messages never overlap mid-transition.
+ * so two messages never overlap mid-transition. Uses the admin's custom messages when
+ * set (per locale), otherwise the built-in ones.
  */
 export function AnnouncementBar() {
   const t = useTranslations("common");
   const locale = useLocale() as Locale;
-  const messages = [
-    t("announcement.payment"),
-    t("announcement.express", { window: expressWindow(locale) }),
-  ];
+  const settings = useLiveSettings();
+  const custom = settings.ticker[locale];
+  const messages =
+    custom.length > 0
+      ? custom
+      : [t("announcement.payment"), t("announcement.express", { window: expressWindow(locale) })];
   const [{ current, previous }, setState] = useState<{ current: number; previous: number | null }>({
     current: 0,
     previous: null,
@@ -25,7 +29,7 @@ export function AnnouncementBar() {
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (paused || messages.length <= 1 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let settle: number | undefined;
     const park = () => setState((s) => ({ ...s, previous: null }));
     const id = setInterval(() => {
@@ -48,6 +52,9 @@ export function AnnouncementBar() {
     };
   }, [paused, messages.length]);
 
+  // Clamp in case the message set shrank (e.g. switching to a single custom message).
+  const activeIndex = current % messages.length;
+
   return (
     <div
       className="relative z-40 bg-racing text-cream"
@@ -60,10 +67,10 @@ export function AnnouncementBar() {
     >
       <div className="relative mx-auto flex h-10 max-w-[1720px] items-center justify-center overflow-hidden px-6 text-center text-[13px] md:text-[14px]">
         {messages.map((m, i) => {
-          const state = i === current ? "current" : i === previous ? "previous" : "waiting";
+          const state = i === activeIndex ? "current" : i === previous ? "previous" : "waiting";
           return (
             <p
-              key={m}
+              key={i}
               aria-hidden={state !== "current"}
               className={cn(
                 "absolute inset-x-6 truncate ease-[var(--ease-soft)]",
