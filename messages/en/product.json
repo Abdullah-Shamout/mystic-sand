@@ -23,7 +23,7 @@
     "expressLater": "Express delivery from <b>{time}</b> today",
     "expressTomorrow": "Express delivery from <b>{time}</b> tomorrow",
     "standard": "Standard delivery arrives <b>{day}</b>",
-    "perks": "Free delivery over {amount} · {d}-day returns on unopened items"
+    "perks": "Standard delivery {amount} · {d}-day returns on unopened items"
   },
   "gallery": {
     "label": "{name} — images",
@@ -48,7 +48,7 @@
   },
   "info": {
     "standardTitle": "Standard delivery",
-    "standard": "{fee} anywhere in Kuwait, free on orders over {threshold}. Arrives {days, plural, one {the next day} other {within {d} days}}.",
+    "standard": "{fee} anywhere in Kuwait. Arrives {days, plural, one {the next day} other {within {d} days}}.",
     "expressTitle": "{h}-hour express",
     "express": "{fee}, daily from {opens} (Fridays from {friday}). Last orders at {last}.",
     "returnsTitle": "Returns",

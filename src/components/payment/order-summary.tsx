@@ -60,7 +60,7 @@ export function OrderSummary({ order }: { order: Order }) {
           </TotalRow>
         )}
         <TotalRow label={t("delivery")}>
-          <Price fils={totals.deliveryFils} free />
+          <Price fils={totals.deliveryFils} />
         </TotalRow>
         <TotalRow label={t("total")} className="border-t border-line pt-2.5 text-[16px] font-medium">
           <Price fils={totals.totalFils} />

@@ -2,18 +2,16 @@
   "brand": "Mystic Sand",
   "meta": {
     "title": "Mystic Sand — Timeless scents that capture the moment",
-    "description": "Eau de parfum, body and home fragrance. Made in Kuwait. Free delivery across Kuwait over KWD 25."
+    "description": "Eau de parfum, body and home fragrance, made in Kuwait. Delivery to every area of Kuwait."
   },
   "skipToContent": "Skip to content",
   "close": "Close",
-  "free": "Free",
   "loading": "Loading…",
   "quantityFor": "Quantity for {name}",
   "decrease": "Decrease quantity",
   "increase": "Increase quantity",
   "maxReached": "Maximum quantity reached",
   "announcement": {
-    "delivery": "Free delivery across Kuwait on orders over {amount}",
     "payment": "Pay securely with KNET, Apple Pay or card",
     "express": "Express delivery across Kuwait in {window}",
     "label": "Announcements"

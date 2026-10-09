@@ -62,7 +62,6 @@ export async function ProductAccordions({ product, locale }: { product: Product;
           <p className="text-muted">
             {t("info.standard", {
               fee: isolatedKWD(delivery.standard.feeFils, locale),
-              threshold: isolatedKWD(delivery.standard.freeOverFils, locale),
               ...days(delivery.standard.leadDays),
             })}
           </p>

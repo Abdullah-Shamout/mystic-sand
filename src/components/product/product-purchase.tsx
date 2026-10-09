@@ -209,7 +209,7 @@ export function ProductPurchase({ product }: { product: Product }) {
           <RotateCcw className="mt-0.5 size-[18px] shrink-0 text-ink" strokeWidth={1.25} aria-hidden />
           <span>
             {t("delivery.perks", {
-              amount: isolatedKWD(delivery.standard.freeOverFils, locale),
+              amount: isolatedKWD(delivery.standard.feeFils, locale),
               days: delivery.returnsDays,
               d: String(delivery.returnsDays),
             })}

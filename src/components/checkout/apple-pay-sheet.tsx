@@ -151,7 +151,7 @@ export function ApplePaySheet({
             <dt className="caps pt-0.5 text-[12px] text-muted">{t("delivery")}</dt>
             <dd className="flex flex-wrap items-baseline justify-between gap-x-3">
               <span>{details.deliveryMethod === "express" ? t("express") : t("standard")}</span>
-              <Price fils={totals.deliveryFils} free />
+              <Price fils={totals.deliveryFils} />
             </dd>
           </div>
           <div className="grid grid-cols-[84px_minmax(0,1fr)] gap-4 py-3.5">

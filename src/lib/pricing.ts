@@ -33,10 +33,6 @@ export type Totals = {
   discountFils: number;
   deliveryFils: number;
   totalFils: number;
-  /** Standard delivery becomes free at this merchandise total. */
-  freeDeliveryThresholdFils: number;
-  freeDeliveryRemainingFils: number;
-  qualifiesFreeDelivery: boolean;
 };
 
 export function computeTotals(input: {
@@ -49,26 +45,16 @@ export function computeTotals(input: {
   const subtotalFils = priced.reduce((n, l) => n + l.lineFils, 0);
   const discountFils = input.promo ? Math.round((subtotalFils * input.promo.percent) / 100) : 0;
   const merchandise = subtotalFils - discountFils;
-  const threshold = delivery.standard.freeOverFils;
-  const qualifiesFreeDelivery = merchandise >= threshold;
   const method = input.deliveryMethod ?? "standard";
+  // Delivery is always charged: there is no free-delivery threshold.
   const deliveryFils =
-    itemCount === 0
-      ? 0
-      : method === "express"
-        ? delivery.express.feeFils
-        : qualifiesFreeDelivery
-          ? 0
-          : delivery.standard.feeFils;
+    itemCount === 0 ? 0 : method === "express" ? delivery.express.feeFils : delivery.standard.feeFils;
   return {
     itemCount,
     subtotalFils,
     discountFils,
     deliveryFils,
     totalFils: merchandise + deliveryFils,
-    freeDeliveryThresholdFils: threshold,
-    freeDeliveryRemainingFils: Math.max(0, threshold - merchandise),
-    qualifiesFreeDelivery,
   };
 }
 

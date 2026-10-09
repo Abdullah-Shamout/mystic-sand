@@ -96,11 +96,6 @@ export function Invoice({ order, attempt }: { order: Order; attempt: PaymentReco
   const [streetEn, unitEn] = addressParts(d, addressLabels(tEn));
   const days = { days: delivery.returnsDays, daysText: String(delivery.returnsDays) };
   const { totals } = order;
-  const free = (
-    <>
-      {tAr("invoice.free")} <bdi lang="en">{tEn("invoice.free")}</bdi>
-    </>
-  );
 
   return (
     <section dir="rtl" lang="ar" className="hidden text-[12px] leading-relaxed text-ink print:block">
@@ -224,7 +219,7 @@ export function Invoice({ order, attempt }: { order: Order; attempt: PaymentReco
             </bdi>
           </Total>
         )}
-        <Total k="invoice.delivery">{totals.deliveryFils === 0 ? free : amount(totals.deliveryFils)}</Total>
+        <Total k="invoice.delivery">{amount(totals.deliveryFils)}</Total>
         <Total k="invoice.total" strong>
           {amount(totals.totalFils)}
         </Total>

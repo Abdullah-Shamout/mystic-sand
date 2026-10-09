@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Mystic Sand — Timeless scents from Kuwait",
-    "description": "Eaux de parfum, body and home fragrance made in Kuwait: the Trilogy, CAFÉ, OUD and AURA. Free delivery across Kuwait over {amount}, with KNET, Apple Pay or card."
+    "description": "Eaux de parfum, body and home fragrance made in Kuwait: the Trilogy, CAFÉ, OUD and AURA. Delivery across Kuwait, with KNET, Apple Pay or card."
   },
   "hero": {
     "eyebrow": "Made in Kuwait",
@@ -47,8 +47,8 @@
   "services": {
     "title": "Our services",
     "delivery": {
-      "title": "Free delivery over {amount}",
-      "text": "Standard delivery to every area of Kuwait."
+      "title": "Delivery across Kuwait",
+      "text": "Standard delivery for {fee}, arriving {when}."
     },
     "express": {
       "title": "Express in {window}",

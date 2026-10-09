@@ -56,7 +56,6 @@ export function storeValues(locale: Locale): Record<string, string> {
     email: ltr(site.email),
     handle: ltr(`@${site.instagram.handle}`),
     standardFee: isolatedKWD(delivery.standard.feeFils, locale),
-    freeOver: isolatedKWD(delivery.standard.freeOverFils, locale),
     expressFee: isolatedKWD(delivery.express.feeFils, locale),
     expressWindow: expressWindow(locale),
     standardWhen: standardWhen(locale),

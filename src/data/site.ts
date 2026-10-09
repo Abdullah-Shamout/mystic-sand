@@ -18,8 +18,8 @@ export const site = {
 } as const;
 
 export const delivery = {
-  // TODO(client): fees, threshold and hours.
-  standard: { feeFils: 1000, freeOverFils: 25000, leadDays: 1 },
+  // TODO(client): fees and hours. There is no free-delivery threshold.
+  standard: { feeFils: 1000, leadDays: 1 },
   express: {
     feeFils: 3000,
     windowMinutes: 120,

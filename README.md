@@ -8,7 +8,7 @@ A clickable, frontend-only prototype of the **Mystic Sand** perfume store
 - English and Arabic (full right-to-left layout), switchable on every page
 - Four collections, each its own page and reached from the ☰ menu: Perfumes, Oud, Body and Home
 - Luxury, Amouage-inspired design in the brand's colours: Sand `#CBBD93` and British Racing Green `#004225`
-- Easy shopping: quick add from any product grid, bag drawer with free-delivery progress, one-page guest checkout
+- Easy shopping: quick add from any product grid, bag drawer with the delivery fee shown upfront, one-page guest checkout
 - Kuwait checkout: area search that fills the governorate, block/street/avenue/house fields, +965 mobile validation, prices in KWD (3 decimals)
 - Payments: **KNET** (default), Apple Pay and Visa/Mastercard — **simulated**, see below
 

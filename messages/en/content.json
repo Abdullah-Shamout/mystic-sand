@@ -73,7 +73,7 @@
           },
           "cost": {
             "q": "How much does delivery cost?",
-            "a": "Standard delivery is {standardFee}, and free on orders of {freeOver} or more. Express delivery is {expressFee}. The delivery fee is always shown in your bag and at checkout, before you pay."
+            "a": "Standard delivery is {standardFee} and express delivery is {expressFee}. The delivery fee is always shown in your bag and at checkout, before you pay."
           },
           "time": {
             "q": "How quickly will my order arrive?",

@@ -335,7 +335,7 @@
               "rows": [
                 [
                   "Standard",
-                  "{standardFee} — free on orders of {freeOver} or more",
+                  "{standardFee}",
                   "Arrives {standardWhen}"
                 ],
                 [
@@ -346,7 +346,7 @@
               ]
             }
           },
-          "Free standard delivery applies when your products total {freeOver} or more after any discount."
+          "The delivery fee is added to every order and shown in your bag and at checkout, before you pay."
         ]
       },
       "price": {

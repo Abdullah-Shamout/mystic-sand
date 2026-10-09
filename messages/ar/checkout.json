@@ -69,7 +69,6 @@
     "standard": "التوصيل العادي",
     "standardTomorrow": "يصلك غداً، {day}",
     "standardOn": "يصلك {day}",
-    "freeOver": "مجاناً للطلبات التي تتجاوز {amount}",
     "express": "التوصيل السريع خلال ساعتين",
     "expressOpen": "يصلك خلال ساعتين — اطلب خلال {time}",
     "expressLaterToday": "متاح اليوم ابتداءً من الساعة {time}",

@@ -23,7 +23,7 @@
     "expressLater": "التوصيل السريع متاح اليوم ابتداءً من الساعة <b>{time}</b>",
     "expressTomorrow": "التوصيل السريع متاح غداً ابتداءً من الساعة <b>{time}</b>",
     "standard": "يصل التوصيل العادي يوم <b>{day}</b>",
-    "perks": "توصيل مجاني للطلبات فوق {amount} · إرجاع خلال {days, plural, one {يوم واحد} two {يومين} few {{d} أيام} many {{d} يوماً} other {{d} يوم}} للمنتجات غير المفتوحة"
+    "perks": "التوصيل العادي {amount} · إرجاع خلال {days, plural, one {يوم واحد} two {يومين} few {{d} أيام} many {{d} يوماً} other {{d} يوم}} للمنتجات غير المفتوحة"
   },
   "gallery": {
     "label": "صور {name}",
@@ -48,7 +48,7 @@
   },
   "info": {
     "standardTitle": "التوصيل العادي",
-    "standard": "{fee} لجميع مناطق الكويت، ومجاناً للطلبات فوق {threshold}. {days, plural, one {يصلك في اليوم التالي} two {يصلك خلال يومين} few {يصلك خلال {d} أيام} many {يصلك خلال {d} يوماً} other {يصلك خلال {d} يوم}}.",
+    "standard": "{fee} لجميع مناطق الكويت. {days, plural, one {يصلك في اليوم التالي} two {يصلك خلال يومين} few {يصلك خلال {d} أيام} many {يصلك خلال {d} يوماً} other {يصلك خلال {d} يوم}}.",
     "expressTitle": "التوصيل السريع خلال {hours, plural, one {ساعة} two {ساعتين} few {{h} ساعات} many {{h} ساعة} other {{h} ساعة}}",
     "express": "{fee}، يومياً من الساعة {opens} (أيام الجمعة من الساعة {friday})، وآخر موعد للطلب الساعة {last}.",
     "returnsTitle": "الإرجاع",

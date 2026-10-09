@@ -4,9 +4,7 @@ import { notFound } from "next/navigation";
 import { ShopGrid } from "@/components/shop/shop-catalog";
 import { categories, categoryBySlug } from "@/data/categories";
 import { productsInCategory } from "@/data/products";
-import { delivery } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
-import { formatKWD } from "@/lib/money";
 
 type Props = { params: Promise<{ locale: string; category: string }> };
 
@@ -24,10 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const l = locale as Locale;
   return {
     title: category.name[l],
-    description: t("meta.description", {
-      text: category.description[l],
-      amount: formatKWD(delivery.standard.freeOverFils, l),
-    }),
+    description: t("meta.description", { text: category.description[l] }),
   };
 }
 

@@ -60,7 +60,7 @@ export function TotalsList({
         </Row>
       )}
       <Row label={deliveryMethod === "express" ? t("deliveryExpress") : t("deliveryStandard")}>
-        <Price fils={totals.deliveryFils} free />
+        <Price fils={totals.deliveryFils} />
       </Row>
       <Row label={totalLabel ?? tc("total")} className="border-t border-line pt-3 text-[17px] font-medium">
         <Price fils={totals.totalFils} />

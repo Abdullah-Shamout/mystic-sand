@@ -4,9 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/i18n/routing";
 import { expressWindow } from "@/components/content/values";
-import { delivery } from "@/data/site";
 import { cn } from "@/lib/cn";
-import { isolatedKWD } from "@/lib/money";
 
 /**
  * Green announcement ticker (Amouage: dark bar above the header, slow rotation).
@@ -17,7 +15,6 @@ export function AnnouncementBar() {
   const t = useTranslations("common");
   const locale = useLocale() as Locale;
   const messages = [
-    t("announcement.delivery", { amount: isolatedKWD(delivery.standard.freeOverFils, locale) }),
     t("announcement.payment"),
     t("announcement.express", { window: expressWindow(locale) }),
   ];

@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useId, useRef } from "react";
+import { useId } from "react";
 import { ApplePayLogo, PaymentMarks } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
@@ -16,7 +16,6 @@ import { Link, usePathname } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
-import { isolatedKWD } from "@/lib/money";
 import { computeTotals, priceLines, type BagLine } from "@/lib/pricing";
 import { useAddToBag } from "@/lib/use-add-to-bag";
 import { maxQtyFor, useBag } from "@/store/bag";
@@ -33,38 +32,6 @@ function pickUpsells(lines: BagLine[]): { title: "upsellTrilogy" | "upsellPair";
   }
   const pairs = ["aura", "oud-chips", "cafe"].filter((s) => !inBag.has(s)).map((s) => productBySlug(s)!);
   return { title: "upsellPair", products: pairs.filter((p) => p.variants.length === 1).slice(0, 2) };
-}
-
-function FreeDeliveryBar({ remaining, threshold }: { remaining: number; threshold: number }) {
-  const t = useTranslations("cart");
-  const locale = useLocale() as Locale;
-  const announce = useUi((s) => s.announce);
-  const unlocked = remaining <= 0;
-  const wasUnlocked = useRef(unlocked);
-  useEffect(() => {
-    if (unlocked && !wasUnlocked.current) announce(t("freeDeliveryAnnounce"));
-    wasUnlocked.current = unlocked;
-  }, [unlocked, announce, t]);
-  const pct = Math.min(100, Math.round(((threshold - Math.max(0, remaining)) / threshold) * 100));
-  const message = unlocked
-    ? t("freeDeliveryUnlocked")
-    : t("freeDeliveryProgress", { amount: isolatedKWD(remaining, locale) });
-  return (
-    <div className="bg-tile px-6 py-4">
-      <p className="text-[14px]">{message}</p>
-      <div
-        className="mt-2 h-[3px] w-full bg-line"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={pct}
-        aria-valuetext={message}
-        aria-label={t("freeDeliveryLabel")}
-      >
-        <div className="h-full bg-racing transition-[width] duration-500" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
 }
 
 export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
@@ -236,7 +203,7 @@ export function BagSummary({ onNavigate, compact = false }: { onNavigate?: () =>
             {t("delivery")} <span className="text-[12px] text-muted">· {t("deliveryHint")}</span>
           </dt>
           <dd>
-            <Price fils={totals.deliveryFils} free />
+            <Price fils={totals.deliveryFils} />
           </dd>
         </div>
         <div className="flex justify-between border-t border-line pt-2 text-[16px] font-medium">
@@ -315,7 +282,6 @@ export function BagView({ onNavigate, variant = "drawer" }: { onNavigate?: () =>
   const t = useTranslations("cart");
   const mounted = useMounted();
   const lines = useBag((s) => s.lines);
-  const promo = useBag((s) => s.promo);
 
   if (!mounted) {
     return (
@@ -328,10 +294,8 @@ export function BagView({ onNavigate, variant = "drawer" }: { onNavigate?: () =>
   }
   if (lines.length === 0) return <EmptyBag onNavigate={onNavigate} />;
 
-  const totals = computeTotals({ lines, promo });
   return (
     <div className={cn(variant === "page" && "border border-line")}>
-      <FreeDeliveryBar remaining={totals.freeDeliveryRemainingFils} threshold={totals.freeDeliveryThresholdFils} />
       <BagLines onNavigate={onNavigate} />
       <Upsells heading={variant === "page" ? "h2" : "h3"} />
       {variant === "drawer" && (

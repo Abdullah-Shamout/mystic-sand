@@ -8,10 +8,7 @@ import { delivery } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { expressStatus, formatDay, formatDuration, standardArrival } from "@/lib/delivery";
 import { useNow } from "@/lib/hooks";
-import { isolatedKWD } from "@/lib/money";
-import { computeTotals } from "@/lib/pricing";
 import type { CheckoutForm } from "@/lib/validation";
-import { useBag } from "@/store/bag";
 import { anchorId, ChoiceCard, iso, Section } from "./form-helpers";
 
 /** Standard vs 2-hour express, with real dates and cut-offs worked out in Kuwait time after mount. */
@@ -19,11 +16,7 @@ export function DeliverySection({ expressClosedNotice }: { expressClosedNotice: 
   const t = useTranslations("checkout.delivery");
   const locale = useLocale() as Locale;
   const { register, getValues, setValue } = useFormContext<CheckoutForm>();
-  const lines = useBag((s) => s.lines);
-  const promo = useBag((s) => s.promo);
   const now = useNow(30_000);
-
-  const standard = computeTotals({ lines, promo, deliveryMethod: "standard" });
   const status = now ? expressStatus(now) : null;
   const expressState = status?.state ?? null;
   const expressAvailable = expressState === null || expressState === "open";
@@ -53,17 +46,8 @@ export function DeliverySection({ expressClosedNotice }: { expressClosedNotice: 
           value="standard"
           {...register("deliveryMethod")}
           title={t("standard")}
-          description={
-            <>
-              {standardNote}
-              {!standard.qualifiesFreeDelivery && (
-                <span className="block">
-                  {t("freeOver", { amount: isolatedKWD(standard.freeDeliveryThresholdFils, locale) })}
-                </span>
-              )}
-            </>
-          }
-          aside={<Price fils={standard.deliveryFils} free className="text-[15px]" />}
+          description={standardNote}
+          aside={<Price fils={delivery.standard.feeFils} className="text-[15px]" />}
         />
         <ChoiceCard
           value="express"

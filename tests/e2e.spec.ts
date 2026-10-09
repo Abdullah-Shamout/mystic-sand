@@ -91,6 +91,15 @@ test.describe("shopping flows", () => {
     await expect(page.getByTestId("bag-button").filter({ visible: true }).first()).toHaveAccessibleName(/1|قطعة واحدة/);
   });
 
+  test("delivery is always charged — there is no free delivery", async ({ page }) => {
+    await addFromProductPage(page, "i");
+    await addFromProductPage(page, "iii"); // KWD 38.000 of products
+    const bag = page.getByRole("dialog");
+    await expect(bag.getByTestId("bag-line")).toHaveCount(2);
+    await expect(bag.getByText(/free/i)).toHaveCount(0);
+    await expect(bag.getByText("KWD 39.000")).toBeVisible(); // + KWD 1.000 delivery
+  });
+
   test("deep link to checkout with an empty bag shows the empty state", async ({ page }) => {
     await page.goto("/en/checkout/");
     await expect(page.getByText(/Your bag is empty/i).first()).toBeVisible();

@@ -1,7 +1,7 @@
 import { Clock, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
-import { expressWindow, formatDays, ltr } from "@/components/content/values";
+import { expressWindow, formatDays, ltr, standardWhen } from "@/components/content/values";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { delivery, whatsappLink } from "@/data/site";
@@ -16,8 +16,8 @@ export async function ServiceStrip() {
   const items = [
     {
       icon: Truck,
-      title: t("delivery.title", { amount: isolatedKWD(delivery.standard.freeOverFils, locale) }),
-      text: t("delivery.text"),
+      title: t("delivery.title"),
+      text: t("delivery.text", { fee: isolatedKWD(delivery.standard.feeFils, locale), when: standardWhen(locale) }),
     },
     {
       icon: Clock,

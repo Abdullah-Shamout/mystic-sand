@@ -11,10 +11,7 @@ import { VideoHero } from "@/components/home/video-hero";
 import { ProductGrid } from "@/components/product/product-grid";
 import { SectionTitle } from "@/components/ui/section-title";
 import { productBySlug } from "@/data/products";
-import { delivery } from "@/data/site";
 import type { Product } from "@/data/types";
-import type { Locale } from "@/i18n/routing";
-import { formatKWD } from "@/lib/money";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -25,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: "home" });
   return {
     title: { absolute: t("meta.title") },
-    description: t("meta.description", { amount: formatKWD(delivery.standard.freeOverFils, locale as Locale) }),
+    description: t("meta.description"),
   };
 }
 
