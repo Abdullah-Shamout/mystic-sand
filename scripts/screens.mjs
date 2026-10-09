@@ -2,6 +2,9 @@
 // Usage:
 //   node scripts/screens.mjs --base http://localhost:4318 --out ./shots \
 //     --pages /en/,/ar/ --viewports 1440x900,390x844 [--bag i,aura] [--click "[data-testid=bag-button]"] [--full]
+//   Add --admin to inject a signed-in admin session (sessionStorage "ms-admin-session")
+//   so the /admin pages render instead of the sign-in form, e.g.:
+//     node scripts/screens.mjs --admin --pages /en/admin/,/ar/admin/
 import fs from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
@@ -19,6 +22,7 @@ const pages = (args.pages ?? "/en/").split(",");
 const viewports = (args.viewports ?? "1440x900,390x844").split(",").map((v) => v.split("x").map(Number));
 const bag = args.bag ? args.bag.split(",") : [];
 const full = args.full === "true";
+const admin = args.admin === "true";
 const wait = Number(args.wait ?? 900);
 
 const skus = { i: "MS-I-50", ii: "MS-II-50", iii: "MS-III-50", aura: "MS-AURA-100", cafe: "MS-CAFE-30", oud: "MS-OUD-30", oasis: "MS-OASIS-250", chips: "MS-OUDCHIPS-1T" };
@@ -33,6 +37,16 @@ for (const [width, height] of viewports) {
     await context.addInitScript((value) => {
       localStorage.setItem("ms-bag", JSON.stringify({ state: { lines: value, promo: null }, version: 2 }));
     }, lines);
+  }
+  if (admin) {
+    // Inject a signed-in admin session so the /admin screens render for capture.
+    await context.addInitScript((exp) => {
+      try {
+        sessionStorage.setItem("ms-admin-session", JSON.stringify({ u: "admin", exp }));
+      } catch {
+        // storage blocked
+      }
+    }, Date.now() + 60 * 60 * 1000);
   }
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log(`  [pageerror] ${e.message}`));
