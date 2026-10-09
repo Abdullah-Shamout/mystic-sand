@@ -21,8 +21,7 @@ export function useCheckoutTotals(): { totals: Totals; deliveryMethod: DeliveryM
   const deliveryMethod = useWatch({ control, name: "deliveryMethod" });
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
-  const giftWrap = useBag((s) => s.giftWrap);
-  return { totals: computeTotals({ lines, promo, giftWrap, deliveryMethod }), deliveryMethod };
+  return { totals: computeTotals({ lines, promo, deliveryMethod }), deliveryMethod };
 }
 
 function Row({ label, children, className }: { label: React.ReactNode; children: React.ReactNode; className?: string }) {
@@ -39,14 +38,12 @@ export function TotalsList({
   totals,
   deliveryMethod,
   promoCode,
-  giftWrap,
   totalLabel,
   className,
 }: {
   totals: Totals;
   deliveryMethod: DeliveryMethod;
   promoCode: string | null;
-  giftWrap: boolean;
   totalLabel?: string;
   className?: string;
 }) {
@@ -65,11 +62,6 @@ export function TotalsList({
       <Row label={deliveryMethod === "express" ? t("deliveryExpress") : t("deliveryStandard")}>
         <Price fils={totals.deliveryFils} free />
       </Row>
-      {giftWrap && (
-        <Row label={t("giftWrap")}>
-          {totals.giftWrapFils > 0 ? <Price fils={totals.giftWrapFils} /> : t("complimentary")}
-        </Row>
-      )}
       <Row label={totalLabel ?? tc("total")} className="border-t border-line pt-3 text-[17px] font-medium">
         <Price fils={totals.totalFils} />
       </Row>
@@ -216,7 +208,6 @@ function SummaryBody() {
   const t = useTranslations("checkout.summary");
   const { totals, deliveryMethod } = useCheckoutTotals();
   const promo = useBag((s) => s.promo);
-  const giftWrap = useBag((s) => s.giftWrap);
   return (
     <>
       <SummaryLines />
@@ -227,7 +218,6 @@ function SummaryBody() {
         totals={totals}
         deliveryMethod={deliveryMethod}
         promoCode={promo?.code ?? null}
-        giftWrap={giftWrap}
         className="border-t border-line pt-4"
       />
       <p className="mt-3 text-[13px] text-muted">{t("finalNote")}</p>

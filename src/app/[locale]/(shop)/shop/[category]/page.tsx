@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { ShopView } from "@/components/shop/shop-view";
+import { ShopGrid } from "@/components/shop/shop-catalog";
 import { categories, categoryBySlug } from "@/data/categories";
+import { productsInCategory } from "@/data/products";
 import { delivery } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { formatKWD } from "@/lib/money";
@@ -35,5 +36,5 @@ export default async function CategoryPage({ params }: Props) {
   setRequestLocale(locale);
   const category = categoryBySlug(slug);
   if (!category) notFound();
-  return <ShopView locale={locale as Locale} category={category} />;
+  return <ShopGrid slugs={productsInCategory(category.slug).map((p) => p.slug)} />;
 }

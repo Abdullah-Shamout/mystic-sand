@@ -249,36 +249,6 @@
     ],
     "kind": "packshot"
   },
-  "products/trilogy-set/bottles": {
-    "w": 1291,
-    "h": 1291,
-    "widths": [
-      480,
-      960,
-      1291
-    ],
-    "kind": "packshot"
-  },
-  "products/trilogy-set/boxes": {
-    "w": 1514,
-    "h": 1514,
-    "widths": [
-      480,
-      960,
-      1514
-    ],
-    "kind": "packshot"
-  },
-  "products/trilogy-set/boxes-tight": {
-    "w": 1282,
-    "h": 1282,
-    "widths": [
-      480,
-      960,
-      1282
-    ],
-    "kind": "packshot"
-  },
   "renders/aura": {
     "w": 1024,
     "h": 1024,

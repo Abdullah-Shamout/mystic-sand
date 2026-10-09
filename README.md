@@ -6,6 +6,7 @@ A clickable, frontend-only prototype of the **Mystic Sand** perfume store
 **Live demo:** https://abdullah-shamout.github.io/mystic-sand/
 
 - English and Arabic (full right-to-left layout), switchable on every page
+- Four collections, each its own page and reached from the ☰ menu: Perfumes, Oud, Body and Home
 - Luxury, Amouage-inspired design in the brand's colours: Sand `#CBBD93` and British Racing Green `#004225`
 - Easy shopping: quick add from any product grid, bag drawer with free-delivery progress, one-page guest checkout
 - Kuwait checkout: area search that fills the governorate, block/street/avenue/house fields, +965 mobile validation, prices in KWD (3 decimals)
@@ -57,7 +58,7 @@ The workflow sets `NEXT_PUBLIC_BASE_PATH` to the repository path, so the site wo
 ## Structure
 
 ```
-src/app/[locale]/(shop)/      home, shop, product, bag, orders, story, contact, FAQ, policies
+src/app/[locale]/(shop)/      home, collections, product, bag, orders, contact, FAQ, policies
 src/app/[locale]/(checkout)/  checkout, payment simulation, result
 src/components/               ui kit, layout, product, cart, checkout, payment, home, content
 src/data/                     catalog, categories, Kuwait areas, banks, store settings

@@ -6,9 +6,7 @@
   "hero": {
     "eyebrow": "Made in Kuwait",
     "title": "Timeless scents that capture the moment",
-    "cta": "Discover",
-    "play": "Play background video",
-    "pause": "Pause background video"
+    "cta": "Discover"
   },
   "trilogy": {
     "title": "The Trilogy",
@@ -16,7 +14,7 @@
   },
   "story": {
     "title": "Born of sand and time",
-    "cta": "Our story",
+    "cta": "Explore the perfumes",
     "alt": "Mystic Sand I and II on a dark wooden tray beside an hourglass and black candles",
     "altMobile": "Mystic Sand II and I among candles on a dark wooden tray"
   },
@@ -39,31 +37,12 @@
     "eyebrow": "The film",
     "title": "Time, held in a bottle",
     "body": "An hourglass turns. Sand slips through an open hand. Three bottles emerge from the dark. Our film is a short meditation on time — and on the moments worth keeping.",
-    "cta": "Read our story",
-    "playWithSound": "Play with sound",
-    "resume": "Play film",
-    "replay": "Watch again",
-    "pause": "Pause film",
-    "mute": "Mute",
-    "unmute": "Unmute",
+    "cta": "Shop the collection",
     "videoLabel": "Mystic Sand brand film"
   },
   "homeGrid": {
     "title": "For the home",
     "subtitle": "Room and linen mists, and natural oud for the mabkhara."
-  },
-  "gifting": {
-    "eyebrow": "Gifting",
-    "title": "The perfect gift",
-    "text": "All three chapters of the Trilogy, presented together in their signature boxes — a gift to be remembered.",
-    "perks": [
-      "Complimentary gift wrapping in our sand-coloured box",
-      "Your message, handwritten on a card",
-      "Delivered anywhere in Kuwait, with prices hidden"
-    ],
-    "cta": "Shop the Trilogy Set",
-    "secondary": "All gift sets",
-    "alt": "The Trilogy — I, II and III — in a woven basket trimmed with cowrie shells"
   },
   "services": {
     "title": "Our services",
@@ -75,9 +54,9 @@
       "title": "Express in {window}",
       "text": "Order by {lastOrder} for delivery the same day."
     },
-    "gift": {
-      "title": "Complimentary gift wrapping",
-      "text": "With your message, handwritten on a card."
+    "returns": {
+      "title": "Easy returns",
+      "text": "Unopened items, within {window} of delivery."
     },
     "payment": {
       "title": "KNET, Apple Pay or card",

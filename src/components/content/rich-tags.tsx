@@ -41,7 +41,6 @@ export function richTags(whatsappText: string): Record<string, Tag> {
     privacy: (chunks) => internalLink("/privacy", chunks),
     terms: (chunks) => internalLink("/terms", chunks),
     orders: (chunks) => internalLink("/orders", chunks),
-    set: (chunks) => internalLink("/product/trilogy-set", chunks),
     shop: (chunks) => internalLink("/shop", chunks),
     whatsapp: (chunks) => externalLink(whatsappLink(whatsappText), chunks),
     instagram: (chunks) => externalLink(site.instagram.url, chunks),

@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef } from "react";
 import { ApplePayLogo, PaymentMarks } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/form";
 import { Price } from "@/components/ui/price";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
@@ -28,7 +27,7 @@ function pickUpsells(lines: BagLine[]): { title: "upsellTrilogy" | "upsellPair";
   if (lines.length >= 3) return { title: "upsellPair", products: [] };
   const inBag = new Set(lines.map((l) => productBySku(l.sku)?.product.slug).filter(Boolean) as string[]);
   const trilogyIn = trilogySlugs.filter((s) => inBag.has(s));
-  if (trilogyIn.length >= 1 && trilogyIn.length <= 2 && !inBag.has("trilogy-set")) {
+  if (trilogyIn.length >= 1 && trilogyIn.length <= 2) {
     const missing = trilogySlugs.filter((s) => !inBag.has(s)).map((s) => productBySlug(s)!);
     return { title: "upsellTrilogy", products: missing.slice(0, 2) };
   }
@@ -194,24 +193,14 @@ function Upsells({ heading: Heading = "h3" }: { heading?: "h2" | "h3" }) {
   );
 }
 
-/** Gift wrap + reassurance. Lives in the scrolling part so the pinned footer stays short. */
+/** Reassurance. Lives in the scrolling part so the pinned footer stays short. */
 export function BagExtras() {
   const t = useTranslations("cart");
-  const giftWrap = useBag((s) => s.giftWrap);
-  const setGiftWrap = useBag((s) => s.setGiftWrap);
   return (
-    <div className="space-y-4 px-6 py-5">
-      <Checkbox
-        checked={giftWrap}
-        onChange={(e) => setGiftWrap(e.target.checked)}
-        label={t("giftWrap")}
-        description={t("giftWrapNote")}
-      />
-      <div className="flex flex-col items-center gap-2 border-t border-line pt-4">
-        <PaymentMarks />
-        <p className="text-center text-[12px] text-muted">{t("secure")}</p>
-        <p className="text-center text-[12px] text-muted">{t("returns")}</p>
-      </div>
+    <div className="flex flex-col items-center gap-2 px-6 py-5">
+      <PaymentMarks />
+      <p className="text-center text-[12px] text-muted">{t("secure")}</p>
+      <p className="text-center text-[12px] text-muted">{t("returns")}</p>
     </div>
   );
 }
@@ -221,8 +210,7 @@ export function BagSummary({ onNavigate, compact = false }: { onNavigate?: () =>
   const pathname = usePathname();
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
-  const giftWrap = useBag((s) => s.giftWrap);
-  const totals = computeTotals({ lines, promo, giftWrap });
+  const totals = computeTotals({ lines, promo });
   const { missing } = priceLines(lines);
   const blocked = missing.length > 0;
 
@@ -309,7 +297,7 @@ function EmptyBag({ onNavigate }: { onNavigate?: () => void }) {
       <p className="caps font-serif text-title-sm font-medium">{t("empty")}</p>
       <p className="max-w-xs text-[15px] text-muted">{t("emptyText")}</p>
       <Button asChild variant="primary">
-        <Link href="/shop/eau-de-parfum" onClick={onNavigate}>
+        <Link href="/shop/perfumes" onClick={onNavigate}>
           {t("bestsellers")}
         </Link>
       </Button>
@@ -328,7 +316,6 @@ export function BagView({ onNavigate, variant = "drawer" }: { onNavigate?: () =>
   const mounted = useMounted();
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
-  const giftWrap = useBag((s) => s.giftWrap);
 
   if (!mounted) {
     return (
@@ -341,7 +328,7 @@ export function BagView({ onNavigate, variant = "drawer" }: { onNavigate?: () =>
   }
   if (lines.length === 0) return <EmptyBag onNavigate={onNavigate} />;
 
-  const totals = computeTotals({ lines, promo, giftWrap });
+  const totals = computeTotals({ lines, promo });
   return (
     <div className={cn(variant === "page" && "border border-line")}>
       <FreeDeliveryBar remaining={totals.freeDeliveryRemainingFils} threshold={totals.freeDeliveryThresholdFils} />

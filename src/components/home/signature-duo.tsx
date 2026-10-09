@@ -19,7 +19,7 @@ export async function SignatureDuo() {
         <Link
           key={product.slug}
           href={`/product/${product.slug}`}
-          className="group relative block aspect-[3/5] overflow-hidden bg-tile text-cream sm:aspect-[4/5] lg:aspect-auto lg:h-[calc(100svh-177px)] lg:min-h-[600px]"
+          className="group relative block aspect-[3/5] overflow-hidden bg-tile text-cream sm:aspect-[4/5] lg:aspect-auto lg:h-[calc(100svh-129px)] lg:min-h-[600px]"
         >
           <ResponsiveImage
             image={`renders/${product.slug}`}

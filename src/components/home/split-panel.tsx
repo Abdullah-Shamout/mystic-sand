@@ -26,7 +26,7 @@ export function SplitPanel({
     <section aria-labelledby={labelledBy} className={cn("grid md:grid-cols-2", className)}>
       <div
         className={cn(
-          "relative aspect-square overflow-hidden md:aspect-auto md:min-h-[600px] lg:min-h-[calc(100svh-177px)]",
+          "relative aspect-square overflow-hidden md:aspect-auto md:min-h-[600px] lg:min-h-[calc(100svh-129px)]",
           imageSide === "end" && "md:order-last",
         )}
       >

@@ -74,7 +74,7 @@ export function Toaster() {
   const toasts = useUi((s) => s.toasts);
   if (toasts.length === 0) return null;
   return (
-    <div className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col gap-2 p-3 md:inset-x-auto md:end-6 md:top-[150px] md:bottom-auto md:w-[380px] md:p-0">
+    <div className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col gap-2 p-3 md:inset-x-auto md:end-6 md:top-[118px] lg:top-[142px] md:bottom-auto md:w-[380px] md:p-0">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} />
       ))}

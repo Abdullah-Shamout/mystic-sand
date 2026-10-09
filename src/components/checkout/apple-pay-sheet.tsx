@@ -63,7 +63,6 @@ export function ApplePaySheet({
   const inInstagram = useInstagramBrowser();
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
-  const giftWrap = useBag((s) => s.giftWrap);
   const [phase, setPhase] = useState<Phase>("idle");
   const timers = useRef<number[]>([]);
 
@@ -72,7 +71,7 @@ export function ApplePaySheet({
     return () => pending.forEach((id) => window.clearTimeout(id));
   }, []);
 
-  const totals = computeTotals({ lines, promo, giftWrap, deliveryMethod: details.deliveryMethod });
+  const totals = computeTotals({ lines, promo, deliveryMethod: details.deliveryMethod });
   const address = format(details);
 
   const confirm = () => {
@@ -176,7 +175,6 @@ export function ApplePaySheet({
           totals={totals}
           deliveryMethod={details.deliveryMethod}
           promoCode={promo?.code ?? null}
-          giftWrap={giftWrap}
           totalLabel={t("payTo", { merchant: iso("MYSTIC SAND") })}
           className="mt-4"
         />

@@ -15,7 +15,7 @@ import { useAddToBag } from "@/lib/use-add-to-bag";
 import { useUi } from "@/store/ui";
 
 const TRENDING = ["i", "ii", "iii", "aura", "oud"];
-const TOP = ["trilogy-set", "cafe", "dune"];
+const TOP = ["cafe", "oud-chips", "dune"];
 
 function ResultRow({ product, onNavigate }: { product: Product; onNavigate: () => void }) {
   const t = useTranslations("common");

@@ -11,7 +11,7 @@ import { Link } from "@/i18n/navigation";
 import { useCheckout } from "@/store/checkout";
 import { iso } from "./form-helpers";
 
-const TRILOGY = ["i", "ii", "iii", "trilogy-set"].map(productBySlug).filter(Boolean) as Product[];
+const TRILOGY = ["i", "ii", "iii"].map(productBySlug).filter(Boolean) as Product[];
 
 /** Same frame as the form, so nothing jumps when the saved bag loads. */
 export function CheckoutSkeleton() {
@@ -59,7 +59,7 @@ export function CheckoutEmpty() {
         <p className="mt-4 max-w-sm text-[16px] text-muted">{t("text")}</p>
         <div className="mt-8 flex flex-col items-center gap-4">
           <Button asChild size="lg">
-            <Link href="/shop/eau-de-parfum">{t("cta")}</Link>
+            <Link href="/shop/perfumes">{t("cta")}</Link>
           </Button>
           {lastOrderId && (
             <Button asChild variant="link" className="text-[14px]">
@@ -70,7 +70,7 @@ export function CheckoutEmpty() {
           )}
         </div>
       </div>
-      <ProductGrid products={TRILOGY} />
+      <ProductGrid products={TRILOGY} columns={3} />
     </div>
   );
 }

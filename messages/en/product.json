@@ -12,11 +12,6 @@
   "size": "Size",
   "quantity": "Quantity",
   "inBag": "{n} in your bag",
-  "gift": {
-    "label": "Make it a gift",
-    "noteFree": "Complimentary wrapping in our sand-coloured box, finished with a ribbon. Add your message at checkout.",
-    "notePaid": "Wrapped in our sand-coloured box with a ribbon, for {price}. Add your message at checkout."
-  },
   "buyNow": "Buy now",
   "applePay": "Buy with Apple Pay",
   "notify": "Notify me on WhatsApp",

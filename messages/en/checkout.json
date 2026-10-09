@@ -77,28 +77,6 @@
     "checking": "Checking today’s schedule…",
     "expressClosed": "Express delivery has just closed for today, so we’ve switched your order to standard delivery."
   },
-  "gift": {
-    "legend": "Gift",
-    "toggle": "This order is a gift",
-    "toggleNote": "Add a personal message and we’ll send it beautifully wrapped.",
-    "wrap": "Complimentary gift wrapping",
-    "wrapNote": "Our sand-coloured box, tied with a ribbon.",
-    "recipient": "Recipient’s name",
-    "recipientPhone": "Recipient’s mobile",
-    "recipientPhoneHint": "Only used if the courier needs directions.",
-    "message": "Gift message",
-    "messagePlaceholder": "A few words, handwritten on our card.",
-    "counter": "{count} of {max} characters",
-    "occasions": "Choose an occasion",
-    "insert": "Add “{text}” to the message",
-    "eid": "Eid Mubarak",
-    "ramadan": "Ramadan Kareem",
-    "birthday": "Happy birthday",
-    "congrats": "Congratulations",
-    "thanks": "Thank you",
-    "hidePrices": "Hide prices on the packing slip",
-    "hidePricesNote": "Your receipt reaches you by SMS and email instead."
-  },
   "payment": {
     "legend": "Payment",
     "knet": "KNET",
@@ -125,8 +103,6 @@
     "qty": "Qty {qty}",
     "deliveryStandard": "Delivery · Standard",
     "deliveryExpress": "Delivery · Express",
-    "giftWrap": "Gift wrapping",
-    "complimentary": "Complimentary",
     "finalNote": "Final price, including delivery. No hidden fees."
   },
   "promo": {

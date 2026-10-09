@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ShopView } from "@/components/shop/shop-view";
+import { ShopGrid } from "@/components/shop/shop-catalog";
+import { products } from "@/data/products";
 import { delivery } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { formatKWD } from "@/lib/money";
@@ -22,5 +23,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ShopPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <ShopView locale={locale as Locale} />;
+  return <ShopGrid slugs={products.map((p) => p.slug)} />;
 }

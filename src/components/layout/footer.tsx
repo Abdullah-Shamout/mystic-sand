@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { InstagramIcon, PaymentMarks, WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Logo } from "@/components/brand/logo";
+import { categories } from "@/data/categories";
 import { site, whatsappLink } from "@/data/site";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -52,13 +53,7 @@ export async function Footer() {
   const columns: Column[] = [
     {
       title: t("footer.shop"),
-      links: [
-        { href: "/shop/eau-de-parfum", label: t("nav.perfumes") },
-        { href: "/shop/body", label: t("nav.body") },
-        { href: "/shop/home", label: t("nav.home") },
-        { href: "/shop/gift-sets", label: t("nav.gifts") },
-        { href: "/our-story", label: t("nav.story") },
-      ],
+      links: categories.map((c) => ({ href: `/shop/${c.slug}`, label: c.name[locale] })),
     },
     {
       title: t("footer.care"),

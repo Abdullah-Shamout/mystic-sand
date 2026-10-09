@@ -51,20 +51,19 @@ export default async function ProductPage({ params }: Props) {
   const t = await getTranslations("product");
   const category = categoryBySlug(product.category);
   const related = product.related.map(productBySlug).filter((p): p is Product => Boolean(p));
-  // The Trilogy, else the category — unless it would just repeat the type (CAFÉ, OUD).
+  // The Trilogy, else the collection — except Perfumes, which the type line already says.
   const eyebrow =
-    product.collection === "trilogy"
-      ? t("trilogy")
-      : category && category.name.en !== product.type.en
-        ? category.name[l]
-        : null;
+    product.collection === "trilogy" ? t("trilogy") : category && category.slug !== "perfumes" ? category.name[l] : null;
 
   return (
     <>
       <ProductJsonLd product={product} locale={l} />
 
       <div className="mx-auto max-w-[1720px] lg:grid lg:grid-cols-[minmax(0,58fr)_minmax(0,42fr)] lg:items-start">
-        <ProductGallery images={product.images.gallery} name={product.name} />
+        {/* Desktop: the photo stays in view while the details beside it scroll. */}
+        <div className="lg:sticky lg:top-[89px] lg:bg-tile">
+          <ProductGallery images={product.images.gallery} name={product.name} />
+        </div>
 
         <StickyColumn className="px-5 pt-6 pb-14 sm:px-8 lg:px-10 lg:pt-8 lg:pb-12 xl:px-16">
           <ProductBreadcrumb name={product.name} category={category} locale={l} />

@@ -136,6 +136,14 @@
     color: var(--color-ink);
   }
 
+  /* The videos are silent loops with no controls. iOS draws its own play button when
+     Low Power Mode blocks autoplay; hide it so the poster simply stays. */
+  video::-webkit-media-controls,
+  video::-webkit-media-controls-start-playback-button {
+    display: none !important;
+    -webkit-appearance: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

@@ -1,16 +1,13 @@
 "use client";
 
-import { ChevronDown, Globe, Menu, ReceiptText, Search, ShoppingBag } from "lucide-react";
+import { Menu, ReceiptText, Search, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
 import { Logo } from "@/components/brand/logo";
-import { Link, usePathname } from "@/i18n/navigation";
-import { cn } from "@/lib/cn";
+import { Link } from "@/i18n/navigation";
 import { useMounted } from "@/lib/hooks";
 import { useBagCount } from "@/store/bag";
 import { useUi } from "@/store/ui";
 import { LanguageSwitcher } from "./language-switcher";
-import { navItems, type NavItem } from "./nav-config";
 
 function BagButton() {
   const t = useTranslations("common");
@@ -39,170 +36,67 @@ function BagButton() {
   );
 }
 
-function NavDropdown({ item, active }: { item: NavItem; active: boolean }) {
-  const t = useTranslations("common");
-  const [open, setOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const label = t(`nav.${item.label}`);
-
-  const show = () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    setOpen(true);
-  };
-  const hide = () => {
-    closeTimer.current = setTimeout(() => setOpen(false), 140);
-  };
-
-  const underline = (on: boolean) =>
-    cn(
-      "pointer-events-none absolute inset-x-0 -bottom-px h-[2px] transition-colors",
-      on ? "bg-ink" : "bg-transparent",
-    );
-
-  if (!item.children) {
-    return (
-      <li className="relative">
-        <Link
-          href={item.href}
-          className="caps relative flex h-12 items-center text-[14px] transition-opacity hover:opacity-70"
-          aria-current={active ? "page" : undefined}
-        >
-          {label}
-          <span className={underline(active)} />
-        </Link>
-      </li>
-    );
-  }
-
-  return (
-    <li
-      className="relative"
-      onMouseEnter={show}
-      onMouseLeave={hide}
-      onFocus={show}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hide();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          setOpen(false);
-          (e.currentTarget.querySelector("button") as HTMLButtonElement | null)?.focus();
-        }
-      }}
-    >
-      <button
-        type="button"
-        className="caps relative flex h-12 items-center gap-1 text-[14px]"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        {label}
-        <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} strokeWidth={1.25} aria-hidden />
-        <span className={underline(open || active)} />
-      </button>
-      {open && (
-        <div className="absolute start-1/2 top-full z-50 w-[300px] -translate-x-1/2 animate-drop-in bg-ivory py-4 rtl:translate-x-1/2">
-          <ul>
-            {item.children.map((child) => (
-              <li key={`${child.href}-${child.label ?? child.name}`}>
-                <Link
-                  href={child.href}
-                  onClick={() => setOpen(false)}
-                  className="block px-8 py-2.5 text-[14px] text-ink/75 transition-colors hover:text-ink"
-                >
-                  {child.name ? <bdi lang="en">{child.name}</bdi> : t(`nav.${child.label}`)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </li>
-  );
-}
-
 /**
- * Amouage-style header: solid ivory, always sticky (not transparent over the hero).
- * Desktop: utility row (country + language · centred logo · search, orders, bag),
- * then a centred navigation row. Mobile: menu · logo · search + bag.
+ * Solid ivory header, always sticky (not transparent over the hero), one row on every
+ * screen: the ☰ menu with the collections (and the language from lg) · the logo, which
+ * leads home · search, orders and the bag. It is 64px tall, 88px from lg, plus a 1px
+ * hairline; full-height panels subtract that and the 40px ticker.
  */
 export function Header() {
   const t = useTranslations("common");
-  const pathname = usePathname();
   const setSearchOpen = useUi((s) => s.setSearchOpen);
+  const menuOpen = useUi((s) => s.menuOpen);
   const setMenuOpen = useUi((s) => s.setMenuOpen);
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink/10 bg-ivory text-ink">
-      {/* Mobile */}
-      <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center px-2 lg:hidden">
-        <div className="flex items-center">
+      <div className="mx-auto grid h-16 max-w-[1720px] grid-cols-[1fr_auto_1fr] items-center px-2 lg:h-[88px] lg:px-6">
+        <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="inline-flex size-11 items-center justify-center"
             aria-label={t("header.menu")}
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2.5 transition-opacity hover:opacity-70 lg:-ms-2.5 lg:px-2.5"
+            data-testid="menu-button"
           >
-            <Menu className="size-[22px]" strokeWidth={1.25} />
+            <Menu className="size-[22px]" strokeWidth={1.25} aria-hidden />
+            <span aria-hidden className="caps hidden text-[14px] lg:inline">
+              {t("header.menu")}
+            </span>
           </button>
+          <span aria-hidden className="hidden h-4 w-px bg-ink/25 lg:block" />
+          <div className="hidden lg:block">
+            <LanguageSwitcher />
+          </div>
         </div>
+
         <Link href="/" aria-label={t("header.home")} className="flex items-center px-2">
-          <Logo variant="full" className="h-11 w-auto" title={t("brand")} />
+          <Logo variant="full" className="h-11 w-auto lg:h-[64px]" title={t("brand")} />
         </Link>
-        <div className="flex items-center justify-end">
+
+        <div className="flex items-center justify-end lg:gap-2">
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="inline-flex size-11 items-center justify-center"
             aria-label={t("header.search")}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 text-[14px] transition-opacity hover:opacity-70 lg:me-4"
           >
-            <Search className="size-[21px]" strokeWidth={1.25} />
+            <Search className="size-[21px] lg:size-5" strokeWidth={1.25} aria-hidden />
+            <span aria-hidden className="hidden lg:inline">
+              {t("header.search")}
+            </span>
           </button>
+          <Link
+            href="/orders"
+            className="hidden size-11 items-center justify-center transition-opacity hover:opacity-70 lg:inline-flex"
+            aria-label={t("header.orders")}
+          >
+            <ReceiptText className="size-[21px]" strokeWidth={1.25} />
+          </Link>
           <BagButton />
         </div>
-      </div>
-
-      {/* Desktop */}
-      <div className="mx-auto hidden max-w-[1720px] px-6 lg:block">
-        <div className="grid h-[88px] grid-cols-[1fr_auto_1fr] items-center">
-          <div className="flex items-center gap-6 text-[14px]">
-            <span className="inline-flex items-center gap-2 font-light">
-              <Globe className="size-[18px]" strokeWidth={1.25} aria-hidden />
-              {t("header.country")}
-            </span>
-            <span aria-hidden className="h-4 w-px bg-ink/25" />
-            <LanguageSwitcher />
-          </div>
-          <Link href="/" aria-label={t("header.home")} className="flex items-center">
-            <Logo variant="full" className="h-[64px] w-auto" title={t("brand")} />
-          </Link>
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="me-4 inline-flex min-h-11 items-center gap-2 text-[14px] transition-opacity hover:opacity-70"
-            >
-              <Search className="size-5" strokeWidth={1.25} aria-hidden />
-              {t("header.search")}
-            </button>
-            <Link
-              href="/orders"
-              className="inline-flex size-11 items-center justify-center transition-opacity hover:opacity-70"
-              aria-label={t("header.orders")}
-            >
-              <ReceiptText className="size-[21px]" strokeWidth={1.25} />
-            </Link>
-            <BagButton />
-          </div>
-        </div>
-        <nav aria-label={t("nav.main")}>
-          <ul className="mx-auto flex max-w-[910px] items-center justify-between">
-            {navItems.map((item) => (
-              <NavDropdown key={item.key} item={item} active={isActive(item.href)} />
-            ))}
-          </ul>
-        </nav>
       </div>
     </header>
   );

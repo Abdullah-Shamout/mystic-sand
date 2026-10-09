@@ -5,10 +5,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { ApplePayLogo, PaymentMarks, WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/form";
 import { Price } from "@/components/ui/price";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
-import { delivery, giftWrap as giftWrapConfig, whatsappLink } from "@/data/site";
+import { delivery, whatsappLink } from "@/data/site";
 import type { Product } from "@/data/types";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -26,7 +25,7 @@ import { DeliveryPromise } from "./delivery-promise";
 const MOBILE_HEADER_PX = 65;
 
 /**
- * Price → size → quantity → gift → Add to bag / Buy now / Apple Pay, then payment
+ * Price → size → quantity → Add to bag / Buy now / Apple Pay, then payment
  * marks and the delivery promise. Also owns the phone-only buy bar that slides up
  * once the main Add to bag button has scrolled away.
  */
@@ -38,8 +37,6 @@ export function ProductPurchase({ product }: { product: Product }) {
   const mounted = useMounted();
   const addToBag = useAddToBag();
   const openBag = useUi((s) => s.openBag);
-  const giftWrap = useBag((s) => s.giftWrap);
-  const setGiftWrap = useBag((s) => s.setGiftWrap);
 
   const [sku, setSku] = useState(() => (product.variants.find((v) => v.stock > 0) ?? product.variants[0]).sku);
   const variant = product.variants.find((v) => v.sku === sku) ?? product.variants[0];
@@ -165,20 +162,6 @@ export function ProductPurchase({ product }: { product: Product }) {
             {tc("bag.viewBag")}
           </button>
         </p>
-      )}
-
-      {!soldOut && (
-        <Checkbox
-          className="mt-4"
-          checked={mounted && giftWrap}
-          onChange={(e) => setGiftWrap(e.target.checked)}
-          label={t("gift.label")}
-          description={
-            giftWrapConfig.feeFils === 0
-              ? t("gift.noteFree")
-              : t("gift.notePaid", { price: isolatedKWD(giftWrapConfig.feeFils, locale) })
-          }
-        />
       )}
 
       <div className="mt-6 space-y-2">

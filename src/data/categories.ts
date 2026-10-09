@@ -7,15 +7,25 @@ export type Category = {
   banner: { desktop: ImageKey; mobile: ImageKey };
 };
 
+// The order here is the order of the menu, the footer and the shop chips.
 export const categories: Category[] = [
   {
-    slug: "eau-de-parfum",
-    name: { en: "Eau de Parfum", ar: "العطور" },
+    slug: "perfumes",
+    name: { en: "Perfumes", ar: "العطور" },
     description: {
       en: "The Trilogy and our signature 30 ml editions.",
       ar: "الثلاثية وإصداراتنا المميزة بحجم 30 مل.",
     },
     banner: { desktop: "lifestyle/roses-iii", mobile: "lifestyle/candles-duo" },
+  },
+  {
+    slug: "oud",
+    name: { en: "Oud", ar: "العود" },
+    description: {
+      en: "Cambodian and Indian oud to wear, and natural chips for the mabkhara.",
+      ar: "عود كمبودي وهندي لتتعطّر به، وقطع عود طبيعي للمبخرة.",
+    },
+    banner: { desktop: "renders/oud", mobile: "renders/oud" },
   },
   {
     slug: "body",
@@ -30,19 +40,10 @@ export const categories: Category[] = [
     slug: "home",
     name: { en: "Home", ar: "المنزل" },
     description: {
-      en: "Room mists and natural oud for every corner of your home.",
-      ar: "معطّرات للغرف وعود طبيعي لكل ركن في منزلك.",
+      en: "Room and linen mists for every corner of your home.",
+      ar: "معطّرات للغرف والمفارش لكل ركن في منزلك.",
     },
     banner: { desktop: "renders/dune", mobile: "renders/mist" },
-  },
-  {
-    slug: "gift-sets",
-    name: { en: "Gift Sets", ar: "مجموعات الهدايا" },
-    description: {
-      en: "Thoughtful sets, beautifully wrapped.",
-      ar: "مجموعات مختارة بعناية، مغلّفة بأناقة.",
-    },
-    banner: { desktop: "lifestyle/trio-basket", mobile: "lifestyle/trio-basket" },
   },
 ];
 

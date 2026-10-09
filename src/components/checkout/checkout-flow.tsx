@@ -25,7 +25,6 @@ import { ErrorSummary } from "./error-summary";
 import { ExpressCheckout } from "./express-checkout";
 import { EXPRESS_APPLE_PAY_EVENT } from "./events";
 import { FIELD_ORDER, focusField, FORM_ID } from "./form-helpers";
-import { GiftSection } from "./gift-section";
 import { MobilePayBar } from "./mobile-pay-bar";
 import { buildOrderInput, detailsComplete, matchesRemembered, withoutTerms, type OrderDetails } from "./order";
 import { MobileOrderSummary, OrderSummaryPanel } from "./order-summary";
@@ -39,10 +38,7 @@ const detailFields = new Set<string>(rememberedFields);
 
 /** Draft (which already includes remembered details) — read once, after hydration. */
 function initialValues(): CheckoutForm {
-  const values: CheckoutForm = { ...emptyCheckoutForm, ...useCheckout.getState().draft, acceptTerms: false };
-  // Gift wrap chosen in the bag opens the gift options.
-  if (useBag.getState().giftWrap) values.giftEnabled = true;
-  return values;
+  return { ...emptyCheckoutForm, ...useCheckout.getState().draft, acceptTerms: false };
 }
 
 function UnavailableNotice() {
@@ -312,7 +308,6 @@ export function CheckoutFlow() {
               </>
             )}
             <DeliverySection expressClosedNotice={expressClosed} />
-            <GiftSection />
             <PaymentSection busy={busy} />
           </form>
         </div>

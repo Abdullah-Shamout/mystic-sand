@@ -225,9 +225,6 @@ export function Invoice({ order, attempt }: { order: Order; attempt: PaymentReco
           </Total>
         )}
         <Total k="invoice.delivery">{totals.deliveryFils === 0 ? free : amount(totals.deliveryFils)}</Total>
-        {order.giftWrap && (
-          <Total k="invoice.giftWrap">{totals.giftWrapFils === 0 ? free : amount(totals.giftWrapFils)}</Total>
-        )}
         <Total k="invoice.total" strong>
           {amount(totals.totalFils)}
         </Total>

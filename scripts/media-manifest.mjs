@@ -62,9 +62,6 @@ export const images = [
   { name: "products/oud-chips/chips", src: "36", kind: "packshot", fillW: 0.84 },
 
   // ── Trilogy Set ──────────────────────────────────────────────────────
-  { name: "products/trilogy-set/bottles", src: "22(2)", kind: "packshot", fillW: 0.88 },
-  { name: "products/trilogy-set/boxes", src: "20(1)", kind: "packshot", fillW: 0.88 },
-  { name: "products/trilogy-set/boxes-tight", src: "20", kind: "packshot", fillW: 0.88 },
 
   // ── Lifestyle (real photography, dark & moody) ───────────────────────
   { name: "lifestyle/trio-basket", src: "25(1)", kind: "photo" },

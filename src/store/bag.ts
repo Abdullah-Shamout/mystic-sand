@@ -13,7 +13,6 @@ export const maxQtyFor = (sku: string) => {
 
 type BagState = {
   lines: BagLine[];
-  giftWrap: boolean;
   promo: Promo | null;
   /** Adds qty (default 1), capped by stock and the per-line limit. */
   add: (sku: string, qty?: number) => { qty: number; capped: boolean };
@@ -23,7 +22,6 @@ type BagState = {
   remove: (sku: string) => { line: BagLine; index: number } | null;
   restore: (line: BagLine, index: number) => void;
   clear: () => void;
-  setGiftWrap: (on: boolean) => void;
   applyPromo: (code: string, now: Date) => "applied" | "invalid" | "expired";
   removePromo: () => void;
 };
@@ -32,7 +30,6 @@ export const useBag = create<BagState>()(
   persist(
     (set, get) => ({
       lines: [],
-      giftWrap: false,
       promo: null,
 
       add: (sku, qty = 1) => {
@@ -72,9 +69,7 @@ export const useBag = create<BagState>()(
         set({ lines });
       },
 
-      clear: () => set({ lines: [], giftWrap: false, promo: null }),
-
-      setGiftWrap: (on) => set({ giftWrap: on }),
+      clear: () => set({ lines: [], promo: null }),
 
       applyPromo: (raw, now) => {
         const code = raw.trim().toUpperCase();
@@ -89,9 +84,14 @@ export const useBag = create<BagState>()(
     }),
     {
       name: "ms-bag",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ lines: s.lines, giftWrap: s.giftWrap, promo: s.promo }),
+      partialize: (s) => ({ lines: s.lines, promo: s.promo }),
+      // v1 also stored a gift-wrap flag; the service was dropped.
+      migrate: (persisted) => {
+        const p = (persisted ?? {}) as Partial<Pick<BagState, "lines" | "promo">>;
+        return { lines: p.lines ?? [], promo: p.promo ?? null };
+      },
     },
   ),
 );

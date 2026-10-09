@@ -1,8 +1,7 @@
 "use client";
 
-import { Pause, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { asset } from "@/lib/asset";
@@ -14,8 +13,9 @@ const MOBILE = { src: "/videos/hero-mobile.mp4", poster: "/videos/hero-mobile-po
 /**
  * Full-bleed hero (height = viewport minus ticker and header). The static HTML shows
  * the art-directed posters; after mount ONE source is chosen for the screen size, so
- * only one file downloads. Reduced motion keeps the poster. The pause toggle satisfies
- * WCAG 2.2.2, and the loop also pauses while the hero is scrolled out of view.
+ * only one file downloads. The video plays muted on a loop, with no controls (the
+ * client's choice); it rests while scrolled out of view, and reduced motion keeps the
+ * poster.
  */
 export function VideoHero() {
   const t = useTranslations("home.hero");
@@ -23,10 +23,7 @@ export function VideoHero() {
   const desktop = useMediaQuery("(min-width: 768px)");
   const reduced = useReducedMotion();
   const source = mounted && !reduced ? (desktop ? DESKTOP : MOBILE) : null;
-
   const videoRef = useRef<HTMLVideoElement>(null);
-  const userPaused = useRef(false);
-  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -34,29 +31,17 @@ export function VideoHero() {
     // React does not reliably reflect `muted`; browsers only autoplay muted video.
     video.muted = true;
     const io = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) video.pause();
-      else if (!userPaused.current) video.play().catch(() => {});
+      if (entry.isIntersecting) video.play().catch(() => {});
+      else video.pause();
     });
     io.observe(video);
     return () => io.disconnect();
   }, [source]);
 
-  const toggle = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      userPaused.current = false;
-      video.play().catch(() => {});
-    } else {
-      userPaused.current = true;
-      video.pause();
-    }
-  };
-
   return (
     <section
       aria-labelledby="hero-title"
-      className="relative isolate h-[calc(100svh-105px)] min-h-[520px] overflow-hidden bg-ink text-cream lg:h-[calc(100svh-177px)] [&_:focus-visible]:outline-cream"
+      className="relative isolate h-[calc(100svh-105px)] min-h-[520px] overflow-hidden bg-ink text-cream lg:h-[calc(100svh-129px)] [&_:focus-visible]:outline-cream"
     >
       <picture>
         <source media="(min-width: 768px)" srcSet={asset(DESKTOP.poster)} />
@@ -82,11 +67,10 @@ export function VideoHero() {
           playsInline
           preload="auto"
           disablePictureInPicture
+          disableRemotePlayback
           aria-hidden
           tabIndex={-1}
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          className="absolute inset-0 size-full object-cover"
+          className="pointer-events-none absolute inset-0 size-full object-cover"
         />
       )}
 
@@ -101,24 +85,9 @@ export function VideoHero() {
           {t("title")}
         </h1>
         <Button asChild variant="light" className="mt-6 min-w-44 md:mt-7">
-          <Link href="/shop/eau-de-parfum">{t("cta")}</Link>
+          <Link href="/shop/perfumes">{t("cta")}</Link>
         </Button>
       </div>
-
-      {source && (
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={playing ? t("pause") : t("play")}
-          className="absolute end-3 bottom-3 z-10 inline-flex size-11 items-center justify-center bg-ink/25 text-cream transition-colors hover:bg-ink/50 md:end-6 md:bottom-6"
-        >
-          {playing ? (
-            <Pause className="size-4" strokeWidth={1.5} aria-hidden />
-          ) : (
-            <Play className="size-4" strokeWidth={1.5} aria-hidden />
-          )}
-        </button>
-      )}
     </section>
   );
 }

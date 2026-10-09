@@ -97,16 +97,82 @@ test.describe("shopping flows", () => {
   });
 });
 
+test.describe("navigation and media", () => {
+  test("the menu lists the four collections, each its own page", async ({ page }) => {
+    await page.goto("/en/product/i/");
+    await page.getByTestId("menu-button").click();
+    const menu = page.getByRole("dialog", { name: "Menu" });
+    await expect(menu.getByRole("navigation").getByRole("link")).toHaveText(["Perfumes", "Oud", "Body", "Home"]);
+    await menu.getByRole("link", { name: "Oud" }).click();
+    await page.waitForURL(/\/en\/shop\/oud\/$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Oud");
+    await expect(page.getByText("2 products")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Natural Oud Chips/ }).first()).toBeVisible();
+
+    // The logo leads back to the home page.
+    await page.getByRole("link", { name: "Mystic Sand — home" }).click();
+    await page.waitForURL(/\/en\/$/);
+  });
+
+  test("collection chips keep your place on the page", async ({ page }) => {
+    await page.goto("/en/shop/perfumes/");
+    await page.evaluate(() => window.scrollTo(0, 400));
+    const chips = page.getByRole("navigation", { name: "Categories" });
+    const steps: Array<[string, string]> = [
+      ["Oud", "/en/shop/oud/"],
+      ["Body", "/en/shop/body/"],
+      ["Home", "/en/shop/home/"],
+      ["All", "/en/shop/"],
+      ["Perfumes", "/en/shop/perfumes/"],
+    ];
+    for (const [name, path] of steps) {
+      const before = await page.evaluate(() => Math.round(window.scrollY));
+      await chips.getByRole("link", { name, exact: true }).click();
+      await page.waitForURL(`**${path}`);
+      await page.waitForTimeout(300);
+      expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(before);
+    }
+  });
+
+  test("product photos show one at a time, with arrows", async ({ page }) => {
+    await page.goto("/en/product/i/");
+    const counter = page.getByTestId("gallery-counter");
+    await expect(counter).toHaveText("1 / 5");
+    await page.getByTestId("gallery-next").click();
+    await expect(counter).toHaveText("2 / 5");
+    await page.getByTestId("gallery-previous").click();
+    await page.getByTestId("gallery-previous").click();
+    await expect(counter).toHaveText("5 / 5");
+    await expect(page.getByText(/gift/i)).toHaveCount(0);
+  });
+
+  test("videos play on a loop with no controls", async ({ page }) => {
+    await page.goto("/en/");
+    const hero = page.locator("#hero-title").locator("xpath=ancestor::section").locator("video");
+    await expect(hero).toHaveJSProperty("loop", true);
+    await expect.poll(() => hero.evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0)).toBe(true);
+
+    const film = page.getByLabel("Mystic Sand brand film");
+    await film.scrollIntoViewIfNeeded();
+    await expect(film).toHaveJSProperty("loop", true);
+    await expect.poll(() => film.evaluate((v: HTMLVideoElement) => !v.paused)).toBe(true);
+
+    await expect(page.getByRole("button", { name: /pause|play|mute/i })).toHaveCount(0);
+  });
+});
+
 const PAGES = [
   "/en/",
   "/ar/",
   "/en/shop/",
+  "/en/shop/perfumes/",
+  "/ar/shop/oud/",
+  "/en/shop/body/",
   "/ar/shop/home/",
   "/en/product/i/",
   "/ar/product/oud-chips/",
   "/en/cart/",
   "/en/orders/",
-  "/en/our-story/",
   "/ar/contact/",
   "/en/faq/",
   "/ar/terms/",

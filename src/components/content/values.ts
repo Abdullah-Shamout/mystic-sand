@@ -1,4 +1,4 @@
-import { delivery, giftWrap, payments, site } from "@/data/site";
+import { delivery, payments, site } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { isolatedKWD } from "@/lib/money";
 
@@ -64,7 +64,6 @@ export function storeValues(locale: Locale): Record<string, string> {
     lastOrder: ltr(delivery.express.lastOrder),
     fridayOpens: ltr(delivery.express.fridayOpens),
     returnsWindow: formatDays(delivery.returnsDays, locale),
-    messageMax: String(giftWrap.messageMax),
     otpFrom: isolatedKWD(payments.otpFromFils, locale),
   };
 }

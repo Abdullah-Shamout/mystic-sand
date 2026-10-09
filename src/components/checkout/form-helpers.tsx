@@ -29,9 +29,6 @@ export const FIELD_ORDER: FieldName[] = [
   "mapsLink",
   "notes",
   "deliveryMethod",
-  "giftRecipient",
-  "giftPhone",
-  "giftMessage",
   "paymentMethod",
   "acceptTerms",
 ];

@@ -85,7 +85,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               soldOut ? "border-ink bg-ink text-cream" : "border-ink/70 text-ink/80",
             )}
           >
-            {soldOut ? t("product.soldOut") : product.badge === "new" ? t("product.new") : t("product.set")}
+            {soldOut ? t("product.soldOut") : t("product.new")}
           </span>
         )}
         {/* Desktop: slides up over the image on hover / keyboard focus */}

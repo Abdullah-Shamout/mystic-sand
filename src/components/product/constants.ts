@@ -4,8 +4,8 @@
 /** Marks the end of the product page content; the mobile buy bar hides from here on. */
 export const PDP_END_ID = "pdp-end";
 
-/** Desktop header height (utility row + nav row + hairline) plus breathing room. */
-export const STICKY_TOP_PX = 137 + 24;
+/** Desktop header height (88px row + hairline) plus breathing room. */
+export const STICKY_TOP_PX = 89 + 24;
 
 /** First-strong isolate, for Latin names inside Arabic aria-labels, titles and WhatsApp text. */
 export const isolate = (text: string) => `⁨${text}⁩`;

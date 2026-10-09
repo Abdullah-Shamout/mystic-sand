@@ -19,11 +19,13 @@ export function ProductLightbox({
   name,
   index,
   onIndexChange,
+  onCloseAutoFocus,
 }: {
   images: string[];
   name: string;
   index: number | null;
   onIndexChange: (index: number | null) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   const t = useTranslations("product.gallery");
   const total = images.length;
@@ -50,6 +52,7 @@ export function ProductLightbox({
       onOpenChange={(open) => !open && onIndexChange(null)}
       title={t("lightbox", { name })}
       hideTitle
+      onCloseAutoFocus={onCloseAutoFocus}
       // Square image + the 64px control row, never taller than the dialog (86dvh).
       className="sm:w-[min(92vw,calc(86dvh_-_64px))]! sm:max-w-none!"
     >

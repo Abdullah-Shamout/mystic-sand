@@ -4,7 +4,7 @@ export type Localized = { en: string; ar: string };
 
 export const tr = (value: Localized, locale: Locale) => value[locale];
 
-export type CategorySlug = "eau-de-parfum" | "body" | "home" | "gift-sets";
+export type CategorySlug = "perfumes" | "oud" | "body" | "home";
 
 /** Keys of src/data/media.generated.json */
 export type ImageKey = string;
@@ -26,7 +26,10 @@ export type Product = {
   slug: string;
   /** Name exactly as printed on the packaging (Latin, also used in Arabic UI). */
   name: string;
+  /** Main collection (breadcrumb, "how to use" wording). */
   category: CategorySlug;
+  /** Other collections that also list the product (OUD is a perfume and an oud). */
+  alsoIn?: CategorySlug[];
   collection?: "trilogy";
   type: Localized;
   family?: Localized;
@@ -40,7 +43,7 @@ export type Product = {
     hover?: ImageKey;
     gallery: ImageKey[];
   };
-  badge?: "new" | "set";
+  badge?: "new";
   related: string[];
   /** Extra search terms (Arabic names, spellings). */
   aliases: string[];

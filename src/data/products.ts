@@ -24,7 +24,7 @@ export const products: Product[] = [
   {
     slug: "i",
     name: "I",
-    category: "eau-de-parfum",
+    category: "perfumes",
     collection: "trilogy",
     type: EDP,
     family: n("Woody · Aromatic", "خشبي · عطري"),
@@ -45,14 +45,14 @@ export const products: Product[] = [
       hover: "products/i/box",
       gallery: ["products/i/bottle", "products/i/with-box", "lifestyle/candles-duo", "products/i/box-angle", "renders/i"],
     },
-    related: ["ii", "iii", "trilogy-set", "aura"],
+    related: ["ii", "iii", "aura", "oud"],
     aliases: ["one", "1", "واحد", "الأول", "trilogy", "الثلاثية"],
     todo: ["price", "notes", "copy"],
   },
   {
     slug: "ii",
     name: "II",
-    category: "eau-de-parfum",
+    category: "perfumes",
     collection: "trilogy",
     type: EDP,
     family: n("Amber · Oud", "عنبري · عود"),
@@ -73,14 +73,14 @@ export const products: Product[] = [
       hover: "products/ii/box",
       gallery: ["products/ii/bottle", "products/ii/with-box", "lifestyle/candles-duo", "products/ii/box-angle", "renders/ii"],
     },
-    related: ["i", "iii", "trilogy-set", "oud"],
+    related: ["i", "iii", "oud", "cafe"],
     aliases: ["two", "2", "اثنان", "الثاني", "trilogy", "الثلاثية"],
     todo: ["price", "notes", "copy"],
   },
   {
     slug: "iii",
     name: "III",
-    category: "eau-de-parfum",
+    category: "perfumes",
     collection: "trilogy",
     type: EDP,
     family: n("Floral · Musky", "زهري · مسكي"),
@@ -101,37 +101,14 @@ export const products: Product[] = [
       hover: "products/iii/box",
       gallery: ["products/iii/bottle", "products/iii/with-box", "lifestyle/roses-iii", "products/iii/box-angle", "renders/iii"],
     },
-    related: ["i", "ii", "trilogy-set", "oasis"],
+    related: ["i", "ii", "aura", "oasis"],
     aliases: ["three", "3", "ثلاثة", "الثالث", "rose", "ورد", "trilogy", "الثلاثية"],
     todo: ["price", "notes", "copy"],
   },
   {
-    slug: "trilogy-set",
-    name: "The Trilogy Set",
-    category: "gift-sets",
-    collection: "trilogy",
-    type: EDP,
-    tagline: n("I, II and III — the complete story.", "I وII وIII — القصة كاملة."),
-    description: n(
-      "All three chapters of the Trilogy, each in its 50 ml bottle and signature box. The perfect gift — or a wardrobe of scents for every moment of the day.",
-      "فصول الثلاثية الثلاثة، كلٌّ في زجاجته بحجم 50 مل وعلبته المميزة. الهدية المثالية — أو خزانة عطور لكل لحظة من اليوم.",
-    ),
-    howTo: howToEdp,
-    variants: [{ sku: "MS-TRILOGY-SET", size: n("3 × 50 ml", "3 × 50 مل"), priceFils: 52000, stock: 12 }],
-    images: {
-      card: "products/trilogy-set/bottles",
-      hover: "products/trilogy-set/boxes",
-      gallery: ["products/trilogy-set/bottles", "products/trilogy-set/boxes", "lifestyle/trio-basket", "products/trilogy-set/boxes-tight"],
-    },
-    badge: "set",
-    related: ["i", "ii", "iii", "aura"],
-    aliases: ["set", "gift", "trilogy", "مجموعة", "هدية", "الثلاثية"],
-    todo: ["price", "copy"],
-  },
-  {
     slug: "cafe",
     name: "CAFÉ",
-    category: "eau-de-parfum",
+    category: "perfumes",
     type: EDP,
     family: n("Gourmand · Woody", "غورماند · خشبي"),
     tagline: n("Freshly brewed arabica, softened with vanilla.", "قهوة أرابيكا طازجة تلطّفها الفانيليا."),
@@ -158,7 +135,8 @@ export const products: Product[] = [
   {
     slug: "oud",
     name: "OUD",
-    category: "eau-de-parfum",
+    category: "perfumes",
+    alsoIn: ["oud"],
     type: EDP,
     family: n("Woody · Floral", "خشبي · زهري"),
     tagline: n("Cambodian and Indian oud, touched with florals.", "عود كمبودي وهندي بلمسة زهرية."),
@@ -297,7 +275,7 @@ export const products: Product[] = [
   {
     slug: "oud-chips",
     name: "Natural Oud Chips",
-    category: "home",
+    category: "oud",
     type: n("Natural Agarwood · Bakhoor", "عود طبيعي · بخور"),
     tagline: n("Hand-selected agarwood for the mabkhara.", "عود طبيعي منتقى يدوياً للمبخرة."),
     description: n(
@@ -333,6 +311,6 @@ export const productBySku = (sku: string) => {
 };
 
 export const productsInCategory = (category: string) =>
-  products.filter((p) => p.category === category);
+  products.filter((p) => p.category === category || p.alsoIn?.some((c) => c === category));
 
 export const trilogySlugs = ["i", "ii", "iii"] as const;

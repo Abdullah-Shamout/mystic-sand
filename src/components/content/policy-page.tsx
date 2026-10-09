@@ -141,7 +141,7 @@ export async function PolicyPage({ policy, locale }: { policy: PolicyKey; locale
                 key={id}
                 id={id}
                 aria-labelledby={`${id}-title`}
-                className="mt-12 scroll-mt-24 border-t border-line pt-10 lg:scroll-mt-44"
+                className="mt-12 scroll-mt-24 border-t border-line pt-10 lg:scroll-mt-28"
               >
                 <h2 id={`${id}-title`} className="flex items-baseline gap-4 font-serif text-[23px] leading-snug font-medium md:text-[25px]">
                   <span className="figures font-sans text-[13px] font-normal text-muted">{pad(n + 1)}</span>

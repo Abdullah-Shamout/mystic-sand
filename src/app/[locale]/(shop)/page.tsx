@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AuraFeature } from "@/components/home/aura-feature";
 import { BrandFilm } from "@/components/home/brand-film";
-import { GiftingSplit } from "@/components/home/gifting-split";
 import { ImagePanel } from "@/components/home/image-panel";
 import { InstagramBand } from "@/components/home/instagram-band";
 import { NewsletterBand } from "@/components/home/newsletter-band";
@@ -42,7 +41,7 @@ export default async function HomePage({ params }: Props) {
 
       <section>
         <SectionTitle title={t("trilogy.title")} subtitle={t("trilogy.subtitle")} />
-        <ProductGrid products={pick(["i", "ii", "iii", "trilogy-set"])} />
+        <ProductGrid products={pick(["i", "ii", "iii"])} columns={3} />
       </section>
 
       <ImagePanel
@@ -51,7 +50,7 @@ export default async function HomePage({ params }: Props) {
         alt={t("story.alt")}
         mobileAlt={t("story.altMobile")}
         title={t("story.title")}
-        cta={{ href: "/our-story", label: t("story.cta") }}
+        cta={{ href: "/shop/perfumes", label: t("story.cta") }}
         imageClassName="object-[28%_50%]"
         className="h-[75svh] min-h-[480px] md:h-[85svh]"
       />
@@ -64,7 +63,7 @@ export default async function HomePage({ params }: Props) {
         eyebrow={t("film.eyebrow")}
         title={t("film.title")}
         body={t("film.body")}
-        cta={{ href: "/our-story", label: t("film.cta") }}
+        cta={{ href: "/shop", label: t("film.cta") }}
       />
 
       <section>
@@ -72,7 +71,6 @@ export default async function HomePage({ params }: Props) {
         <ProductGrid products={pick(["oasis", "mist", "dune", "oud-chips"])} />
       </section>
 
-      <GiftingSplit />
       <ServiceStrip />
       <InstagramBand />
       <NewsletterBand />

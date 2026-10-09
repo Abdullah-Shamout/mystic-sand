@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/i18n/routing";
+import { expressWindow } from "@/components/content/values";
 import { delivery } from "@/data/site";
 import { cn } from "@/lib/cn";
 import { isolatedKWD } from "@/lib/money";
@@ -18,7 +19,7 @@ export function AnnouncementBar() {
   const messages = [
     t("announcement.delivery", { amount: isolatedKWD(delivery.standard.freeOverFils, locale) }),
     t("announcement.payment"),
-    t("announcement.gift"),
+    t("announcement.express", { window: expressWindow(locale) }),
   ];
   const [{ current, previous }, setState] = useState<{ current: number; previous: number | null }>({
     current: 0,

@@ -62,11 +62,6 @@ export function OrderSummary({ order }: { order: Order }) {
         <TotalRow label={t("delivery")}>
           <Price fils={totals.deliveryFils} free />
         </TotalRow>
-        {order.giftWrap && (
-          <TotalRow label={t("giftWrap")}>
-            <Price fils={totals.giftWrapFils} free />
-          </TotalRow>
-        )}
         <TotalRow label={t("total")} className="border-t border-line pt-2.5 text-[16px] font-medium">
           <Price fils={totals.totalFils} />
         </TotalRow>

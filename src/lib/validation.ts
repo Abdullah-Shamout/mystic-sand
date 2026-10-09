@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { giftWrap } from "@/data/site";
 import { phoneStatus } from "./phone";
 
 // Errors are message KEYS (translated with t(`errors.${key}`) in the checkout
@@ -29,11 +28,6 @@ export const checkoutSchema = z
     mapsLink: z.string().trim().max(500, { error: "tooLong" }),
     notes: z.string().trim().max(300, { error: "tooLong" }),
     deliveryMethod: z.enum(["standard", "express"]),
-    giftEnabled: z.boolean(),
-    giftRecipient: z.string().trim().max(60, { error: "tooLong" }),
-    giftPhone: z.string(),
-    giftMessage: z.string().max(giftWrap.messageMax, { error: "tooLong" }),
-    hidePrices: z.boolean(),
     paymentMethod: z.enum(["knet", "applepay", "card"]),
     saveDetails: z.boolean(),
     acceptTerms: z.boolean().refine((v) => v, { error: "termsRequired" }),
@@ -42,9 +36,6 @@ export const checkoutSchema = z
     if (v.housing !== "house") {
       if (!v.floor) ctx.addIssue({ code: "custom", path: ["floor"], message: "floorRequired" });
       if (!v.apartment) ctx.addIssue({ code: "custom", path: ["apartment"], message: "apartmentRequired" });
-    }
-    if (v.giftEnabled && v.giftPhone && phoneStatus(v.giftPhone) !== "valid") {
-      ctx.addIssue({ code: "custom", path: ["giftPhone"], message: "phoneInvalid" });
     }
   });
 
@@ -65,11 +56,6 @@ export const emptyCheckoutForm: CheckoutForm = {
   mapsLink: "",
   notes: "",
   deliveryMethod: "standard",
-  giftEnabled: false,
-  giftRecipient: "",
-  giftPhone: "",
-  giftMessage: "",
-  hidePrices: true,
   paymentMethod: "knet",
   saveDetails: true,
   acceptTerms: false,

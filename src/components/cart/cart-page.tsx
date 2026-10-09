@@ -26,7 +26,7 @@ export function CartPage() {
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-12 xl:grid-cols-[minmax(0,1fr)_440px]">
       <BagView variant="page" />
-      <aside aria-labelledby="cart-summary-title" className="mt-8 border border-line lg:sticky lg:top-[160px] lg:mt-0">
+      <aside aria-labelledby="cart-summary-title" className="mt-8 border border-line lg:sticky lg:top-[113px] lg:mt-0">
         <h2 id="cart-summary-title" className="caps border-b border-line px-6 py-5 font-serif text-[22px] font-medium">
           {t("summaryTitle")}
         </h2>

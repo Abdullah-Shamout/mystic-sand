@@ -1,5 +1,5 @@
 import { productBySku } from "@/data/products";
-import { delivery, giftWrap as giftWrapConfig } from "@/data/site";
+import { delivery } from "@/data/site";
 import type { Product, Variant } from "@/data/types";
 
 export type BagLine = { sku: string; qty: number };
@@ -32,7 +32,6 @@ export type Totals = {
   subtotalFils: number;
   discountFils: number;
   deliveryFils: number;
-  giftWrapFils: number;
   totalFils: number;
   /** Standard delivery becomes free at this merchandise total. */
   freeDeliveryThresholdFils: number;
@@ -44,7 +43,6 @@ export function computeTotals(input: {
   lines: BagLine[];
   deliveryMethod?: DeliveryMethod;
   promo?: Promo | null;
-  giftWrap?: boolean;
 }): Totals {
   const { priced } = priceLines(input.lines);
   const itemCount = priced.reduce((n, l) => n + l.qty, 0);
@@ -62,14 +60,12 @@ export function computeTotals(input: {
         : qualifiesFreeDelivery
           ? 0
           : delivery.standard.feeFils;
-  const giftWrapFils = input.giftWrap && itemCount > 0 ? giftWrapConfig.feeFils : 0;
   return {
     itemCount,
     subtotalFils,
     discountFils,
     deliveryFils,
-    giftWrapFils,
-    totalFils: merchandise + deliveryFils + giftWrapFils,
+    totalFils: merchandise + deliveryFils,
     freeDeliveryThresholdFils: threshold,
     freeDeliveryRemainingFils: Math.max(0, threshold - merchandise),
     qualifiesFreeDelivery,
@@ -81,11 +77,10 @@ export function bagKey(input: {
   lines: BagLine[];
   deliveryMethod: DeliveryMethod;
   promo: Promo | null;
-  giftWrap: boolean;
 }): string {
   const lines = [...input.lines]
     .sort((a, b) => a.sku.localeCompare(b.sku))
     .map((l) => `${l.sku}x${l.qty}`)
     .join(",");
-  return `${lines}|${input.deliveryMethod}|${input.promo?.code ?? ""}|${input.giftWrap ? 1 : 0}`;
+  return `${lines}|${input.deliveryMethod}|${input.promo?.code ?? ""}`;
 }

@@ -14,7 +14,7 @@ function Heading({ children }: { children: React.ReactNode }) {
   return <h3 className="caps text-[13px] font-normal text-muted">{children}</h3>;
 }
 
-/** Delivery address, method and gift details of a placed order. */
+/** Delivery address and method of a placed order. */
 export function DeliveryDetails({ order }: { order: Order }) {
   const t = useTranslations("payment");
   const locale = useLocale() as Locale;
@@ -24,7 +24,6 @@ export function DeliveryDetails({ order }: { order: Order }) {
   const labels = Object.fromEntries(ADDRESS_KEYS.map((k) => [k, t(`delivery.${k}`)])) as AddressLabels;
   const [streetLine, unitLine] = addressParts(d, labels);
   const mapsLink = /^https:\/\//i.test(d.mapsLink.trim()) ? d.mapsLink.trim() : null;
-  const gift = d.giftEnabled && Boolean(d.giftRecipient || d.giftPhone || d.giftMessage);
 
   return (
     <section aria-labelledby="delivery-title">
@@ -78,49 +77,12 @@ export function DeliveryDetails({ order }: { order: Order }) {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <Heading>{t("delivery.method")}</Heading>
-            <p className="mt-2 text-[15px]">
-              {d.deliveryMethod === "express" ? t("delivery.express") : t("delivery.standard")} ·{" "}
-              <Price fils={order.totals.deliveryFils} free />
-            </p>
-          </div>
-
-          {(gift || order.giftWrap) && (
-            <div>
-              <Heading>{t("gift.title")}</Heading>
-              <div className="mt-2 space-y-1 text-[15px] leading-relaxed">
-                {order.giftWrap && (
-                  <p>
-                    {t("gift.wrap")} · <Price fils={order.totals.giftWrapFils} free />
-                  </p>
-                )}
-                {gift && d.giftRecipient && (
-                  <p>
-                    <span className="text-muted">{t("gift.to")}:</span> <bdi>{d.giftRecipient}</bdi>
-                  </p>
-                )}
-                {gift && d.giftPhone && (
-                  <p>
-                    <span className="text-muted">{t("gift.phone")}:</span>{" "}
-                    <bdi dir="ltr" className="figures">
-                      {formatKuwaitPhone(d.giftPhone)}
-                    </bdi>
-                  </p>
-                )}
-                {gift && d.giftMessage && (
-                  <figure className="mt-3">
-                    <figcaption className="text-[13px] text-muted">{t("gift.message")}</figcaption>
-                    <blockquote dir="auto" className="mt-1 border-s-2 border-sand ps-4 font-serif text-[18px] leading-snug whitespace-pre-line">
-                      {d.giftMessage}
-                    </blockquote>
-                  </figure>
-                )}
-                {gift && d.hidePrices && <p className="pt-1 text-[13px] text-muted">{t("gift.hidePrices")}</p>}
-              </div>
-            </div>
-          )}
+        <div>
+          <Heading>{t("delivery.method")}</Heading>
+          <p className="mt-2 text-[15px]">
+            {d.deliveryMethod === "express" ? t("delivery.express") : t("delivery.standard")} ·{" "}
+            <Price fils={order.totals.deliveryFils} free />
+          </p>
         </div>
       </div>
     </section>

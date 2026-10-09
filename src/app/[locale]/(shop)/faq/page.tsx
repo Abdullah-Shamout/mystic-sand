@@ -51,7 +51,7 @@ export default async function FaqPage({ params }: Props) {
 
       <div className="mx-auto max-w-3xl px-6 pb-24">
         {topics.map(([id, topic]) => (
-          <section key={id} id={id} aria-labelledby={`${id}-title`} className="scroll-mt-20 pt-14 md:pt-16 lg:scroll-mt-40">
+          <section key={id} id={id} aria-labelledby={`${id}-title`} className="scroll-mt-20 pt-14 md:pt-16 lg:scroll-mt-28">
             <h2 id={`${id}-title`} className="caps mb-2 font-serif text-title-sm font-medium">
               {t(`faq.groups.${id}.title`)}
             </h2>

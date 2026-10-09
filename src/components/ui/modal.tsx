@@ -15,6 +15,7 @@ export function Modal({
   className,
   closeLabel,
   dark = false,
+  onCloseAutoFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,6 +25,8 @@ export function Modal({
   className?: string;
   closeLabel?: string;
   dark?: boolean;
+  /** Where focus goes on close (default: back to the element that opened it). */
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   const t = useTranslations("common");
   return (
@@ -32,6 +35,7 @@ export function Modal({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/55 data-[state=closed]:animate-fade-out data-[state=open]:animate-fade-in" />
         <Dialog.Content
           aria-describedby={undefined}
+          onCloseAutoFocus={onCloseAutoFocus}
           className={cn(
             "fixed z-50 outline-none",
             "inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto data-[state=closed]:animate-sheet-out data-[state=open]:animate-sheet-in",

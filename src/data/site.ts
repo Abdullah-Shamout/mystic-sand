@@ -42,8 +42,6 @@ export const payments = {
 
 export type PaymentMethod = "knet" | "applepay" | "card";
 
-export const giftWrap = { feeFils: 0, messageMax: 200 } as const;
-
 export const maxQtyPerLine = 10;
 
 // TODO(client): real promotions. `?code=SAND10` applies a code automatically.

@@ -143,7 +143,6 @@
     "discount": "Discount ({code})",
     "discountNoCode": "Discount",
     "delivery": "Delivery",
-    "giftWrap": "Gift wrapping",
     "total": "Total"
   },
   "delivery": {
@@ -162,14 +161,6 @@
     "office": "Office",
     "notes": "Notes for the driver",
     "map": "Open the location in Maps"
-  },
-  "gift": {
-    "title": "Gift",
-    "wrap": "Gift wrapping",
-    "to": "For",
-    "phone": "Recipient’s mobile",
-    "message": "Gift message",
-    "hidePrices": "Prices won’t appear in the package"
   },
   "failed": {
     "title": "Payment not completed",
@@ -216,7 +207,6 @@
     "subtotal": "Subtotal",
     "discount": "Discount",
     "delivery": "Delivery fee",
-    "giftWrap": "Gift wrapping",
     "free": "Free",
     "total": "Total",
     "currency": "Amounts in Kuwaiti dinars (KWD)",

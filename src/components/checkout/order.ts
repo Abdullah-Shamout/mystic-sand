@@ -8,7 +8,7 @@ import type { Order, OrderLine } from "@/store/checkout";
 
 export type OrderDetails = Omit<CheckoutForm, "acceptTerms">;
 export type OrderInput = Omit<Order, "createdAt" | "status" | "attempts" | "finalizedAt">;
-export type BagSnapshot = { lines: BagLine[]; promo: Promo | null; giftWrap: boolean };
+export type BagSnapshot = { lines: BagLine[]; promo: Promo | null };
 
 /** The terms box is never stored: it has to be ticked again on every order. */
 export function withoutTerms(values: CheckoutForm): OrderDetails {
@@ -31,7 +31,7 @@ export function matchesRemembered(draft: CheckoutForm, remembered: Partial<Check
   return rememberedFields.every((k) => (draft[k] ?? "") === (remembered[k] ?? "")) && detailsComplete(draft);
 }
 
-/** What is stored on the order: normalised phones, and fields that don't apply cleared. */
+/** What is stored on the order: a normalised phone, and fields that don't apply cleared. */
 function cleanDetails(d: OrderDetails): OrderDetails {
   const house = d.housing === "house";
   return {
@@ -39,9 +39,6 @@ function cleanDetails(d: OrderDetails): OrderDetails {
     phone: normalizeKuwaitPhone(d.phone),
     floor: house ? "" : d.floor,
     apartment: house ? "" : d.apartment,
-    giftRecipient: d.giftEnabled ? d.giftRecipient : "",
-    giftPhone: d.giftEnabled && d.giftPhone ? normalizeKuwaitPhone(d.giftPhone) : "",
-    giftMessage: d.giftEnabled ? d.giftMessage : "",
   };
 }
 
@@ -72,11 +69,10 @@ export function buildOrderInput({
     id: newTrackId(),
     locale,
     lines,
-    totals: computeTotals({ lines: bag.lines, deliveryMethod, promo: bag.promo, giftWrap: bag.giftWrap }),
+    totals: computeTotals({ lines: bag.lines, deliveryMethod, promo: bag.promo }),
     details: cleanDetails(details),
     promoCode: bag.promo?.code ?? null,
-    giftWrap: bag.giftWrap,
-    bagKey: bagKey({ lines: bag.lines, deliveryMethod, promo: bag.promo, giftWrap: bag.giftWrap }),
+    bagKey: bagKey({ lines: bag.lines, deliveryMethod, promo: bag.promo }),
     method,
   };
 }

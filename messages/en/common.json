@@ -15,11 +15,10 @@
   "announcement": {
     "delivery": "Free delivery across Kuwait on orders over {amount}",
     "payment": "Pay securely with KNET, Apple Pay or card",
-    "gift": "Complimentary gift wrapping on every order",
+    "express": "Express delivery across Kuwait in {window}",
     "label": "Announcements"
   },
   "header": {
-    "country": "Kuwait · KWD",
     "search": "Search",
     "orders": "My orders",
     "bag": "Bag",
@@ -36,28 +35,15 @@
     "ar": "العربية"
   },
   "nav": {
-    "main": "Main navigation",
-    "perfumes": "Perfumes",
-    "body": "Body",
-    "home": "Home",
-    "gifts": "Gifts",
-    "story": "Our Story",
-    "trilogy": "The Trilogy",
-    "allPerfumes": "All perfumes",
-    "roomSprays": "Room & linen sprays",
-    "oudChips": "Natural oud chips",
-    "allHome": "All home fragrance",
-    "shopAll": "Shop all",
-    "contact": "Contact",
-    "faq": "FAQ"
+    "main": "Main navigation"
   },
   "search": {
     "label": "Search the collection",
-    "placeholder": "Search perfumes, notes, gifts…",
+    "placeholder": "Search perfumes, oud, notes…",
     "trending": "Trending",
     "topProducts": "Top products",
     "results": "{count, plural, =0 {No results} one {# result} other {# results}}",
-    "noResults": "Nothing found for “{query}”. Try “oud”, “rose” or “gift”.",
+    "noResults": "Nothing found for “{query}”. Try “oud”, “rose” or “coffee”.",
     "clear": "Clear",
     "submit": "Search"
   },
@@ -76,7 +62,6 @@
     "quickAdd": "Add {name} to bag",
     "chooseSize": "Choose size",
     "new": "New",
-    "set": "Gift set",
     "soldOut": "Sold out",
     "from": "From {price}"
   },

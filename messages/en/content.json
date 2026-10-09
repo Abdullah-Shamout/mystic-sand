@@ -1,66 +1,12 @@
 {
   "newTab": "opens in a new tab",
-  "story": {
-    "meta": {
-      "title": "Our story",
-      "description": "Mystic Sand is a Kuwaiti perfume house inspired by sand, time and the hourglass, creating timeless scents that capture the moment."
-    },
-    "eyebrow": "Our story",
-    "title": "Where time turns to scent",
-    "heroAlt": "Mystic Sand III beside a bouquet of deep pink roses",
-    "lede": "Mystic Sand was born in Kuwait from a simple belief: that a scent can hold a moment the way an hourglass holds time. Every bottle we make is an invitation to pause — and to remember.",
-    "chapters": {
-      "kuwait": {
-        "title": "Born in Kuwait",
-        "body": [
-          "Our story begins on the shores of the Gulf, where the desert meets the sea. We grew up with the scents of Kuwaiti homes: oud smoke drifting through the majlis, rose and saffron on a celebration night, the first coffee of the morning.",
-          "Mystic Sand carries those memories into a modern wardrobe of fragrance — composed with care, bottled in Kuwait and made to be worn every day."
-        ],
-        "alt": "Three Mystic Sand bottles in a woven basket trimmed with cowrie shells"
-      },
-      "hourglass": {
-        "title": "The hourglass",
-        "body": [
-          "Our emblem is an hourglass drawn in a single line: two triangles meeting at a point, with sand settling in fine lines at its base.",
-          "It is time made visible — every grain a second, every second a moment. A spray of perfume does what the hourglass cannot: it holds the moment still, and brings it back whenever you return to it."
-        ],
-        "logoLabel": "The Mystic Sand hourglass emblem"
-      },
-      "materials": {
-        "title": "The materials",
-        "body": [
-          "We begin with ingredients that carry a sense of place. Natural oud from Cambodia and India, deep and resinous. Saffron and Taif rose. Freshly brewed arabica, creamy lemon and vanilla.",
-          "Our oud chips are hand-selected agarwood for the mabkhara — the same fragrant smoke that has perfumed Gulf homes, clothes and guests for generations."
-        ],
-        "alt": "Pieces of natural agarwood",
-        "cta": "Shop natural oud"
-      },
-      "trilogy": {
-        "title": "The Trilogy",
-        "body": [
-          "<en>I</en>, <en>II</en> and <en>III</en> are three chapters of one story. <en>I</en> is a clean, luminous morning; <en>II</en> the warm glow of saffron and oud as evening falls; <en>III</en> the romance of rose in the golden hour.",
-          "Wear each one alone, or layer them to write a chapter of your own."
-        ],
-        "alt": "The three Trilogy bottles — I, II and III — side by side",
-        "cta": "Discover the Trilogy"
-      }
-    },
-    "filmCta": "Shop the collection",
-    "closing": {
-      "title": "Find your moment",
-      "text": "Explore the collection, or let us help you choose — we’re a message away.",
-      "cta": "Shop the collection",
-      "secondary": "Chat on WhatsApp",
-      "whatsappMessage": "Hello Mystic Sand, I’d like some help choosing a scent."
-    }
-  },
   "contact": {
     "meta": {
       "title": "Contact us",
       "description": "Reach Mystic Sand on WhatsApp, Instagram, phone or email. We’re here to help with orders, delivery and choosing a scent."
     },
     "title": "Contact us",
-    "subtitle": "A question about an order, a gift or choosing a scent? We’re here to help.",
+    "subtitle": "A question about an order or choosing a scent? We’re here to help.",
     "whatsapp": {
       "title": "WhatsApp",
       "text": "The quickest way to reach us. Send us a message and we’ll reply during opening hours.",
@@ -111,7 +57,7 @@
   "faq": {
     "meta": {
       "title": "Frequently asked questions",
-      "description": "Delivery across Kuwait, paying with KNET and Apple Pay, returns, gifting and choosing your Mystic Sand fragrance."
+      "description": "Delivery across Kuwait, paying with KNET and Apple Pay, returns and choosing your Mystic Sand fragrance."
     },
     "title": "Frequently asked questions",
     "subtitle": "Everything you need to know about ordering, delivery, payment and our fragrances.",
@@ -191,7 +137,7 @@
           },
           "choose": {
             "q": "How do I choose a scent?",
-            "a": "Start with the mood you’d like to wear: <en>I</en> is fresh and woody, <en>II</en> warm with saffron and oud, <en>III</en> a romantic rose. <en>CAFÉ</en> is a coffee gourmand, and <en>OUD</en> a deep Gulf classic. To discover all three chapters, try the <set>Trilogy Set</set> — or message us on <whatsapp>WhatsApp</whatsapp> for a personal recommendation."
+            "a": "Start with the mood you’d like to wear: <en>I</en> is fresh and woody, <en>II</en> warm with saffron and oud, <en>III</en> a romantic rose. <en>CAFÉ</en> is a coffee gourmand, and <en>OUD</en> a deep Gulf classic. Still deciding? Message us on <whatsapp>WhatsApp</whatsapp> for a personal recommendation."
           },
           "store": {
             "q": "How should I store my perfume?",
@@ -225,27 +171,6 @@
           "opened": {
             "q": "Can I return a perfume I’ve opened?",
             "a": "For hygiene and safety reasons, we can’t accept opened or used fragrances unless they are faulty."
-          }
-        }
-      },
-      "gifting": {
-        "title": "Gifting",
-        "items": {
-          "wrap": {
-            "q": "Do you offer gift wrapping?",
-            "a": "Yes, and it’s complimentary on every order. Choose gift wrapping in your bag or at checkout, and your order will arrive in our sand-coloured box with a ribbon."
-          },
-          "message": {
-            "q": "Can I add a personal message?",
-            "a": "Of course. Write up to {messageMax} characters at checkout, and we’ll write it by hand on a card for you."
-          },
-          "direct": {
-            "q": "Can I send a gift directly to someone?",
-            "a": "Yes. Enter the recipient’s name, mobile number and address at checkout. Prices are hidden on gift orders by default, and our driver will contact the recipient to arrange delivery."
-          },
-          "recommend": {
-            "q": "Which gift do you recommend?",
-            "a": "The <set>Trilogy Set</set> is our most complete gift: all three eaux de parfum in their signature boxes. For a lighter touch, <en>AURA</en> makes a beautiful everyday treat."
           }
         }
       }

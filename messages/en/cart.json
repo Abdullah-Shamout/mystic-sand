@@ -23,8 +23,6 @@
   "expressCheckout": "Express checkout",
   "applePay": "Pay with Apple Pay",
   "or": "or",
-  "giftWrap": "Add complimentary gift wrapping",
-  "giftWrapNote": "Wrapped in our sand-coloured box with a ribbon. Add a message at checkout.",
   "remove": "Remove",
   "removeItem": "Remove {name}",
   "unavailable": "No longer available — please remove it to continue.",

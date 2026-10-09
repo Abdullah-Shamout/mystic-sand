@@ -25,7 +25,7 @@ export async function ProductAccordions({ product, locale }: { product: Product;
           <p>{product.description[locale]}</p>
           <div>
             <h4 className="caps text-[13px] font-medium">
-              {product.category === "home" ? t("accordion.howToUse") : t("accordion.howToWear")}
+              {product.category === "home" || product.category === "oud" ? t("accordion.howToUse") : t("accordion.howToWear")}
             </h4>
             <p className="mt-1 text-muted">{product.howTo[locale]}</p>
           </div>

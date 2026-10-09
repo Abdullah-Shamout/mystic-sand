@@ -74,12 +74,6 @@
           "You can return or exchange unopened items within {returnsWindow} of delivery, and faulty or incorrect items are always replaced or refunded in full. All the details are in our <returns>returns & exchange policy</returns>."
         ]
       },
-      "gifts": {
-        "title": "Gift orders",
-        "body": [
-          "When you send a gift, you confirm that the recipient is happy for you to share their name, mobile number and address with us for delivery. Prices are not shown on gift orders unless you choose otherwise."
-        ]
-      },
       "promotions": {
         "title": "Promotions and codes",
         "body": [
@@ -137,7 +131,6 @@
             "list": [
               "Your name, your mobile number and, if you choose to give it, your email address.",
               "Your delivery address — area, block, street, avenue, house or building, floor and apartment — and any directions or map link you add.",
-              "Gift details, such as the recipient’s name and mobile number, and your message.",
               "What you ordered, the amount paid and your delivery choice."
             ]
           },
@@ -306,12 +299,6 @@
           "You can cancel your order free of charge until it leaves us — simply message us with your order number. Once it is on its way, it can be returned under this policy."
         ]
       },
-      "gifts": {
-        "title": "Gifts",
-        "body": [
-          "Gift recipients can exchange unopened items within {returnsWindow} of delivery. Refunds are always made to the person who paid for the order."
-        ]
-      },
       "rights": {
         "title": "Your rights",
         "body": [
@@ -323,7 +310,7 @@
   "delivery": {
     "meta": {
       "title": "Delivery",
-      "description": "Delivery fees and timings across Kuwait, express delivery and gift deliveries from Mystic Sand."
+      "description": "Delivery fees and timings across Kuwait, and express delivery from Mystic Sand."
     },
     "eyebrow": "Customer care",
     "title": "Delivery",
@@ -340,10 +327,22 @@
         "body": [
           {
             "table": {
-              "head": ["Option", "Fee", "Delivery time"],
+              "head": [
+                "Option",
+                "Fee",
+                "Delivery time"
+              ],
               "rows": [
-                ["Standard", "{standardFee} — free on orders of {freeOver} or more", "Arrives {standardWhen}"],
-                ["Express", "{expressFee}", "Within {expressWindow} of ordering, for orders placed between {opens} and {lastOrder} (from {fridayOpens} on Fridays)"]
+                [
+                  "Standard",
+                  "{standardFee} — free on orders of {freeOver} or more",
+                  "Arrives {standardWhen}"
+                ],
+                [
+                  "Express",
+                  "{expressFee}",
+                  "Within {expressWindow} of ordering, for orders placed between {opens} and {lastOrder} (from {fridayOpens} on Fridays)"
+                ]
               ]
             }
           },
@@ -373,12 +372,6 @@
         "title": "Receiving your order",
         "body": [
           "Our driver will call or message you on your mobile number before arriving. If we can’t reach you, we’ll try again on the next working day; after two unsuccessful attempts, we’ll contact you to arrange a new time."
-        ]
-      },
-      "gifts": {
-        "title": "Gift deliveries",
-        "body": [
-          "Sending a gift? Add the recipient’s details at checkout. Prices are not included with gift orders unless you choose otherwise, and our driver will contact the recipient to arrange delivery."
         ]
       },
       "tracking": {

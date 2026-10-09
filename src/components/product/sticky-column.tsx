@@ -50,7 +50,7 @@ export function StickyColumn({ children, className }: { children: React.ReactNod
   }, []);
 
   return (
-    <div ref={ref} className={cn("lg:sticky lg:top-[161px] lg:self-start", className)}>
+    <div ref={ref} className={cn("lg:sticky lg:top-[113px] lg:self-start", className)}>
       {children}
     </div>
   );

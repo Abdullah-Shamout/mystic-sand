@@ -29,7 +29,6 @@ export type Order = {
   totals: Totals;
   details: Omit<CheckoutForm, "acceptTerms">;
   promoCode: string | null;
-  giftWrap: boolean;
   bagKey: string;
   method: PaymentMethod;
   status: OrderStatus;
@@ -62,6 +61,12 @@ type CheckoutState = {
 
 const pick = (form: CheckoutForm): Remembered =>
   Object.fromEntries(rememberedFields.map((k) => [k, form[k]])) as Remembered;
+
+/** A stored draft with exactly the current form's fields (it may be from an older version). */
+const currentFields = (draft: Partial<CheckoutForm> | undefined): CheckoutForm =>
+  Object.fromEntries(
+    Object.entries(emptyCheckoutForm).map(([k, v]) => [k, draft?.[k as keyof CheckoutForm] ?? v]),
+  ) as CheckoutForm;
 
 export const useCheckout = create<CheckoutState>()(
   persist(
@@ -140,10 +145,10 @@ export const useCheckout = create<CheckoutState>()(
       version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({ draft: s.draft, remembered: s.remembered, orders: s.orders, lastOrderId: s.lastOrderId }),
-      // Old drafts may miss fields added later.
+      // Old drafts may miss fields added later, or keep removed ones (the gift options).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<CheckoutState>;
-        return { ...current, ...p, draft: { ...emptyCheckoutForm, ...(p.draft ?? {}) } };
+        return { ...current, ...p, draft: currentFields(p.draft) };
       },
     },
   ),

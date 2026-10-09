@@ -1,7 +1,7 @@
-import { Clock, Gift, ShieldCheck, Truck } from "lucide-react";
+import { Clock, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
-import { expressWindow, ltr } from "@/components/content/values";
+import { expressWindow, formatDays, ltr } from "@/components/content/values";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { delivery, whatsappLink } from "@/data/site";
@@ -24,7 +24,7 @@ export async function ServiceStrip() {
       title: t("express.title", { window: expressWindow(locale) }),
       text: t("express.text", { lastOrder: ltr(delivery.express.lastOrder) }),
     },
-    { icon: Gift, title: t("gift.title"), text: t("gift.text") },
+    { icon: RotateCcw, title: t("returns.title"), text: t("returns.text", { window: formatDays(delivery.returnsDays, locale) }) },
     { icon: ShieldCheck, title: t("payment.title"), text: t("payment.text") },
   ];
 

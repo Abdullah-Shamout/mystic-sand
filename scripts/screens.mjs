@@ -21,7 +21,7 @@ const bag = args.bag ? args.bag.split(",") : [];
 const full = args.full === "true";
 const wait = Number(args.wait ?? 900);
 
-const skus = { i: "MS-I-50", ii: "MS-II-50", iii: "MS-III-50", aura: "MS-AURA-100", cafe: "MS-CAFE-30", oud: "MS-OUD-30", set: "MS-TRILOGY-SET", oasis: "MS-OASIS-250", chips: "MS-OUDCHIPS-1T" };
+const skus = { i: "MS-I-50", ii: "MS-II-50", iii: "MS-III-50", aura: "MS-AURA-100", cafe: "MS-CAFE-30", oud: "MS-OUD-30", oasis: "MS-OASIS-250", chips: "MS-OUDCHIPS-1T" };
 
 await fs.mkdir(out, { recursive: true });
 const browser = await chromium.launch({ channel: "chrome" });
@@ -31,7 +31,7 @@ for (const [width, height] of viewports) {
   if (bag.length) {
     const lines = bag.map((k) => ({ sku: skus[k] ?? k, qty: 1 }));
     await context.addInitScript((value) => {
-      localStorage.setItem("ms-bag", JSON.stringify({ state: { lines: value, giftWrap: false, promo: null }, version: 1 }));
+      localStorage.setItem("ms-bag", JSON.stringify({ state: { lines: value, promo: null }, version: 2 }));
     }, lines);
   }
   const page = await context.newPage();
