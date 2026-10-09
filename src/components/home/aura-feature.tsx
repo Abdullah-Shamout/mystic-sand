@@ -1,9 +1,9 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { reemKufi } from "@/app/fonts";
 import { Button } from "@/components/ui/button";
-import { productBySlug } from "@/data/products";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { baseCatalog } from "@/lib/catalog";
 import { formatKWD } from "@/lib/money";
 import { AddToBagButton } from "./add-to-bag-button";
 import { SplitPanel } from "./split-panel";
@@ -14,7 +14,7 @@ const TIERS = ["top", "heart", "base"] as const;
 export async function AuraFeature() {
   const t = await getTranslations("home.aura");
   const locale = (await getLocale()) as Locale;
-  const product = productBySlug("aura");
+  const product = baseCatalog.bySlug.get("aura");
   if (!product) return null;
   const variant = product.variants[0];
   const notes = product.notes;

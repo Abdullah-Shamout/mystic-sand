@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Field, TextArea, TextInput } from "@/components/ui/form";
-import { whatsappLink } from "@/data/site";
+import { useLiveSettings } from "@/lib/live";
 import { phoneStatus } from "@/lib/phone";
+import { whatsappHref } from "@/lib/settings";
 import { useUi } from "@/store/ui";
 
 type ErrorKey = "nameRequired" | "phoneRequired" | "phoneInvalid" | "phoneLandline" | "messageRequired" | "messageShort" | "tooLong";
@@ -63,6 +64,7 @@ function validate(v: Values): Errors {
  */
 export function ContactForm({ labels }: { labels: ContactFormLabels }) {
   const announce = useUi((s) => s.announce);
+  const settings = useLiveSettings();
   const [values, setValues] = useState<Values>(empty);
   const [touched, setTouched] = useState<Partial<Record<keyof Values, boolean>>>({});
   const [attempted, setAttempted] = useState(false);
@@ -113,7 +115,7 @@ export function ContactForm({ labels }: { labels: ContactFormLabels }) {
         <p className="text-[15px] leading-relaxed text-ink/80">{labels.successText}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
           <Button asChild>
-            <a href={whatsappLink(text)} target="_blank" rel="noreferrer">
+            <a href={whatsappHref(settings, text)} target="_blank" rel="noreferrer">
               <WhatsAppIcon className="size-4" />
               {labels.whatsappCta}
               <span className="sr-only">({labels.newTab})</span>

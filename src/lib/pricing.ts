@@ -1,6 +1,7 @@
-import { productBySku } from "@/data/products";
-import { delivery } from "@/data/site";
 import type { Product, Variant } from "@/data/types";
+import { visibleBySku, type Catalog } from "@/lib/catalog";
+import { getLiveCatalog, getLiveSettings } from "@/lib/live";
+import { feeFor, type StoreSettings } from "@/lib/settings";
 
 export type BagLine = { sku: string; qty: number };
 export type DeliveryMethod = "standard" | "express";
@@ -12,12 +13,19 @@ export type PricedLine = BagLine & {
   lineFils: number;
 };
 
-/** Bag lines store only sku + qty; prices always come from the catalog. */
-export function priceLines(lines: BagLine[]): { priced: PricedLine[]; missing: BagLine[] } {
+/**
+ * Bag lines store only sku + qty; prices always come from the catalog. Hidden or unknown
+ * SKUs are "missing", which the existing unavailable flow handles. Callers that run during
+ * render pass the live catalog (useLiveCatalog()); handlers may rely on the default.
+ */
+export function priceLines(
+  lines: BagLine[],
+  catalog: Catalog = getLiveCatalog(),
+): { priced: PricedLine[]; missing: BagLine[] } {
   const priced: PricedLine[] = [];
   const missing: BagLine[] = [];
   for (const line of lines) {
-    const hit = productBySku(line.sku);
+    const hit = visibleBySku(catalog, line.sku);
     if (!hit) {
       missing.push(line);
       continue;
@@ -39,16 +47,17 @@ export function computeTotals(input: {
   lines: BagLine[];
   deliveryMethod?: DeliveryMethod;
   promo?: Promo | null;
+  catalog?: Catalog;
+  settings?: StoreSettings;
 }): Totals {
-  const { priced } = priceLines(input.lines);
+  const { priced } = priceLines(input.lines, input.catalog ?? getLiveCatalog());
   const itemCount = priced.reduce((n, l) => n + l.qty, 0);
   const subtotalFils = priced.reduce((n, l) => n + l.lineFils, 0);
   const discountFils = input.promo ? Math.round((subtotalFils * input.promo.percent) / 100) : 0;
   const merchandise = subtotalFils - discountFils;
   const method = input.deliveryMethod ?? "standard";
   // Delivery is always charged: there is no free-delivery threshold.
-  const deliveryFils =
-    itemCount === 0 ? 0 : method === "express" ? delivery.express.feeFils : delivery.standard.feeFils;
+  const deliveryFils = itemCount === 0 ? 0 : feeFor(input.settings ?? getLiveSettings(), method);
   return {
     itemCount,
     subtotalFils,

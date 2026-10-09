@@ -6,10 +6,10 @@ import { Dialog } from "radix-ui";
 import { useDeferredValue, useState } from "react";
 import { Price } from "@/components/ui/price";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
-import { productBySlug, products } from "@/data/products";
 import type { Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { useLiveCatalog } from "@/lib/live";
 import { searchProducts } from "@/lib/search";
 import { useAddToBag } from "@/lib/use-add-to-bag";
 import { useUi } from "@/store/ui";
@@ -71,7 +71,8 @@ export function SearchOverlay() {
   const setOpen = useUi((s) => s.setSearchOpen);
   const [query, setQuery] = useState("");
   const deferred = useDeferredValue(query);
-  const results = searchProducts(deferred, products, locale);
+  const catalog = useLiveCatalog();
+  const results = searchProducts(deferred, catalog.visible, locale);
   const close = () => setOpen(false);
 
   return (
@@ -139,8 +140,8 @@ export function SearchOverlay() {
                   <h3 className="caps text-[13px] text-muted">{t("search.trending")}</h3>
                   <ul className="mt-4 space-y-2">
                     {TRENDING.map((slug) => {
-                      const p = productBySlug(slug);
-                      return p ? (
+                      const p = catalog.bySlug.get(slug);
+                      return p && !p.hidden ? (
                         <li key={slug}>
                           <Link href={`/product/${slug}`} onClick={close} className="text-[16px] hover:underline">
                             <bdi lang="en">{p.name}</bdi>
@@ -155,8 +156,8 @@ export function SearchOverlay() {
                   <h3 className="caps text-[13px] text-muted">{t("search.topProducts")}</h3>
                   <ul className="mt-4 grid grid-cols-3 gap-3">
                     {TOP.map((slug) => {
-                      const p = productBySlug(slug);
-                      return p ? (
+                      const p = catalog.bySlug.get(slug);
+                      return p && !p.hidden ? (
                         <li key={slug}>
                           <Link href={`/product/${slug}`} onClick={close} className="group block">
                             <span className="relative block aspect-square bg-tile">

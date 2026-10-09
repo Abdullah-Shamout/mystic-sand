@@ -5,11 +5,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { ProductGrid } from "@/components/product/product-grid";
 import { categories } from "@/data/categories";
-import { productBySlug } from "@/data/products";
 import type { Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
+import { useLiveCatalog } from "@/lib/live";
 import { useUi } from "@/store/ui";
 
 type Sort = "featured" | "price-asc" | "price-desc";
@@ -159,7 +159,10 @@ export function ShopToolbar({ active, count }: { active: string; count: number }
 export function ShopGrid({ slugs }: { slugs: string[] }) {
   const t = useTranslations("shop");
   const sort = useSort();
-  const list = slugs.map(productBySlug).filter((p): p is Product => Boolean(p));
+  const catalog = useLiveCatalog();
+  const list = slugs
+    .map((slug) => catalog.bySlug.get(slug))
+    .filter((p): p is Product => p !== undefined && !p.hidden);
   const sorted =
     sort === "featured"
       ? list

@@ -5,11 +5,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
-import { delivery, whatsappLink } from "@/data/site";
+import { delivery } from "@/data/site";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { formatDay, standardArrival } from "@/lib/delivery";
+import { useLiveSettings } from "@/lib/live";
 import { isolatedKWD } from "@/lib/money";
+import { whatsappHref } from "@/lib/settings";
 import type { PaymentRecord } from "@/lib/payments/types";
 import { useBag } from "@/store/bag";
 import { useCheckout, type Order } from "@/store/checkout";
@@ -30,6 +32,7 @@ export function ResultSuccess({ order, attempt }: { order: Order; attempt: Payme
   const t = useTranslations("payment");
   const locale = useLocale() as Locale;
   const announce = useUi((s) => s.announce);
+  const settings = useLiveSettings();
   const heading = useFocusOnMount<HTMLHeadingElement>();
 
   useEffect(() => {
@@ -107,7 +110,7 @@ export function ResultSuccess({ order, attempt }: { order: Order; attempt: Payme
                 {t("success.print")}
               </Button>
               <Button asChild variant="secondary">
-                <a href={whatsappLink(shareText)} target="_blank" rel="noopener noreferrer">
+                <a href={whatsappHref(settings, shareText)} target="_blank" rel="noopener noreferrer">
                   <WhatsAppIcon className="size-4" />
                   {t("success.share")}
                 </a>

@@ -4,9 +4,10 @@ import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { expressWindow, formatDays, ltr, standardWhen } from "@/components/content/values";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
-import { delivery, whatsappLink } from "@/data/site";
+import { delivery } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { isolatedKWD } from "@/lib/money";
+import { defaultSettings, feeFor, whatsappHref } from "@/lib/settings";
 
 /** Reassurance strip on racing green, ending with the WhatsApp concierge. */
 export async function ServiceStrip() {
@@ -17,7 +18,7 @@ export async function ServiceStrip() {
     {
       icon: Truck,
       title: t("delivery.title"),
-      text: t("delivery.text", { fee: isolatedKWD(delivery.standard.feeFils, locale), when: standardWhen(locale) }),
+      text: t("delivery.text", { fee: isolatedKWD(feeFor(defaultSettings, "standard"), locale), when: standardWhen(locale) }),
     },
     {
       icon: Clock,
@@ -46,7 +47,7 @@ export async function ServiceStrip() {
         <div className="mx-auto flex max-w-[1440px] flex-col items-center gap-6 px-6 py-10 text-center md:flex-row md:justify-center md:gap-10">
           <p className="font-serif text-[22px] leading-snug md:text-[24px]">{t("whatsapp.text")}</p>
           <Button asChild variant="outline-light">
-            <a href={whatsappLink(t("whatsapp.message"))} target="_blank" rel="noreferrer">
+            <a href={whatsappHref(defaultSettings, t("whatsapp.message"))} target="_blank" rel="noreferrer">
               <WhatsAppIcon className="size-[18px]" />
               {t("whatsapp.cta")}
               <span className="sr-only">({t("newTab")})</span>

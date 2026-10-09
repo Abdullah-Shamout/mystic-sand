@@ -5,9 +5,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { InstagramIcon, WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Drawer } from "@/components/ui/drawer";
 import { categories } from "@/data/categories";
-import { site, whatsappLink } from "@/data/site";
+import { site } from "@/data/site";
 import { Link, usePathname } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { useLiveSettings } from "@/lib/live";
+import { whatsappHref } from "@/lib/settings";
 import { useUi } from "@/store/ui";
 import { LanguageSwitcher } from "./language-switcher";
 
@@ -20,6 +22,7 @@ export function SiteMenu() {
   const t = useTranslations("common");
   const locale = useLocale() as Locale;
   const pathname = usePathname();
+  const settings = useLiveSettings();
   const open = useUi((s) => s.menuOpen);
   const setOpen = useUi((s) => s.setMenuOpen);
   const close = () => setOpen(false);
@@ -51,7 +54,7 @@ export function SiteMenu() {
                 <InstagramIcon className="size-5" />
               </a>
               <a
-                href={whatsappLink(t("brand"))}
+                href={whatsappHref(settings, t("brand"))}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex size-11 items-center justify-center"

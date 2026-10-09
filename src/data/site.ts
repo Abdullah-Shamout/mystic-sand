@@ -4,9 +4,8 @@
 export const site = {
   brand: "Mystic Sand",
   instagram: { handle: "mystic.sand", url: "https://www.instagram.com/mystic.sand/" },
-  // TODO(client): real WhatsApp / phone / email.
-  whatsapp: "96590000000",
-  phoneDisplay: "+965 9000 0000",
+  // The WhatsApp and phone numbers now live in src/lib/settings.ts (defaultSettings),
+  // so the admin can change them at runtime.
   email: "hello@mysticsand.com",
   // TODO(client): commercial registration details for the footer (Kuwait e-commerce rules).
   trade: {
@@ -18,10 +17,9 @@ export const site = {
 } as const;
 
 export const delivery = {
-  // TODO(client): fees and hours. There is no free-delivery threshold.
-  standard: { feeFils: 1000, leadDays: 1 },
+  // Fees now live in src/lib/settings.ts (defaultSettings). There is no free-delivery threshold.
+  standard: { leadDays: 1 },
   express: {
-    feeFils: 3000,
     windowMinutes: 120,
     opens: "10:00",
     lastOrder: "20:00",
@@ -48,6 +46,3 @@ export const maxQtyPerLine = 10;
 export const promoCodes: Record<string, { percent: number; expires: string }> = {
   SAND10: { percent: 10, expires: "2026-12-31" },
 };
-
-export const whatsappLink = (text: string) =>
-  `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(text)}`;

@@ -1,13 +1,15 @@
 "use client";
 
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import { productBySku } from "@/data/products";
+import { persist } from "zustand/middleware";
 import { maxQtyPerLine, promoCodes } from "@/data/site";
+import { visibleBySku, type Catalog } from "@/lib/catalog";
+import { getLiveCatalog } from "@/lib/live";
 import type { BagLine, Promo } from "@/lib/pricing";
+import { safeJSONStorage } from "@/lib/storage";
 
-export const maxQtyFor = (sku: string) => {
-  const hit = productBySku(sku);
+export const maxQtyFor = (sku: string, catalog: Catalog = getLiveCatalog()) => {
+  const hit = visibleBySku(catalog, sku);
   return hit ? Math.min(hit.variant.stock, maxQtyPerLine) : 0;
 };
 
@@ -85,7 +87,7 @@ export const useBag = create<BagState>()(
     {
       name: "ms-bag",
       version: 2,
-      storage: createJSONStorage(() => localStorage),
+      storage: safeJSONStorage,
       partialize: (s) => ({ lines: s.lines, promo: s.promo }),
       // v1 also stored a gift-wrap flag; the service was dropped.
       migrate: (persisted) => {

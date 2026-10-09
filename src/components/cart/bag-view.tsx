@@ -9,28 +9,44 @@ import { Price } from "@/components/ui/price";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Skeleton } from "@/components/ui/skeleton";
-import { productBySku, productBySlug, trilogySlugs } from "@/data/products";
 import type { Product } from "@/data/types";
 import { EXPRESS_APPLE_PAY_EVENT } from "@/components/checkout/events";
 import { Link, usePathname } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import type { Catalog } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
+import { useLiveCatalog, useLiveSettings } from "@/lib/live";
 import { computeTotals, priceLines, type BagLine } from "@/lib/pricing";
 import { useAddToBag } from "@/lib/use-add-to-bag";
 import { maxQtyFor, useBag } from "@/store/bag";
 import { useUi } from "@/store/ui";
 
-/** At most two suggestions, never something already in the bag. */
-function pickUpsells(lines: BagLine[]): { title: "upsellTrilogy" | "upsellPair"; products: Product[] } {
+const TRILOGY = ["i", "ii", "iii"];
+
+/** A visible product by slug, or undefined when it is unknown or hidden. */
+const visibleBySlug = (catalog: Catalog, slug: string): Product | undefined => {
+  const p = catalog.bySlug.get(slug);
+  return p && !p.hidden ? p : undefined;
+};
+
+/** At most two suggestions, never something already in the bag or unavailable. */
+function pickUpsells(lines: BagLine[], catalog: Catalog): { title: "upsellTrilogy" | "upsellPair"; products: Product[] } {
   if (lines.length >= 3) return { title: "upsellPair", products: [] };
-  const inBag = new Set(lines.map((l) => productBySku(l.sku)?.product.slug).filter(Boolean) as string[]);
-  const trilogyIn = trilogySlugs.filter((s) => inBag.has(s));
+  const inBag = new Set(
+    lines.map((l) => catalog.bySku.get(l.sku)?.product.slug).filter((s): s is string => Boolean(s)),
+  );
+  const trilogyIn = TRILOGY.filter((s) => inBag.has(s));
   if (trilogyIn.length >= 1 && trilogyIn.length <= 2) {
-    const missing = trilogySlugs.filter((s) => !inBag.has(s)).map((s) => productBySlug(s)!);
+    const missing = TRILOGY.filter((s) => !inBag.has(s))
+      .map((s) => visibleBySlug(catalog, s))
+      .filter((p): p is Product => p !== undefined);
     return { title: "upsellTrilogy", products: missing.slice(0, 2) };
   }
-  const pairs = ["aura", "oud-chips", "cafe"].filter((s) => !inBag.has(s)).map((s) => productBySlug(s)!);
+  const pairs = ["aura", "oud-chips", "cafe"]
+    .filter((s) => !inBag.has(s))
+    .map((s) => visibleBySlug(catalog, s))
+    .filter((p): p is Product => p !== undefined);
   return { title: "upsellPair", products: pairs.filter((p) => p.variants.length === 1).slice(0, 2) };
 }
 
@@ -44,7 +60,8 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
   const restore = useBag((s) => s.restore);
   const pushToast = useUi((s) => s.pushToast);
   const announce = useUi((s) => s.announce);
-  const { priced, missing } = priceLines(lines);
+  const catalog = useLiveCatalog();
+  const { priced, missing } = priceLines(lines, catalog);
 
   const removeLine = (sku: string, name: string) => {
     const removed = remove(sku);
@@ -88,7 +105,7 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
             <div className="mt-auto flex items-center justify-between gap-3 pt-3">
               <QuantityStepper
                 value={line.qty}
-                max={maxQtyFor(line.sku)}
+                max={maxQtyFor(line.sku, catalog)}
                 onChange={(q) => setQty(line.sku, q)}
                 label={line.product.name}
               />
@@ -122,8 +139,9 @@ function Upsells({ heading: Heading = "h3" }: { heading?: "h2" | "h3" }) {
   const locale = useLocale() as Locale;
   const lines = useBag((s) => s.lines);
   const addToBag = useAddToBag();
+  const catalog = useLiveCatalog();
   const titleId = useId();
-  const { title, products } = pickUpsells(lines);
+  const { title, products } = pickUpsells(lines, catalog);
   if (products.length === 0) return null;
   return (
     <section className="border-t border-line px-6 py-5" aria-labelledby={titleId}>
@@ -177,8 +195,10 @@ export function BagSummary({ onNavigate, compact = false }: { onNavigate?: () =>
   const pathname = usePathname();
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
-  const totals = computeTotals({ lines, promo });
-  const { missing } = priceLines(lines);
+  const catalog = useLiveCatalog();
+  const settings = useLiveSettings();
+  const totals = computeTotals({ lines, promo, catalog, settings });
+  const { missing } = priceLines(lines, catalog);
   const blocked = missing.length > 0;
 
   return (

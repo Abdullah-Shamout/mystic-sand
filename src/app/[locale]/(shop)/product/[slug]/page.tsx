@@ -13,9 +13,9 @@ import { ProductPurchase } from "@/components/product/product-purchase";
 import { StickyColumn } from "@/components/product/sticky-column";
 import { SectionTitle } from "@/components/ui/section-title";
 import { categoryBySlug } from "@/data/categories";
-import { productBySlug, products } from "@/data/products";
 import type { Product } from "@/data/types";
 import type { Locale } from "@/i18n/routing";
+import { baseCatalog } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
@@ -23,13 +23,13 @@ type Props = { params: Promise<{ locale: string; slug: string }> };
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+  return baseCatalog.products.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
   const t = await getTranslations({ locale, namespace: "product" });
-  const product = productBySlug(slug);
+  const product = baseCatalog.bySlug.get(slug);
   if (!product) return {};
   const l = locale as Locale;
   return {
@@ -45,12 +45,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const product = productBySlug(slug);
+  const product = baseCatalog.bySlug.get(slug);
   if (!product) notFound();
   const l = locale as Locale;
   const t = await getTranslations("product");
   const category = categoryBySlug(product.category);
-  const related = product.related.map(productBySlug).filter((p): p is Product => Boolean(p));
+  const related = product.related
+    .map((s) => baseCatalog.bySlug.get(s))
+    .filter((p): p is Product => Boolean(p));
   // The Trilogy, else the collection — except Perfumes, which the type line already says.
   const eyebrow =
     product.collection === "trilogy" ? t("trilogy") : category && category.slug !== "perfumes" ? category.name[l] : null;

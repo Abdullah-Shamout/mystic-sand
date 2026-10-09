@@ -2,10 +2,11 @@ import { Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
-import { site, whatsappLink } from "@/data/site";
+import { site } from "@/data/site";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
+import { defaultSettings, whatsappHref } from "@/lib/settings";
 import { linkClass, richTags } from "./rich-tags";
 import { storeValues } from "./values";
 
@@ -160,7 +161,7 @@ export async function PolicyPage({ policy, locale }: { policy: PolicyKey; locale
               <p className="mt-2 text-[15px] text-ink/80">{t("shared.questionsText")}</p>
               <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3">
                 <Button asChild>
-                  <a href={whatsappLink(whatsappText)} target="_blank" rel="noreferrer">
+                  <a href={whatsappHref(defaultSettings, whatsappText)} target="_blank" rel="noreferrer">
                     <WhatsAppIcon className="size-4" />
                     {t("shared.whatsapp")}
                     <span className="sr-only">({t("shared.newTab")})</span>

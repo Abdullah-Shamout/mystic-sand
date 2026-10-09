@@ -9,12 +9,13 @@ import { SignatureDuo } from "@/components/home/signature-duo";
 import { VideoHero } from "@/components/home/video-hero";
 import { ProductGrid } from "@/components/product/product-grid";
 import { SectionTitle } from "@/components/ui/section-title";
-import { productBySlug } from "@/data/products";
 import type { Product } from "@/data/types";
+import { baseCatalog } from "@/lib/catalog";
 
 type Props = { params: Promise<{ locale: string }> };
 
-const pick = (slugs: string[]) => slugs.map((slug) => productBySlug(slug)).filter((p): p is Product => Boolean(p));
+const pick = (slugs: string[]) =>
+  slugs.map((slug) => baseCatalog.bySlug.get(slug)).filter((p): p is Product => Boolean(p));
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;

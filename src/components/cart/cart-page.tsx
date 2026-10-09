@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMounted } from "@/lib/hooks";
+import { useLiveCatalog } from "@/lib/live";
 import { priceLines } from "@/lib/pricing";
 import { useBag } from "@/store/bag";
 import { BagExtras, BagSummary, BagView } from "./bag-view";
@@ -11,8 +12,9 @@ import { BagExtras, BagSummary, BagView } from "./bag-view";
 export function CartPage() {
   const t = useTranslations("cart");
   const mounted = useMounted();
+  const catalog = useLiveCatalog();
   // Only lines that can still be bought count: no summary for a bag of unavailable items.
-  const hasItems = useBag((s) => priceLines(s.lines).priced.length > 0);
+  const hasItems = useBag((s) => priceLines(s.lines, catalog).priced.length > 0);
 
   if (!mounted) {
     return (

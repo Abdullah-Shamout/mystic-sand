@@ -11,6 +11,7 @@
   "decrease": "Decrease quantity",
   "increase": "Increase quantity",
   "maxReached": "Maximum quantity reached",
+  "storageFull": "This browser’s storage is full — some changes may not be saved.",
   "announcement": {
     "payment": "Pay securely with KNET, Apple Pay or card",
     "express": "Express delivery across Kuwait in {window}",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMounted } from "@/lib/hooks";
+import { useLiveCatalog } from "@/lib/live";
 import { priceLines } from "@/lib/pricing";
 import { useBag } from "@/store/bag";
 import { CheckoutFlow } from "./checkout-flow";
@@ -12,7 +13,8 @@ import { CheckoutEmpty, CheckoutSkeleton } from "./checkout-states";
  */
 export function CheckoutView() {
   const mounted = useMounted();
-  const hasItems = useBag((s) => priceLines(s.lines).priced.length > 0);
+  const catalog = useLiveCatalog();
+  const hasItems = useBag((s) => priceLines(s.lines, catalog).priced.length > 0);
   if (!mounted) return <CheckoutSkeleton />;
   if (!hasItems) return <CheckoutEmpty />;
   return <CheckoutFlow />;

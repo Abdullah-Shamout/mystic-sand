@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { site, whatsappLink } from "@/data/site";
+import { site } from "@/data/site";
 import { Link } from "@/i18n/navigation";
+import { defaultSettings, whatsappHref } from "@/lib/settings";
 import { telHref } from "./values";
 
 export const linkClass = "underline decoration-1 underline-offset-4 hover:decoration-2";
@@ -42,7 +43,7 @@ export function richTags(whatsappText: string): Record<string, Tag> {
     terms: (chunks) => internalLink("/terms", chunks),
     orders: (chunks) => internalLink("/orders", chunks),
     shop: (chunks) => internalLink("/shop", chunks),
-    whatsapp: (chunks) => externalLink(whatsappLink(whatsappText), chunks),
+    whatsapp: (chunks) => externalLink(whatsappHref(defaultSettings, whatsappText), chunks),
     instagram: (chunks) => externalLink(site.instagram.url, chunks),
     tel: (chunks) => (
       <a href={telHref} dir="ltr" className={linkClass}>

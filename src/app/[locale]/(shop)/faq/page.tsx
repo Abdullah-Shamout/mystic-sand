@@ -6,9 +6,9 @@ import { richTags } from "@/components/content/rich-tags";
 import { storeValues } from "@/components/content/values";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/section-title";
-import { whatsappLink } from "@/data/site";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { defaultSettings, whatsappHref } from "@/lib/settings";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -91,7 +91,7 @@ export default async function FaqPage({ params }: Props) {
           <p className="mt-3 text-[15px] text-ink/80">{t("faq.more.text")}</p>
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild className="w-full sm:w-auto">
-              <a href={whatsappLink(whatsappText)} target="_blank" rel="noreferrer">
+              <a href={whatsappHref(defaultSettings, whatsappText)} target="_blank" rel="noreferrer">
                 <WhatsAppIcon className="size-4" />
                 {t("faq.more.whatsapp")}
                 <span className="sr-only">({t("newTab")})</span>

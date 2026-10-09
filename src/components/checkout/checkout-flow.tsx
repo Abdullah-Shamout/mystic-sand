@@ -10,6 +10,7 @@ import type { PaymentMethod } from "@/data/site";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { expressStatus } from "@/lib/delivery";
+import { useLiveCatalog } from "@/lib/live";
 import { mockGateway } from "@/lib/payments/mock";
 import { priceLines } from "@/lib/pricing";
 import { checkoutSchema, emptyCheckoutForm, rememberedFields, type CheckoutForm } from "@/lib/validation";
@@ -65,7 +66,8 @@ export function CheckoutFlow() {
   const router = useRouter();
   const announce = useUi((s) => s.announce);
   const openBag = useUi((s) => s.openBag);
-  const hasMissing = useBag((s) => priceLines(s.lines).missing.length > 0);
+  const catalog = useLiveCatalog();
+  const hasMissing = useBag((s) => priceLines(s.lines, catalog).missing.length > 0);
 
   const [defaults] = useState(initialValues);
   const form = useForm<CheckoutForm>({

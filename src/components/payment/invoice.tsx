@@ -7,9 +7,11 @@ import { areaById, governorates } from "@/data/kuwait-areas";
 import { delivery, site } from "@/data/site";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/delivery";
+import { useLiveSettings } from "@/lib/live";
 import { formatAmount } from "@/lib/money";
 import type { PaymentRecord } from "@/lib/payments/types";
 import { formatKuwaitPhone } from "@/lib/phone";
+import { phoneDisplay } from "@/lib/settings";
 import type { Order } from "@/store/checkout";
 import arMessages from "../../../messages/ar/payment.json";
 import enMessages from "../../../messages/en/payment.json";
@@ -88,6 +90,7 @@ const code = (value: string | undefined) => <bdi className="figures">{value || "
  * total and the KNET reference fields. TODO(client): trade name and CR in site.ts.
  */
 export function Invoice({ order, attempt }: { order: Order; attempt: PaymentRecord }) {
+  const settings = useLiveSettings();
   const d = order.details;
   const area = areaById(d.areaId);
   const bank = attempt.bankId ? banks.find((b) => b.id === attempt.bankId) : undefined;
@@ -113,7 +116,7 @@ export function Invoice({ order, attempt }: { order: Order; attempt: PaymentReco
           </En>
           <p className="text-muted">
             <bdi dir="ltr" className="figures">
-              {site.phoneDisplay}
+              {phoneDisplay(settings)}
             </bdi>{" "}
             · <bdi>{site.email}</bdi>
           </p>

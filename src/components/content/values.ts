@@ -1,11 +1,12 @@
 import { delivery, payments, site } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { isolatedKWD } from "@/lib/money";
+import { defaultSettings, feeFor, phoneDisplay, telHref as telHrefFor } from "@/lib/settings";
 
 /** Left-to-right isolate for phone numbers, times and IDs inside running Arabic text. */
 export const ltr = (text: string) => `⁦${text}⁩`;
 
-export const telHref = `tel:${site.phoneDisplay.replace(/\s+/g, "")}`;
+export const telHref = telHrefFor(defaultSettings);
 
 // Arabic counted nouns change form with the number. These forms read naturally
 // after a preposition: "خلال ساعتين", "خلال 3 أيام", "خلال 14 يوماً".
@@ -52,11 +53,11 @@ export function storeValues(locale: Locale): Record<string, string> {
     brand: site.brand,
     tradeName: site.trade.name[locale],
     cr: ltr(site.trade.cr),
-    phone: ltr(site.phoneDisplay),
+    phone: ltr(phoneDisplay(defaultSettings)),
     email: ltr(site.email),
     handle: ltr(`@${site.instagram.handle}`),
-    standardFee: isolatedKWD(delivery.standard.feeFils, locale),
-    expressFee: isolatedKWD(delivery.express.feeFils, locale),
+    standardFee: isolatedKWD(feeFor(defaultSettings, "standard"), locale),
+    expressFee: isolatedKWD(feeFor(defaultSettings, "express"), locale),
     expressWindow: expressWindow(locale),
     standardWhen: standardWhen(locale),
     opens: ltr(delivery.express.opens),

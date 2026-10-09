@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { DemoHelpers } from "./demo-helpers";
 import { SearchOverlay } from "./search-overlay";
 import { SiteMenu } from "./site-menu";
+import { StorageSync } from "./storage-sync";
 import { UrlActions } from "./url-actions";
 
 /** Client-side globals mounted once per locale: direction, overlays, toasts, live region. */
@@ -20,6 +21,7 @@ export function Providers({ dir, children }: { dir: "ltr" | "rtl"; children: Rea
       <Toaster />
       <LiveRegion />
       <UrlActions />
+      <StorageSync />
       <DemoHelpers />
     </Direction.Provider>
   );

@@ -3,9 +3,17 @@ import { kuwaitClock } from "./delivery";
 
 const digits = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join("");
 
-/** Track ID shown to the shopper and sent to KNET as `trackid`. */
-export function newTrackId(): string {
-  return `MS-${10000 + Math.floor(Math.random() * 90000)}`;
+/**
+ * Track ID shown to the shopper and sent to KNET as `trackid`. Real orders use MS-20000..99999
+ * (sample orders reserve 10000–19999). `existing` (e.g. the checkout store's orders) is skipped
+ * so two orders never collide. Called only from event handlers (uses Math.random).
+ */
+export function newTrackId(existing?: Readonly<Record<string, unknown>>): string {
+  for (let i = 0; i < 50; i++) {
+    const id = `MS-${20000 + Math.floor(Math.random() * 80000)}`;
+    if (!existing || !(id in existing)) return id;
+  }
+  return `MS-${20000 + Math.floor(Math.random() * 80000)}`;
 }
 
 /** Realistic-looking KNET return fields for the simulation. */

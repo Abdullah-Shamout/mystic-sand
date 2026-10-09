@@ -5,6 +5,7 @@ import type { Localized, Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { isolatedKWD } from "@/lib/money";
+import { defaultSettings, feeFor } from "@/lib/settings";
 
 const TIERS = ["top", "heart", "base"] as const;
 
@@ -61,7 +62,7 @@ export async function ProductAccordions({ product, locale }: { product: Product;
           <h4 className="font-medium">{t("info.standardTitle")}</h4>
           <p className="text-muted">
             {t("info.standard", {
-              fee: isolatedKWD(delivery.standard.feeFils, locale),
+              fee: isolatedKWD(feeFor(defaultSettings, "standard"), locale),
               ...days(delivery.standard.leadDays),
             })}
           </p>
@@ -70,7 +71,7 @@ export async function ProductAccordions({ product, locale }: { product: Product;
           <h4 className="font-medium">{t("info.expressTitle", { hours, h: String(hours) })}</h4>
           <p className="text-muted">
             {t("info.express", {
-              fee: isolatedKWD(delivery.express.feeFils, locale),
+              fee: isolatedKWD(feeFor(defaultSettings, "express"), locale),
               opens: delivery.express.opens,
               friday: delivery.express.fridayOpens,
               last: delivery.express.lastOrder,

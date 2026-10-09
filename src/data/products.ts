@@ -300,17 +300,5 @@ export const products: Product[] = [
   },
 ];
 
-export const productBySlug = (slug: string) => products.find((p) => p.slug === slug);
-
-export const productBySku = (sku: string) => {
-  for (const product of products) {
-    const variant = product.variants.find((v) => v.sku === sku);
-    if (variant) return { product, variant };
-  }
-  return undefined;
-};
-
-export const productsInCategory = (category: string) =>
-  products.filter((p) => p.category === category || p.alsoIn?.some((c) => c === category));
-
-export const trilogySlugs = ["i", "ii", "iii"] as const;
+// Lookups now live in src/lib/catalog.ts (buildCatalog → baseCatalog), so the storefront
+// can read an admin-edited catalog at runtime. This module only holds the base data.

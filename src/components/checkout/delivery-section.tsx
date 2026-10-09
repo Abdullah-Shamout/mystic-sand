@@ -8,6 +8,7 @@ import { delivery } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { expressStatus, formatDay, formatDuration, standardArrival } from "@/lib/delivery";
 import { useNow } from "@/lib/hooks";
+import { useLiveSettings } from "@/lib/live";
 import type { CheckoutForm } from "@/lib/validation";
 import { anchorId, ChoiceCard, iso, Section } from "./form-helpers";
 
@@ -16,6 +17,7 @@ export function DeliverySection({ expressClosedNotice }: { expressClosedNotice: 
   const t = useTranslations("checkout.delivery");
   const locale = useLocale() as Locale;
   const { register, getValues, setValue } = useFormContext<CheckoutForm>();
+  const settings = useLiveSettings();
   const now = useNow(30_000);
   const status = now ? expressStatus(now) : null;
   const expressState = status?.state ?? null;
@@ -47,7 +49,7 @@ export function DeliverySection({ expressClosedNotice }: { expressClosedNotice: 
           {...register("deliveryMethod")}
           title={t("standard")}
           description={standardNote}
-          aside={<Price fils={delivery.standard.feeFils} className="text-[15px]" />}
+          aside={<Price fils={settings.standardFeeFils} className="text-[15px]" />}
         />
         <ChoiceCard
           value="express"
@@ -55,7 +57,7 @@ export function DeliverySection({ expressClosedNotice }: { expressClosedNotice: 
           disabled={!expressAvailable}
           title={t("express")}
           description={expressNote}
-          aside={<Price fils={delivery.express.feeFils} className="text-[15px]" />}
+          aside={<Price fils={settings.expressFeeFils} className="text-[15px]" />}
         />
       </div>
       {expressClosedNotice && (

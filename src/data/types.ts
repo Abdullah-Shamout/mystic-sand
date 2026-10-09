@@ -47,6 +47,8 @@ export type Product = {
   related: string[];
   /** Extra search terms (Arabic names, spellings). */
   aliases: string[];
+  /** Hidden from the storefront (grids, search, product page) but kept in the catalog. */
+  hidden?: boolean;
   /** Which fields are still placeholders, for the client review list. */
   todo: Array<"price" | "notes" | "size" | "copy">;
 };

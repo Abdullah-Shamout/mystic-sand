@@ -6,10 +6,11 @@ import { useState } from "react";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
-import { whatsappLink } from "@/data/site";
 import { Link, useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
+import { useLiveSettings } from "@/lib/live";
 import { mockGateway } from "@/lib/payments/mock";
+import { whatsappHref } from "@/lib/settings";
 import type { PaymentRecord } from "@/lib/payments/types";
 import type { Order } from "@/store/checkout";
 import { isolate } from "./format";
@@ -31,6 +32,7 @@ export function ResultFailed({
 }) {
   const t = useTranslations("payment");
   const router = useRouter();
+  const settings = useLiveSettings();
   const [busy, setBusy] = useState(false);
   const heading = useFocusOnMount<HTMLHeadingElement>();
   const declined = attempt?.result === "NOT CAPTURED";
@@ -105,7 +107,7 @@ export function ResultFailed({
 
       <p className="mt-8 text-center">
         <a
-          href={whatsappLink(t("failed.helpText", { id: isolate(order.id) }))}
+          href={whatsappHref(settings, t("failed.helpText", { id: isolate(order.id) }))}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex min-h-11 items-center gap-2 text-[14px] underline underline-offset-4 hover:decoration-2"

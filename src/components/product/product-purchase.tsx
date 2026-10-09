@@ -7,15 +7,17 @@ import { ApplePayLogo, PaymentMarks, WhatsAppIcon } from "@/components/brand/bra
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
-import { delivery, whatsappLink } from "@/data/site";
+import { delivery, maxQtyPerLine } from "@/data/site";
 import type { Product } from "@/data/types";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
+import { useLiveSettings } from "@/lib/live";
 import { isolatedKWD } from "@/lib/money";
+import { feeFor, whatsappHref } from "@/lib/settings";
 import { useAddToBag } from "@/lib/use-add-to-bag";
-import { maxQtyFor, useBag, useLineQty } from "@/store/bag";
+import { useBag, useLineQty } from "@/store/bag";
 import { useUi } from "@/store/ui";
 import { isolate, PDP_END_ID } from "./constants";
 import { DeliveryPromise } from "./delivery-promise";
@@ -37,10 +39,11 @@ export function ProductPurchase({ product }: { product: Product }) {
   const mounted = useMounted();
   const addToBag = useAddToBag();
   const openBag = useUi((s) => s.openBag);
+  const settings = useLiveSettings();
 
   const [sku, setSku] = useState(() => (product.variants.find((v) => v.stock > 0) ?? product.variants[0]).sku);
   const variant = product.variants.find((v) => v.sku === sku) ?? product.variants[0];
-  const max = Math.min(maxQtyFor(variant.sku), variant.stock);
+  const max = Math.min(variant.stock, maxQtyPerLine);
   const soldOut = max <= 0;
   const [qtyWanted, setQty] = useState(1);
   const qty = Math.max(1, Math.min(qtyWanted, max));
@@ -95,7 +98,7 @@ export function ProductPurchase({ product }: { product: Product }) {
     window.setTimeout(() => setBusy(null), 4000);
   };
 
-  const whatsapp = (key: "helpText" | "notifyText") => whatsappLink(t(key, { name: isolate(product.name) }));
+  const whatsapp = (key: "helpText" | "notifyText") => whatsappHref(settings, t(key, { name: isolate(product.name) }));
 
   return (
     <div className="mt-5">
@@ -209,7 +212,7 @@ export function ProductPurchase({ product }: { product: Product }) {
           <RotateCcw className="mt-0.5 size-[18px] shrink-0 text-ink" strokeWidth={1.25} aria-hidden />
           <span>
             {t("delivery.perks", {
-              amount: isolatedKWD(delivery.standard.feeFils, locale),
+              amount: isolatedKWD(feeFor(settings, "standard"), locale),
               days: delivery.returnsDays,
               d: String(delivery.returnsDays),
             })}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ShopGrid } from "@/components/shop/shop-catalog";
-import { products } from "@/data/products";
+import { baseCatalog } from "@/lib/catalog";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -17,5 +17,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ShopPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <ShopGrid slugs={products.map((p) => p.slug)} />;
+  return <ShopGrid slugs={baseCatalog.visible.map((p) => p.slug)} />;
 }

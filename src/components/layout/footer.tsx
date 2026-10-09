@@ -2,9 +2,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { InstagramIcon, PaymentMarks, WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Logo } from "@/components/brand/logo";
 import { ltr } from "@/components/content/values";
-import { site, whatsappLink } from "@/data/site";
+import { site } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
-import { formatKuwaitPhone } from "@/lib/phone";
+import { defaultSettings, phoneDisplay, whatsappDisplay, whatsappHref } from "@/lib/settings";
 
 const contactLink =
   "inline-flex min-h-11 items-center gap-2.5 text-[14px] font-light text-cream/90 underline-offset-4 transition-colors hover:text-cream hover:underline";
@@ -18,8 +18,8 @@ export async function Footer() {
   const t = await getTranslations("common");
   const locale = (await getLocale()) as Locale;
   const handle = `@${site.instagram.handle}`;
-  // site.whatsapp is international ("965…"); show it the way the rest of the site writes numbers.
-  const whatsappNumber = formatKuwaitPhone(site.whatsapp.replace(/^965/, ""));
+  // The WhatsApp number is stored international ("965…"); show it the way the rest of the site writes numbers.
+  const whatsappNumber = whatsappDisplay(defaultSettings);
 
   return (
     <footer className="bg-racing text-cream [&_:focus-visible]:outline-cream">
@@ -29,7 +29,7 @@ export async function Footer() {
           <div className="flex flex-col gap-0.5 text-[12px] leading-relaxed font-light text-cream/75">
             <span>{t("footer.rights")}</span>
             <span>
-              {site.trade.name[locale]} · <bdi>{site.trade.cr}</bdi> · <bdi dir="ltr">{site.phoneDisplay}</bdi>
+              {site.trade.name[locale]} · <bdi>{site.trade.cr}</bdi> · <bdi dir="ltr">{phoneDisplay(defaultSettings)}</bdi>
             </span>
           </div>
         </div>
@@ -49,7 +49,7 @@ export async function Footer() {
           </li>
           <li>
             <a
-              href={whatsappLink(t("brand"))}
+              href={whatsappHref(defaultSettings, t("brand"))}
               target="_blank"
               rel="noreferrer"
               aria-label={`${t("footer.whatsapp")} ${ltr(whatsappNumber)}`}

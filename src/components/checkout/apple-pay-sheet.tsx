@@ -10,6 +10,7 @@ import { useRouter } from "@/i18n/navigation";
 import { newPaymentFields } from "@/lib/order";
 import { mockGateway } from "@/lib/payments/mock";
 import type { PaymentRecord } from "@/lib/payments/types";
+import { useLiveCatalog, useLiveSettings } from "@/lib/live";
 import { formatKuwaitPhone } from "@/lib/phone";
 import { computeTotals } from "@/lib/pricing";
 import { useBag } from "@/store/bag";
@@ -63,6 +64,8 @@ export function ApplePaySheet({
   const inInstagram = useInstagramBrowser();
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
+  const catalog = useLiveCatalog();
+  const settings = useLiveSettings();
   const [phase, setPhase] = useState<Phase>("idle");
   const timers = useRef<number[]>([]);
 
@@ -71,7 +74,7 @@ export function ApplePaySheet({
     return () => pending.forEach((id) => window.clearTimeout(id));
   }, []);
 
-  const totals = computeTotals({ lines, promo, deliveryMethod: details.deliveryMethod });
+  const totals = computeTotals({ lines, promo, deliveryMethod: details.deliveryMethod, catalog, settings });
   const address = format(details);
 
   const confirm = () => {

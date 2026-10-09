@@ -7,8 +7,9 @@ import { linkClass } from "@/components/content/rich-tags";
 import { telHref } from "@/components/content/values";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/section-title";
-import { site, whatsappLink } from "@/data/site";
+import { site } from "@/data/site";
 import { cn } from "@/lib/cn";
+import { defaultSettings, phoneDisplay, whatsappHref } from "@/lib/settings";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -60,7 +61,7 @@ export default async function ContactPage({ params }: Props) {
     {
       icon: <Phone className="size-[18px]" strokeWidth={1.25} aria-hidden />,
       label: t("contact.channels.phone"),
-      value: site.phoneDisplay,
+      value: phoneDisplay(defaultSettings),
       href: telHref,
     },
     {
@@ -89,7 +90,7 @@ export default async function ContactPage({ params }: Props) {
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-ink/80">{t("contact.whatsapp.text")}</p>
             <Button asChild size="lg" block className="mt-7">
-              <a href={whatsappLink(t("contact.whatsapp.message"))} target="_blank" rel="noreferrer">
+              <a href={whatsappHref(defaultSettings, t("contact.whatsapp.message"))} target="_blank" rel="noreferrer">
                 <WhatsAppIcon className="size-[18px]" />
                 {t("contact.whatsapp.cta")}
                 <span className="sr-only">({t("newTab")})</span>

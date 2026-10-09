@@ -5,13 +5,11 @@ import { Logo } from "@/components/brand/logo";
 import { ProductGrid } from "@/components/product/product-grid";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { productBySlug } from "@/data/products";
 import type { Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
+import { useLiveCatalog } from "@/lib/live";
 import { useCheckout } from "@/store/checkout";
 import { iso } from "./form-helpers";
-
-const TRILOGY = ["i", "ii", "iii"].map(productBySlug).filter(Boolean) as Product[];
 
 /** Same frame as the form, so nothing jumps when the saved bag loads. */
 export function CheckoutSkeleton() {
@@ -47,6 +45,10 @@ export function CheckoutSkeleton() {
 /** Empty bag on /checkout: an inline invitation (never a redirect), plus the last order if any. */
 export function CheckoutEmpty() {
   const t = useTranslations("checkout.empty");
+  const catalog = useLiveCatalog();
+  const trilogy = ["i", "ii", "iii"]
+    .map((slug) => catalog.bySlug.get(slug))
+    .filter((p): p is Product => p !== undefined && !p.hidden);
   const lastOrderId = useCheckout((s) => (s.lastOrderId && s.orders[s.lastOrderId] ? s.lastOrderId : null));
 
   return (
@@ -70,7 +72,7 @@ export function CheckoutEmpty() {
           )}
         </div>
       </div>
-      <ProductGrid products={TRILOGY} columns={3} />
+      <ProductGrid products={trilogy} columns={3} />
     </div>
   );
 }

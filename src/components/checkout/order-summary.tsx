@@ -10,6 +10,7 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { toLatinDigits } from "@/lib/digits";
+import { useLiveCatalog, useLiveSettings } from "@/lib/live";
 import { computeTotals, priceLines, type DeliveryMethod, type Totals } from "@/lib/pricing";
 import type { CheckoutForm } from "@/lib/validation";
 import { useBag } from "@/store/bag";
@@ -21,7 +22,9 @@ export function useCheckoutTotals(): { totals: Totals; deliveryMethod: DeliveryM
   const deliveryMethod = useWatch({ control, name: "deliveryMethod" });
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
-  return { totals: computeTotals({ lines, promo, deliveryMethod }), deliveryMethod };
+  const catalog = useLiveCatalog();
+  const settings = useLiveSettings();
+  return { totals: computeTotals({ lines, promo, deliveryMethod, catalog, settings }), deliveryMethod };
 }
 
 function Row({ label, children, className }: { label: React.ReactNode; children: React.ReactNode; className?: string }) {
@@ -73,7 +76,8 @@ function SummaryLines() {
   const t = useTranslations("checkout.summary");
   const locale = useLocale() as Locale;
   const lines = useBag((s) => s.lines);
-  const { priced } = priceLines(lines);
+  const catalog = useLiveCatalog();
+  const { priced } = priceLines(lines, catalog);
   return (
     <ul className="divide-y divide-line">
       {priced.map((line) => (

@@ -4,7 +4,7 @@ import { newTrackId } from "@/lib/order";
 import { normalizeKuwaitPhone } from "@/lib/phone";
 import { bagKey, computeTotals, priceLines, type BagLine, type Promo } from "@/lib/pricing";
 import { checkoutSchema, rememberedFields, type CheckoutForm } from "@/lib/validation";
-import type { Order, OrderLine } from "@/store/checkout";
+import { useCheckout, type Order, type OrderLine } from "@/store/checkout";
 
 export type OrderDetails = Omit<CheckoutForm, "acceptTerms">;
 export type OrderInput = Omit<Order, "createdAt" | "status" | "attempts" | "finalizedAt">;
@@ -66,7 +66,7 @@ export function buildOrderInput({
   }));
   const { deliveryMethod } = details;
   return {
-    id: newTrackId(),
+    id: newTrackId(useCheckout.getState().orders),
     locale,
     lines,
     totals: computeTotals({ lines: bag.lines, deliveryMethod, promo: bag.promo }),

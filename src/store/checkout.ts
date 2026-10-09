@@ -1,12 +1,13 @@
 "use client";
 
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import type { Locale } from "@/i18n/routing";
 import type { PaymentMethod } from "@/data/site";
 import type { Localized } from "@/data/types";
 import type { PaymentRecord, PaymentResult } from "@/lib/payments/types";
 import type { Totals } from "@/lib/pricing";
+import { safeJSONStorage } from "@/lib/storage";
 import { emptyCheckoutForm, rememberedFields, type CheckoutForm } from "@/lib/validation";
 
 export type OrderStatus = "pending" | "paid" | "failed" | "canceled" | "confirming";
@@ -143,7 +144,7 @@ export const useCheckout = create<CheckoutState>()(
     {
       name: "ms-checkout",
       version: 2,
-      storage: createJSONStorage(() => localStorage),
+      storage: safeJSONStorage,
       partialize: (s) => ({ draft: s.draft, remembered: s.remembered, orders: s.orders, lastOrderId: s.lastOrderId }),
       // v1 priced orders with free delivery over KWD 25. Unpaid ones are dropped so they
       // can't be paid at the old total; paid ones stay in the order history.

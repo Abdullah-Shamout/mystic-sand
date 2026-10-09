@@ -1,4 +1,5 @@
 import media from "@/data/media.generated.json";
+import { isUploadKey, readUpload, uploadIdFromKey } from "./uploads";
 import { asset } from "./asset";
 
 type MediaEntry = { w: number; h: number; widths: number[]; kind: "packshot" | "render" | "photo" };
@@ -7,7 +8,8 @@ const table = media as Record<string, MediaEntry>;
 
 export type ImageSource = {
   src: string;
-  srcSet: string;
+  /** Omitted for uploads, which have a single data: URL. */
+  srcSet?: string;
   width: number;
   height: number;
   kind: MediaEntry["kind"];
@@ -29,4 +31,20 @@ export function imageSource(key: string): ImageSource {
   };
 }
 
-export const hasImage = (key: string) => key in table;
+/**
+ * Resolves an image key to a usable source: a manifest image, an admin upload ("u:<id>"),
+ * or null when it is unknown (a deleted upload, a bad key). Never throws, so a missing image
+ * degrades to an empty tile instead of breaking the page.
+ */
+export function resolveImage(key: string): ImageSource | null {
+  if (isUploadKey(key)) {
+    const upload = readUpload(uploadIdFromKey(key));
+    if (!upload) return null;
+    return { src: upload.data, srcSet: undefined, width: upload.w, height: upload.h, kind: upload.kind };
+  }
+  if (key in table) return imageSource(key);
+  return null;
+}
+
+export const hasImage = (key: string): boolean =>
+  key in table || (isUploadKey(key) && readUpload(uploadIdFromKey(key)) !== null);

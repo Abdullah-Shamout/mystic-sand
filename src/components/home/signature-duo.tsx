@@ -2,16 +2,18 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
-import { productBySlug } from "@/data/products";
 import type { Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { baseCatalog } from "@/lib/catalog";
 
 /** CAFÉ and OUD: two equal full-height halves on desktop, stacked on phones. */
 export async function SignatureDuo() {
   const t = await getTranslations("home.duo");
   const locale = (await getLocale()) as Locale;
-  const items = ["cafe", "oud"].map((slug) => productBySlug(slug)).filter((p): p is Product => Boolean(p));
+  const items = ["cafe", "oud"]
+    .map((slug) => baseCatalog.bySlug.get(slug))
+    .filter((p): p is Product => Boolean(p));
 
   return (
     <section className="grid md:grid-cols-2 [&_:focus-visible]:outline-cream">

@@ -2,8 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Reveal } from "@/components/ui/reveal";
-import { productBySlug } from "@/data/products";
 import { Link } from "@/i18n/navigation";
+import { baseCatalog } from "@/lib/catalog";
 
 const CHIPS_SLUG = "oud-chips";
 
@@ -13,7 +13,7 @@ const CHIPS_SLUG = "oud-chips";
  */
 export async function OudIngredient() {
   const t = await getTranslations("product.oud");
-  const chips = productBySlug(CHIPS_SLUG);
+  const chips = baseCatalog.bySlug.get(CHIPS_SLUG);
   if (!chips) return null;
 
   return (

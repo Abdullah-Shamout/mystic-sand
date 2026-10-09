@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Drawer } from "@/components/ui/drawer";
 import { useMounted } from "@/lib/hooks";
+import { useLiveCatalog } from "@/lib/live";
 import { priceLines } from "@/lib/pricing";
 import { useBag, useBagCount } from "@/store/bag";
 import { useUi } from "@/store/ui";
@@ -15,8 +16,9 @@ export function BagDrawer() {
   const setOpen = useUi((s) => s.setBagOpen);
   const mounted = useMounted();
   const count = useBagCount();
+  const catalog = useLiveCatalog();
   // Only lines that can still be bought count: no totals for a bag of unavailable items.
-  const hasItems = useBag((s) => priceLines(s.lines).priced.length > 0);
+  const hasItems = useBag((s) => priceLines(s.lines, catalog).priced.length > 0);
   const close = () => setOpen(false);
 
   return (
