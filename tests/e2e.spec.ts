@@ -165,6 +165,16 @@ test.describe("navigation and media", () => {
     await expect(handle).toHaveAttribute("target", "_blank");
   });
 
+  test("an open page picks up a newly published version, once", async ({ page }) => {
+    let loads = 0;
+    page.on("load", () => loads++);
+    await page.route("**/version.json*", (route) => route.fulfill({ json: { id: "a-newer-build" } }));
+    await page.goto("/en/");
+    await expect.poll(() => loads).toBe(2); // the visit + one automatic reload
+    await page.waitForTimeout(1500);
+    expect(loads).toBe(2); // and never a loop
+  });
+
   test("product cards always show the second photo, with no swap on hover", async ({ page }) => {
     await page.goto("/en/shop/home/");
     const images = page.locator("article").filter({ hasText: "Mist" }).locator("img");

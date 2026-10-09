@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
+import { UpdateCheck } from "@/components/layout/update-check";
 
 export default async function ShopLayout({
   children,
@@ -20,6 +21,7 @@ export default async function ShopLayout({
         {children}
       </main>
       <Footer />
+      <UpdateCheck />
     </>
   );
 }
