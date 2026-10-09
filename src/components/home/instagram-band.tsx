@@ -19,7 +19,15 @@ export async function InstagramBand() {
 
   return (
     <section aria-labelledby="instagram-title" className="bg-paper">
-      <Reveal className="mx-auto max-w-3xl px-6 pt-20 pb-10 text-center md:pt-24 md:pb-12">
+      {/* Decorative mosaic: plain photos (not links); the handle below opens Instagram. */}
+      <ul aria-hidden className="grid grid-cols-3 md:grid-cols-6">
+        {TILES.map((image) => (
+          <li key={image} className="relative aspect-square overflow-hidden bg-tile">
+            <ResponsiveImage image={image} alt="" sizes="(min-width: 768px) 17vw, 34vw" />
+          </li>
+        ))}
+      </ul>
+      <Reveal className="mx-auto max-w-3xl px-6 pt-12 pb-16 text-center md:pt-14 md:pb-20">
         <h2 id="instagram-title" className="font-serif text-title-sm font-medium md:text-title">
           <a
             href={site.instagram.url}
@@ -33,14 +41,6 @@ export async function InstagramBand() {
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted">{t("subtitle")}</p>
       </Reveal>
-      {/* Decorative mosaic: plain photos (not links); the handle above opens Instagram. */}
-      <ul aria-hidden className="grid grid-cols-3 md:grid-cols-6">
-        {TILES.map((image) => (
-          <li key={image} className="relative aspect-square overflow-hidden bg-tile">
-            <ResponsiveImage image={image} alt="" sizes="(min-width: 768px) 17vw, 34vw" />
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }

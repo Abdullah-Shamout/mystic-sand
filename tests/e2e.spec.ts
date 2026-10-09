@@ -160,6 +160,8 @@ test.describe("navigation and media", () => {
     // The Instagram photos are plain images; the @mystic.sand heading opens Instagram.
     await expect(page.locator("section:has(#instagram-title) ul a")).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Follow us/i })).toHaveCount(0);
+    // Photos first, then the @mystic.sand heading under them.
+    await expect(page.locator("section:has(#instagram-title) > :first-child")).toHaveJSProperty("tagName", "UL");
     const handle = page.locator("#instagram-title a");
     await expect(handle).toHaveAttribute("href", "https://www.instagram.com/mystic.sand/");
     await expect(handle).toHaveAttribute("target", "_blank");
