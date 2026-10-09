@@ -1,6 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { InstagramIcon } from "@/components/brand/brand-icons";
-import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { site } from "@/data/site";
@@ -23,11 +21,19 @@ export async function InstagramBand() {
     <section aria-labelledby="instagram-title" className="bg-paper">
       <Reveal className="mx-auto max-w-3xl px-6 pt-20 pb-10 text-center md:pt-24 md:pb-12">
         <h2 id="instagram-title" className="font-serif text-title-sm font-medium md:text-title">
-          <bdi dir="ltr">{handle}</bdi>
+          <a
+            href={site.instagram.url}
+            target="_blank"
+            rel="noreferrer"
+            className="decoration-1 underline-offset-[6px] transition-colors hover:underline"
+          >
+            <bdi dir="ltr">{handle}</bdi>
+            <span className="sr-only"> ({t("newTab")})</span>
+          </a>
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted">{t("subtitle")}</p>
       </Reveal>
-      {/* Decorative mosaic: plain photos (not links); the button below opens Instagram. */}
+      {/* Decorative mosaic: plain photos (not links); the handle above opens Instagram. */}
       <ul aria-hidden className="grid grid-cols-3 md:grid-cols-6">
         {TILES.map((image) => (
           <li key={image} className="relative aspect-square overflow-hidden bg-tile">
@@ -35,17 +41,6 @@ export async function InstagramBand() {
           </li>
         ))}
       </ul>
-      <div className="flex justify-center px-6 py-12 md:py-14">
-        <Button asChild variant="secondary">
-          <a href={site.instagram.url} target="_blank" rel="noreferrer">
-            <InstagramIcon className="size-4" />
-            {t("follow")}
-            <span className="sr-only">
-              {handle} ({t("newTab")})
-            </span>
-          </a>
-        </Button>
-      </div>
     </section>
   );
 }

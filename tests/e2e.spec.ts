@@ -157,8 +157,19 @@ test.describe("navigation and media", () => {
     await expect(footer.getByText("© 2026 Mystic Sand. All rights reserved.")).toBeVisible();
     await expect(footer.getByText(/Mystic Sand General Trading · CR No\. 000000/)).toBeVisible();
     await expect(footer.getByText("Secure payment")).toBeVisible();
-    // The Instagram photos are plain images; only the "Follow us" button links out.
+    // The Instagram photos are plain images; the @mystic.sand heading opens Instagram.
     await expect(page.locator("section:has(#instagram-title) ul a")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Follow us/i })).toHaveCount(0);
+    const handle = page.locator("#instagram-title a");
+    await expect(handle).toHaveAttribute("href", "https://www.instagram.com/mystic.sand/");
+    await expect(handle).toHaveAttribute("target", "_blank");
+  });
+
+  test("product cards always show the second photo, with no swap on hover", async ({ page }) => {
+    await page.goto("/en/shop/home/");
+    const images = page.locator("article").filter({ hasText: "Mist" }).locator("img");
+    await expect(images).toHaveCount(1);
+    await expect(images.first()).toHaveAttribute("src", /renders\/mist/);
   });
 
   test("product photos show one at a time, with arrows", async ({ page }) => {

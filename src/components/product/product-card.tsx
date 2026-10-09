@@ -14,8 +14,9 @@ import { useAddToBag } from "@/lib/use-add-to-bag";
 const SIZES = "(min-width: 1024px) 25vw, 50vw";
 
 /**
- * Amouage-style product tile (still-life packshot on a warm tile, hover swaps to the
- * box/scene, centred NAME · type · price) plus the quick add Amouage lacks.
+ * Amouage-style product tile (centred NAME · type · price) plus the quick add Amouage
+ * lacks. It always shows the product's second photo — the box or the scene — with no
+ * swap on hover (the client's choice); the packshot stays for small thumbnails.
  * The quick-add button is a sibling of the links — never a button inside <a>.
  */
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
@@ -27,6 +28,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const soldOut = product.variants.every((v) => v.stock <= 0);
   const href = `/product/${product.slug}`;
   const minPrice = Math.min(...product.variants.map((v) => v.priceFils));
+  const image = product.images.hover ?? product.images.card;
 
   const quickAdd = (className: string) =>
     soldOut ? null : multi ? (
@@ -60,22 +62,12 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="relative block aspect-square overflow-hidden">
           <ResponsiveImage
-            image={product.images.card}
+            image={image}
             alt=""
             sizes={SIZES}
             priority={priority}
             className="transition-transform duration-500 ease-[var(--ease-soft)] group-hover:scale-[1.03]"
           />
-          {product.images.hover && (
-            <span className="absolute inset-0 bg-tile opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-              <ResponsiveImage
-                image={product.images.hover}
-                alt=""
-                sizes={SIZES}
-                className="transition-transform duration-500 group-hover:scale-[1.03]"
-              />
-            </span>
-          )}
           {soldOut && <span className="absolute inset-0 bg-tile/70" />}
         </Link>
         {(product.badge || soldOut) && (
