@@ -893,3 +893,284 @@ test.describe("admin product analysis", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 });
+
+// ── Store settings ──────────────────────────────────────────────────────────────
+// Long flows on the desktop project. Settings are stored per field in ms-settings; the storefront
+// (bag, FAQ, footer, contact, banner) reads them live after mount.
+
+const CUSTOM_PRODUCT = (slug: string, name: string, imageKey: string, sku: string) => ({
+  slug,
+  name,
+  category: "body",
+  type: { en: "All Over Spray", ar: "بخاخ معطّر للجسم" },
+  tagline: { en: "A test.", ar: "اختبار." },
+  description: { en: "A test product.", ar: "منتج تجريبي." },
+  howTo: { en: "Spray.", ar: "رشّ." },
+  variants: [{ sku, size: { en: "100 ml", ar: "100 مل" }, priceFils: 5000, stock: 3 }],
+  images: { card: imageKey, gallery: [imageKey] },
+  related: [],
+  aliases: [],
+  todo: [],
+});
+
+const readOverrides = async (page: Page) =>
+  page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem("ms-settings") || "{}");
+    return (raw.state?.overrides ?? {}) as Record<string, unknown>;
+  });
+
+test.describe("admin store settings", () => {
+  test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+
+  test("a standard fee of 1.500 flows to the bag and FAQ, then resets to 1.000", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/settings/");
+    const standard = page.getByTestId("settings-standard-fee");
+    await expect(standard).toHaveValue("1.000");
+    await standard.fill("1.500");
+    await page.getByTestId("settings-fee-save").click();
+    await expect(page.getByText("Saved.").first()).toBeVisible();
+
+    // The bag's delivery line uses the live fee.
+    await page.goto("/en/product/i/");
+    await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
+    const bag = page.getByRole("dialog");
+    await expect(bag.getByText("KWD 1.500")).toBeVisible();
+
+    // The FAQ copy reads the same live fee (the answer sits in a collapsed accordion).
+    await page.goto("/en/faq/");
+    await page.getByRole("button", { name: "How much does delivery cost?" }).click();
+    await expect(page.getByText("KWD 1.500").first()).toBeVisible();
+
+    // Reset to default restores KWD 1.000 everywhere.
+    await page.goto("/en/admin/settings/");
+    await page.getByTestId("settings-standard-reset").click();
+    await expect(page.getByTestId("settings-standard-fee")).toHaveValue("1.000");
+    await page.goto("/en/faq/");
+    await page.getByRole("button", { name: "How much does delivery cost?" }).click();
+    await expect(page.getByText("KWD 1.000").first()).toBeVisible();
+  });
+
+  test("a new WhatsApp number flows to the footer link", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/settings/");
+    await page.getByTestId("settings-whatsapp").fill("91234567");
+    await page.getByTestId("settings-contact-save").click();
+    await expect(page.getByText("Saved.").first()).toBeVisible();
+
+    await page.goto("/en/");
+    const link = page.locator('footer a[href*="wa.me"]');
+    await expect(link).toHaveAttribute("href", /wa\.me\/96591234567/);
+    await expect(page.locator("footer").getByText("+965 9123 4567")).toBeVisible();
+  });
+
+  test("an invalid WhatsApp number shows an error and saves nothing", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/settings/");
+    await page.getByTestId("settings-whatsapp").fill("22223333"); // a landline, not a mobile
+    await page.getByTestId("settings-contact-save").click();
+    await expect(page.getByText("Enter a valid Kuwaiti mobile number.")).toBeVisible();
+    expect((await readOverrides(page)).whatsapp).toBeUndefined();
+  });
+
+  test("a new phone number flows to the footer and the contact page", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/settings/");
+    await page.getByTestId("settings-phone").fill("22223333");
+    await page.getByTestId("settings-contact-save").click();
+    await expect(page.getByText("Saved.").first()).toBeVisible();
+
+    await page.goto("/en/");
+    await expect(page.locator("footer").getByText("+965 2222 3333")).toBeVisible();
+    await page.goto("/en/contact/");
+    await expect(page.getByText("+965 2222 3333").first()).toBeVisible();
+  });
+
+  test("custom ticker messages show per language, and the built-in option restores defaults", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/settings/");
+    await page.getByTestId("ticker-en-add").click();
+    await page.getByTestId("ticker-en-input-0").fill("Hello test");
+    await page.getByTestId("ticker-ar-add").click();
+    await page.getByTestId("ticker-ar-input-0").fill("مرحبا");
+    await page.getByTestId("ticker-save").click();
+    await expect(page.getByText("Saved.").first()).toBeVisible();
+
+    await page.goto("/en/");
+    const enTicker = page.getByRole("region", { name: "Announcements" });
+    await expect(enTicker).toContainText("Hello test");
+    await expect(enTicker).not.toContainText("Pay securely with KNET");
+
+    await page.goto("/ar/");
+    await expect(page.getByRole("region", { name: "الإعلانات" })).toContainText("مرحبا");
+
+    // "Use the built-in messages" clears both lists.
+    await page.goto("/en/admin/settings/");
+    await page.getByTestId("ticker-built-in").click();
+    await page.goto("/en/");
+    await expect(page.getByRole("region", { name: "Announcements" })).toContainText(
+      "Pay securely with KNET, Apple Pay or card",
+    );
+  });
+
+  test("the account password and username can be changed, log out, and only the new one works", async ({ page }) => {
+    // A real UI sign-in (no injected session) so the log-out step actually clears it.
+    await page.goto("/en/");
+    await page.getByRole("button", { name: "Enter", exact: true }).click();
+    const signInDialog = page.getByRole("dialog");
+    await signInDialog.getByLabel("Username", { exact: true }).fill(ADMIN_USER);
+    await signInDialog.getByLabel("Password", { exact: true }).fill(ADMIN_PASS);
+    await signInDialog.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL(/\/en\/admin\/$/);
+
+    await page.goto("/en/admin/settings/");
+    // A wrong current password is rejected.
+    await page.getByTestId("account-current").fill("not-the-password");
+    await page.getByTestId("account-username").fill("admin2");
+    await page.getByTestId("account-new").fill("NewPass123");
+    await page.getByTestId("account-confirm").fill("NewPass123");
+    await page.getByTestId("account-save").click();
+    await expect(page.getByText("That current password is not correct.")).toBeVisible();
+
+    // The correct current password applies the change.
+    await page.getByTestId("account-current").fill(ADMIN_PASS);
+    await page.getByTestId("account-save").click();
+    await expect(page.getByText("Account updated.")).toBeVisible();
+
+    // Log out, then the old credentials fail and the new ones work.
+    await page.getByRole("button", { name: "Log out" }).click();
+    await page.waitForURL(/\/en\/$/);
+    await page.getByRole("button", { name: "Enter", exact: true }).click();
+    const back = page.getByRole("dialog");
+    await back.getByLabel("Username", { exact: true }).fill(ADMIN_USER);
+    await back.getByLabel("Password", { exact: true }).fill(ADMIN_PASS);
+    await back.getByRole("button", { name: "Sign in" }).click();
+    await expect(back.getByRole("alert")).toBeVisible();
+
+    await back.getByLabel("Username", { exact: true }).fill("admin2");
+    await back.getByLabel("Password", { exact: true }).fill("NewPass123");
+    await back.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL(/\/en\/admin\/$/);
+  });
+
+  test("a backup downloads valid JSON without a password hash and restores edits and samples", async ({ page }) => {
+    await signIn(page);
+    await page.addInitScript((product) => {
+      localStorage.setItem(
+        "ms-catalog",
+        JSON.stringify({ state: { edits: { patches: {}, added: [product], categories: {} } }, version: 1 }),
+      );
+    }, CUSTOM_PRODUCT("c-backup-test-aaaa", "Backup Test", "renders/aura", "MS-BKTST"));
+
+    await page.goto("/en/admin/settings/");
+    await expect(page.getByTestId("samples-count")).toHaveText("30 sample orders");
+
+    // Download the backup and check its shape.
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByTestId("backup-download").click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^mystic-sand-backup-\d{4}-\d{2}-\d{2}\.json$/);
+    const backupPath = (await download.path())!;
+    const text = fs.readFileSync(backupPath, "utf8");
+    const json = JSON.parse(text);
+    expect(Object.keys(json).sort()).toEqual([
+      "admin",
+      "app",
+      "catalog",
+      "exportedAt",
+      "orders",
+      "settings",
+      "uploads",
+      "version",
+    ]);
+    expect(json.app).toBe("mystic-sand");
+    expect(json.catalog.added).toHaveLength(1);
+    expect(json.admin.samples).toHaveLength(30);
+    // No credentials and no password hash anywhere in the file.
+    expect(text).not.toContain("ms-admin-auth");
+    expect(text).not.toContain("2f5f7bd65913a6a163260a843d332f584bca5c1c525c1569a79b0a78ac6d764f");
+
+    // Wipe the product edits and the samples.
+    await page.getByTestId("reset-products").click();
+    await page.getByTestId("confirm-accept").click();
+    await page.getByTestId("samples-clear").click();
+    await expect(page.getByTestId("samples-count")).toHaveText("No sample orders");
+    expect(
+      await page.evaluate(() => JSON.parse(localStorage.getItem("ms-catalog") || "{}").state?.edits?.added?.length ?? 0),
+    ).toBe(0);
+
+    // Restore from the downloaded file.
+    await page.getByTestId("backup-file").setInputFiles(backupPath);
+    await page.getByTestId("confirm-accept").click();
+    await expect(page.getByText("Backup restored.")).toBeVisible();
+
+    await expect
+      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("ms-catalog") || "{}").state?.edits?.added?.length ?? 0))
+      .toBe(1);
+    await expect
+      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("ms-admin") || "{}").state?.samples?.length ?? 0))
+      .toBe(30);
+  });
+
+  test("clearing and restoring sample orders updates the dashboard count", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/settings/");
+    await expect(page.getByTestId("samples-count")).toHaveText("30 sample orders");
+
+    await page.getByTestId("samples-clear").click();
+    await expect(page.getByTestId("samples-count")).toHaveText("No sample orders");
+    await page.goto("/en/admin/");
+    await expect.poll(() => resultCount(page)).toBe(0);
+
+    await page.goto("/en/admin/settings/");
+    await page.getByTestId("samples-restore").click();
+    await expect(page.getByTestId("samples-count")).toHaveText("30 sample orders");
+    await page.goto("/en/admin/");
+    await expect.poll(() => resultCount(page)).toBe(30);
+  });
+
+  test("delete unused photos removes an orphan upload but keeps a referenced one", async ({ page }) => {
+    await signIn(page);
+    await page.addInitScript((product) => {
+      localStorage.setItem(
+        "ms-img:orphan123",
+        JSON.stringify({ w: 10, h: 10, kind: "photo", data: "data:image/webp;base64,AAAA" }),
+      );
+      localStorage.setItem(
+        "ms-img:used456",
+        JSON.stringify({ w: 10, h: 10, kind: "photo", data: "data:image/webp;base64,BBBB" }),
+      );
+      localStorage.setItem(
+        "ms-catalog",
+        JSON.stringify({ state: { edits: { patches: {}, added: [product], categories: {} } }, version: 1 }),
+      );
+    }, CUSTOM_PRODUCT("c-photo-test-bbbb", "Photo Test", "u:used456", "MS-PHTST"));
+
+    await page.goto("/en/admin/settings/");
+    await expect(page.getByTestId("photos-count")).toContainText("1 unused photo");
+
+    await page.getByTestId("photos-delete").click();
+    await page.getByTestId("confirm-accept").click();
+
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("ms-img:orphan123")))
+      .toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem("ms-img:used456"))).not.toBeNull();
+  });
+
+  test("the settings page opens without console errors in English and Arabic", async ({ page }) => {
+    await signIn(page);
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+    page.on("console", (m) => {
+      if (m.type() === "error") errors.push(`console: ${m.text()}`);
+    });
+    for (const url of ["/en/admin/settings/", "/ar/admin/settings/"]) {
+      await page.goto(url, { waitUntil: "networkidle" });
+      await expect(page.getByTestId("settings-fee-save")).toBeVisible();
+      await page.waitForTimeout(400);
+    }
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+});
