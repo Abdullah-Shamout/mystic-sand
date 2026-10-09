@@ -117,7 +117,7 @@ export const LOGO_VIEWBOX = {
   await sharp({ create: { width: 1200, height: 630, channels: 4, background: SAND } })
     .composite([{ input: lockup, gravity: "center" }])
     .png()
-    .toFile(path.join(WEB_DIR, "src", "app", "opengraph-image.png"));
+    .toFile(path.join(WEB_DIR, "src", "app", "[locale]", "opengraph-image.png"));
 
   // Keep an SVG copy for reference / reuse.
   await fs.mkdir(path.join(WEB_DIR, "public", "brand"), { recursive: true });
