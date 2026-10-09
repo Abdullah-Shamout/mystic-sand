@@ -27,16 +27,24 @@ export function AnnouncementBar() {
   useEffect(() => {
     if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let settle: number | undefined;
+    const park = () => setState((s) => ({ ...s, previous: null }));
     const id = setInterval(() => {
       setState((s) => ({ current: (s.current + 1) % messages.length, previous: s.current }));
       // Once the outgoing message has left (300ms), park it below again, so it rises in
       // from below next time — with two messages it is the very next one.
       window.clearTimeout(settle);
-      settle = window.setTimeout(() => setState((s) => ({ ...s, previous: null })), 350);
+      settle = window.setTimeout(() => {
+        settle = undefined;
+        park();
+      }, 350);
     }, 5000);
     return () => {
       clearInterval(id);
-      window.clearTimeout(settle);
+      // Paused (hover/focus) mid-exit: park it now rather than leave it above.
+      if (settle !== undefined) {
+        window.clearTimeout(settle);
+        park();
+      }
     };
   }, [paused, messages.length]);
 

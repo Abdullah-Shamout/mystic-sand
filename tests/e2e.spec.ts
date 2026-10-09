@@ -100,6 +100,18 @@ test.describe("shopping flows", () => {
     await expect(bag.getByText("KWD 39.000")).toBeVisible(); // + KWD 1.000 delivery
   });
 
+  test("a bag of discontinued products shows no totals and no checkout", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("ms-bag", JSON.stringify({ state: { lines: [{ sku: "MS-TRILOGY-SET", qty: 1 }], promo: null }, version: 2 }));
+    });
+    await page.goto("/en/cart/");
+    await expect(page.getByText(/no longer available/i).first()).toBeVisible();
+    await expect(page.getByText(/KWD 0\.000/)).toHaveCount(0);
+    await expect(page.getByTestId("bag-checkout")).toHaveCount(0);
+    await page.goto("/en/checkout/");
+    await expect(page.getByText(/Your bag is empty/i).first()).toBeVisible();
+  });
+
   test("deep link to checkout with an empty bag shows the empty state", async ({ page }) => {
     await page.goto("/en/checkout/");
     await expect(page.getByText(/Your bag is empty/i).first()).toBeVisible();
