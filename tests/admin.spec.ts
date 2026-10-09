@@ -397,3 +397,249 @@ test.describe("admin orders dashboard", () => {
     }
   });
 });
+
+// ── Products admin ────────────────────────────────────────────────────────────
+// Long flows on the desktop project. The far-future session opens the admin without signing in.
+
+// A small 8×8 PNG, used for the upload flow (createImageBitmap can decode it).
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVQImWM4UaGBFTEMLQkAUtVaAUH78mEAAAAASUVORK5CYII=",
+  "base64",
+);
+
+test.describe("admin products", () => {
+  test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+
+  test("adds a custom product that shows in the list, the store and the bag", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/");
+    await page.getByTestId("products-add").click();
+    await page.waitForURL(/\/admin\/products\/edit\//);
+
+    await page.getByTestId("editor-name").fill("Amber Nights");
+    await page.getByTestId("editor-category").selectOption("body");
+    await page.getByTestId("editor-type-en").fill("All Over Spray");
+    await page.getByTestId("editor-type-ar").fill("بخاخ معطّر للجسم");
+    await page.getByTestId("editor-description-en").fill("A warm amber veil for skin, hair and clothes.");
+    await page.getByTestId("editor-description-ar").fill("رذاذ عنبري دافئ للبشرة والشعر والملابس.");
+    await page.getByTestId("editor-variant-size-en-0").fill("100 ml");
+    await page.getByTestId("editor-variant-size-ar-0").fill("١٠٠ مل");
+    await page.getByTestId("editor-variant-price-0").fill("9.500");
+    await page.getByTestId("editor-variant-stock-0").fill("5");
+
+    // One photo from the built-in site library.
+    await page.getByTestId("editor-add-library").click();
+    await page.getByTestId("library-item").first().click();
+    await page.getByTestId("library-add").click();
+    await expect(page.getByTestId("editor-photos").locator("li")).toHaveCount(1);
+
+    await page.getByTestId("editor-save").click();
+    await page.waitForURL(/\/admin\/products\/$/);
+
+    const row = page.getByTestId("product-row").filter({ hasText: "Amber Nights" });
+    await expect(row).toHaveCount(1);
+    await expect(row.getByText("Custom", { exact: true })).toBeVisible();
+
+    // The storefront collection, the custom-product link and the product page.
+    await page.goto("/en/shop/body/");
+    await expect(page.getByText("2 products")).toBeVisible();
+    const card = page.locator("article").filter({ hasText: "Amber Nights" });
+    await expect(card).toHaveCount(1);
+    const link = card.locator('a[href*="?p=c-"]').first();
+    await expect(link).toHaveCount(1);
+    const href = (await link.getAttribute("href"))!;
+    expect(href).toMatch(/\/en\/product\/\?p=c-/);
+
+    await page.goto(href);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Amber Nights");
+    await expect(page.getByText("KWD 9.500").first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
+    await expect(page.getByRole("dialog").getByText("KWD 10.500")).toBeVisible(); // 9.500 + 1.000 delivery
+  });
+
+  test("uploads a photo that appears in the gallery and the preview", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/edit/?p=new");
+
+    await page.getByTestId("editor-upload-input").setInputFiles({
+      name: "shot.png",
+      mimeType: "image/png",
+      buffer: TINY_PNG,
+    });
+
+    await expect(page.getByTestId("editor-photos").locator("li")).toHaveCount(1);
+    await expect(page.getByTestId("editor-preview").locator("img")).toHaveCount(1);
+    await expect
+      .poll(() => page.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith("ms-img:"))))
+      .toBe(true);
+
+    // The stored upload record is a sane compressed image.
+    const upload = await page.evaluate(() => {
+      const key = Object.keys(localStorage).find((k) => k.startsWith("ms-img:"))!;
+      return JSON.parse(localStorage.getItem(key)!) as { w: number; h: number; kind: string; data: string };
+    });
+    expect(upload.w).toBeGreaterThan(0);
+    expect(upload.h).toBeGreaterThan(0);
+    expect(["packshot", "photo"]).toContain(upload.kind);
+    expect(upload.data.startsWith("data:image/")).toBe(true);
+  });
+
+  test("editing a base product's price flows to the store and resets", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/edit/?p=i");
+    const price = page.getByTestId("editor-variant-price-0");
+    await expect(price).toHaveValue("19.000");
+    await price.fill("21.000");
+    await page.getByTestId("editor-save").click();
+    await page.waitForURL(/\/admin\/products\/$/);
+
+    // The stored patch is minimal: the price changed, the gallery was left untouched.
+    const patch = await page.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem("ms-catalog") || "{}");
+      return raw.state?.edits?.patches?.i ?? {};
+    });
+    expect(Object.keys(patch)).toContain("variants");
+    expect(Object.keys(patch)).not.toContain("images");
+
+    await page.goto("/en/product/i/");
+    await expect(page.getByText("KWD 21.000").first()).toBeVisible();
+    await expect(page.getByTestId("gallery-counter")).toHaveText("1 / 5");
+
+    // Reset from the list restores the original price.
+    await page.goto("/en/admin/products/");
+    const row = page.locator('[data-testid="product-row"][data-slug="i"]');
+    await row.getByRole("button", { name: "Reset I", exact: true }).click();
+    await page.getByTestId("confirm-accept").click();
+
+    await page.goto("/en/product/i/");
+    await expect(page.getByText("KWD 19.000").first()).toBeVisible();
+  });
+
+  test("moving a product to another collection from the list updates both", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/");
+    await page.getByLabel("Collection for AURA", { exact: true }).selectOption("home");
+
+    await page.goto("/en/shop/body/");
+    await expect(page.getByText("Nothing here yet — explore the other collections.")).toBeVisible();
+
+    await page.goto("/en/shop/home/");
+    await expect(page.getByText("4 products")).toBeVisible();
+  });
+
+  test("hiding a product removes it from the store and shows a Hidden badge", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/");
+    const row = page.locator('[data-testid="product-row"][data-slug="mist"]');
+    await row.getByRole("button", { name: "Hide Mist", exact: true }).click();
+    await expect(row.getByText("Hidden", { exact: true })).toBeVisible();
+
+    await page.goto("/en/shop/home/");
+    await expect(page.getByText("2 products")).toBeVisible();
+    await expect(page.locator("article").filter({ hasText: "Mist" })).toHaveCount(0);
+
+    // Show restores it.
+    await page.goto("/en/admin/products/");
+    const again = page.locator('[data-testid="product-row"][data-slug="mist"]');
+    await again.getByRole("button", { name: "Show Mist", exact: true }).click();
+    await page.goto("/en/shop/home/");
+    await expect(page.getByText("3 products")).toBeVisible();
+  });
+
+  test("deleting a custom product removes it from the list and the store", async ({ page }) => {
+    await signIn(page);
+    await page.addInitScript(() => {
+      const product = {
+        slug: "c-test-delete-xyz9",
+        name: "Test Delete",
+        category: "body",
+        type: { en: "All Over Spray", ar: "بخاخ معطّر للجسم" },
+        tagline: { en: "A test.", ar: "اختبار." },
+        description: { en: "A test product.", ar: "منتج تجريبي." },
+        howTo: { en: "Spray.", ar: "رشّ." },
+        variants: [{ sku: "MS-DELTST", size: { en: "100 ml", ar: "100 مل" }, priceFils: 5000, stock: 3 }],
+        images: { card: "renders/aura", gallery: ["renders/aura"] },
+        related: [],
+        aliases: [],
+        todo: [],
+      };
+      localStorage.setItem(
+        "ms-catalog",
+        JSON.stringify({ state: { edits: { patches: {}, added: [product], categories: {} } }, version: 1 }),
+      );
+    });
+
+    await page.goto("/en/admin/products/");
+    const row = page.locator('[data-testid="product-row"][data-slug="c-test-delete-xyz9"]');
+    await expect(row).toHaveCount(1);
+    await row.getByRole("button", { name: "Delete Test Delete", exact: true }).click();
+    await page.getByTestId("confirm-accept").click();
+
+    await expect(page.locator('[data-testid="product-row"][data-slug="c-test-delete-xyz9"]')).toHaveCount(0);
+    const added = await page.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem("ms-catalog") || "{}");
+      return (raw.state?.edits?.added ?? []).length;
+    });
+    expect(added).toBe(0);
+  });
+
+  test("editing a collection name shows across the store and resets", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/");
+    await page.getByTestId("collection-home-name-en").fill("Home & Living");
+    await page.getByTestId("collection-home-save").click();
+
+    await page.goto("/en/shop/home/");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home & Living");
+
+    await page.goto("/en/admin/products/");
+    await page.getByTestId("collection-home-reset").click();
+
+    await page.goto("/en/shop/home/");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home");
+  });
+
+  test("saving with no name or price shows field errors without crashing", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/edit/?p=new");
+    await page.getByTestId("editor-save").click();
+
+    await expect(page.getByText("Enter a name.")).toBeVisible();
+    await expect(page.getByText("Enter the type.").first()).toBeVisible();
+    await expect(page.getByText("Enter a description.").first()).toBeVisible();
+    await expect(page.getByText("Enter the size.").first()).toBeVisible();
+    await expect(page.getByText("Enter a price between 0 and 1000, up to 3 decimals.")).toBeVisible();
+    await expect(page.getByTestId("editor-photos-error")).toBeVisible();
+
+    // Still on the editor — no navigation, no crash.
+    await expect(page).toHaveURL(/\/admin\/products\/edit\//);
+  });
+
+  test("the editor opens without console errors (new and existing, EN and AR)", async ({ page }) => {
+    await signIn(page);
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+    page.on("console", (m) => {
+      if (m.type() === "error") errors.push(`console: ${m.text()}`);
+    });
+    for (const url of [
+      "/en/admin/products/edit/?p=new",
+      "/ar/admin/products/edit/?p=new",
+      "/en/admin/products/edit/?p=i",
+      "/ar/admin/products/edit/?p=i",
+    ]) {
+      await page.goto(url, { waitUntil: "networkidle" });
+      await expect(page.getByTestId("editor-save")).toBeVisible();
+      await page.waitForTimeout(400);
+    }
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+
+  test("the editor shows a not-found message for an unknown product", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/edit/?p=does-not-exist");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Product not found");
+    await expect(page.getByRole("link", { name: "Back to products" })).toBeVisible();
+  });
+});

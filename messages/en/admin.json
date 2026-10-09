@@ -207,7 +207,182 @@
   },
   "products": {
     "title": "Products",
-    "meta": "Products · Mystic Sand admin"
+    "meta": "Products · Mystic Sand admin",
+    "count": "{count, plural, =0 {No products} one {# product} other {# products}}",
+    "add": "Add product",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Name, type or SKU",
+    "filterLabel": "Collection",
+    "filterAll": "All collections",
+    "showHidden": "Show hidden",
+    "empty": "No products match.",
+    "categoryLabel": "Collection",
+    "categoryFor": "Collection for {name}",
+    "alsoIn": "Also in",
+    "stock": "{count, plural, =0 {Out of stock} one {# in stock} other {# in stock}}",
+    "undo": "Undo",
+    "badge": {
+      "visible": "Visible",
+      "hidden": "Hidden",
+      "edited": "Edited",
+      "custom": "Custom",
+      "new": "New"
+    },
+    "action": {
+      "edit": "Edit",
+      "hide": "Hide",
+      "show": "Show",
+      "view": "View in store",
+      "reset": "Reset",
+      "delete": "Delete",
+      "hideName": "Hide {name}",
+      "showName": "Show {name}",
+      "resetName": "Reset {name}",
+      "deleteName": "Delete {name}"
+    },
+    "toast": {
+      "moved": "Moved {name} to {category}.",
+      "hidden": "{name} is now hidden.",
+      "shown": "{name} is now visible.",
+      "reset": "{name} restored to the original.",
+      "deleted": "{name} deleted."
+    },
+    "confirm": {
+      "resetTitle": "Reset product?",
+      "resetMessage": "Discard your edits to {name} and restore the original details? This can't be undone.",
+      "resetConfirm": "Reset product",
+      "deleteTitle": "Delete product?",
+      "deleteMessage": "Permanently delete {name}? This can't be undone.",
+      "deleteConfirm": "Delete product"
+    },
+    "collections": {
+      "title": "Collections",
+      "intro": "Edit the name and description of each collection, shown across the menu, the shop chips and the banners.",
+      "nameEn": "Name · English",
+      "nameAr": "Name · Arabic",
+      "descEn": "Description · English",
+      "descAr": "Description · Arabic",
+      "save": "Save",
+      "reset": "Reset",
+      "saved": "{name} collection saved.",
+      "resetDone": "{name} collection restored."
+    }
+  },
+  "editor": {
+    "meta": "Edit product · Mystic Sand admin",
+    "newTitle": "Add product",
+    "editTitle": "Edit {name}",
+    "backToList": "Products",
+    "view": "View in store",
+    "save": "Save product",
+    "cancel": "Cancel",
+    "saved": "{name} saved.",
+    "optional": "Optional",
+    "lang": {
+      "en": "English",
+      "ar": "Arabic"
+    },
+    "notFound": {
+      "title": "Product not found",
+      "message": "This product may have been deleted, or the link is out of date.",
+      "back": "Back to products"
+    },
+    "sections": {
+      "basics": "Basics",
+      "text": "Text",
+      "notes": "Notes",
+      "variants": "Sizes & prices",
+      "photos": "Photos",
+      "options": "Search & related"
+    },
+    "basics": {
+      "name": "Name",
+      "nameHint": "As printed on the packaging, up to 40 characters.",
+      "category": "Main collection",
+      "alsoIn": "Also listed in",
+      "alsoInHint": "Other collections that show this product.",
+      "visible": "Visible in the store",
+      "badgeNew": "Show the “New” badge"
+    },
+    "text": {
+      "hint": "English and Arabic sit side by side. Type and description are required in both.",
+      "type": "Type",
+      "presets": "Quick fill:",
+      "family": "Scent family",
+      "tagline": "Tagline",
+      "description": "Description",
+      "howTo": "How to use"
+    },
+    "notes": {
+      "hint": "Optional fragrance notes, each with an English and Arabic name.",
+      "top": "Top notes",
+      "heart": "Heart notes",
+      "base": "Base notes",
+      "add": "Add note",
+      "remove": "Remove note"
+    },
+    "variants": {
+      "hint": "At least one size. Prices are in KWD.",
+      "size": "Size",
+      "price": "Price (KWD)",
+      "priceHint": "For example 9.500",
+      "stock": "In stock",
+      "sku": "SKU",
+      "skuNew": "Generated on save",
+      "add": "Add size",
+      "remove": "Remove"
+    },
+    "photos": {
+      "hint": "Up to 6 photos. Choose which one is the thumbnail and which shows on the card.",
+      "thumbnail": "Thumbnail",
+      "cardPhoto": "Card photo",
+      "noCardPhoto": "No separate card photo",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "remove": "Remove photo",
+      "addFromLibrary": "Add from site photos",
+      "upload": "Upload photo",
+      "uploading": "Processing…",
+      "studio": "Studio photo on a white background",
+      "count": "{count} of {max} photos",
+      "storage": "Storage used: {percent}%",
+      "maxReached": "You can add up to 6 photos.",
+      "uploadError": "That photo could not be added.",
+      "storageFull": "This browser’s storage is full — the photo was not saved.",
+      "err": {
+        "notImage": "Please choose an image file.",
+        "tooLarge": "That image is too large (over 15 MB).",
+        "decodeFailed": "That image could not be read."
+      }
+    },
+    "library": {
+      "title": "Site photos",
+      "intro": "Pick photos to add ({remaining} slots left).",
+      "added": "Added",
+      "add": "{count, plural, =0 {Add photos} one {Add # photo} other {Add # photos}}"
+    },
+    "options": {
+      "aliases": "Search keywords",
+      "aliasesHint": "Extra search terms, separated by commas.",
+      "related": "Related products",
+      "relatedHint": "Shown at the bottom of the product page."
+    },
+    "preview": {
+      "title": "Live preview",
+      "untitled": "Untitled"
+    },
+    "errors": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "Keep the name to 40 characters or fewer.",
+      "typeRequired": "Enter the type.",
+      "descriptionRequired": "Enter a description.",
+      "variantsRequired": "Add at least one size.",
+      "sizeRequired": "Enter the size.",
+      "priceInvalid": "Enter a price between 0 and 1000, up to 3 decimals.",
+      "stockInvalid": "Enter a whole number, 0 or more.",
+      "imagesRequired": "Add at least one photo.",
+      "generic": "Please check this field."
+    }
   },
   "analysis": {
     "title": "Product analysis",
