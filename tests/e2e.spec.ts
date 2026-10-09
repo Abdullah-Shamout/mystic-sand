@@ -125,7 +125,6 @@ test.describe("navigation and media", () => {
 
   test("collection chips keep your place on the page", async ({ page }) => {
     await page.goto("/en/shop/perfumes/");
-    await page.evaluate(() => window.scrollTo(0, 400));
     const chips = page.getByRole("navigation", { name: "Categories" });
     const steps: Array<[string, string]> = [
       ["Oud", "/en/shop/oud/"],
@@ -135,15 +134,20 @@ test.describe("navigation and media", () => {
       ["Perfumes", "/en/shop/perfumes/"],
     ];
     for (const [name, path] of steps) {
-      const before = await page.evaluate(() => Math.round(window.scrollY));
+      await page.evaluate(() => window.scrollTo(0, 300));
       await chips.getByRole("link", { name, exact: true }).click();
       await page.waitForURL(`**${path}`);
       await page.waitForTimeout(300);
-      expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(before);
+      // Same place as before the click (a page too short to scroll that far stops at its end).
+      const { y, max } = await page.evaluate(() => ({
+        y: Math.round(window.scrollY),
+        max: document.documentElement.scrollHeight - window.innerHeight,
+      }));
+      expect(y).toBe(Math.min(300, max));
     }
   });
 
-  test("the footer is minimal and there is no sign-up", async ({ page }) => {
+  test("compact footer, plain Instagram photos and no sign-up", async ({ page }) => {
     await page.goto("/en/");
     const footer = page.locator("footer");
     // Only Instagram and WhatsApp are links; no sign-up form anywhere.
@@ -153,6 +157,8 @@ test.describe("navigation and media", () => {
     await expect(footer.getByText("© 2026 Mystic Sand. All rights reserved.")).toBeVisible();
     await expect(footer.getByText(/Mystic Sand General Trading · CR No\. 000000/)).toBeVisible();
     await expect(footer.getByText("Secure payment")).toBeVisible();
+    // The Instagram photos are plain images; only the "Follow us" button links out.
+    await expect(page.locator("section:has(#instagram-title) ul a")).toHaveCount(0);
   });
 
   test("product photos show one at a time, with arrows", async ({ page }) => {

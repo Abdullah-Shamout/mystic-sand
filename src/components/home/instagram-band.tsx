@@ -27,27 +27,11 @@ export async function InstagramBand() {
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted">{t("subtitle")}</p>
       </Reveal>
-      {/* Decorative mosaic: the tiles are mouse shortcuts; the button below is the accessible link. */}
+      {/* Decorative mosaic: plain photos (not links); the button below opens Instagram. */}
       <ul aria-hidden className="grid grid-cols-3 md:grid-cols-6">
         {TILES.map((image) => (
-          <li key={image}>
-            <a
-              href={site.instagram.url}
-              target="_blank"
-              rel="noreferrer"
-              tabIndex={-1}
-              className="group relative block aspect-square overflow-hidden bg-tile"
-            >
-              <ResponsiveImage
-                image={image}
-                alt=""
-                sizes="(min-width: 768px) 17vw, 34vw"
-                className="transition-transform duration-500 ease-[var(--ease-soft)] group-hover:scale-[1.03]"
-              />
-              <span className="absolute inset-0 flex items-center justify-center bg-ink/0 text-cream opacity-0 transition-all duration-300 group-hover:bg-ink/30 group-hover:opacity-100">
-                <InstagramIcon className="size-6" />
-              </span>
-            </a>
+          <li key={image} className="relative aspect-square overflow-hidden bg-tile">
+            <ResponsiveImage image={image} alt="" sizes="(min-width: 768px) 17vw, 34vw" />
           </li>
         ))}
       </ul>
