@@ -20,6 +20,7 @@ import { useLiveCatalog } from "@/lib/live";
 import { useMounted, useNow } from "@/lib/hooks";
 import { useAdminStore } from "@/store/admin";
 import { useCheckout } from "@/store/checkout";
+import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { KpiTile } from "../kpi-tile";
 import { CategorySectionView } from "./category-section";
@@ -97,6 +98,7 @@ export function ProductAnalysis() {
   const pushToast = useUi((s) => s.pushToast);
 
   const catalog = useLiveCatalog();
+  const sold = useStockStore((s) => s.sold);
   const siteOrdersMap = useCheckout((s) => s.orders);
   const samples = useAdminStore((s) => s.samples);
   const fulfillment = useAdminStore((s) => s.fulfillment);
@@ -110,8 +112,8 @@ export function ProductAnalysis() {
   );
 
   const analysis = useMemo(
-    () => (now ? analyzeProducts({ orders: allOrders, catalog, filters, locale, now }) : null),
-    [now, allOrders, catalog, filters, locale],
+    () => (now ? analyzeProducts({ orders: allOrders, catalog, sold, filters, locale, now }) : null),
+    [now, allOrders, catalog, sold, filters, locale],
   );
 
   const catNames = useCallback(

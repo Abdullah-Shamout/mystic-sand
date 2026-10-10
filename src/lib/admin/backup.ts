@@ -13,11 +13,13 @@ import { useAdminStore } from "@/store/admin";
 import { useCatalogStore } from "@/store/catalog";
 import { useCheckout, type Order } from "@/store/checkout";
 import { useSettingsStore } from "@/store/settings";
+import { useStockStore, type SoldMap } from "@/store/stock";
 
 // One-file backup of everything the admin can change in this browser: the catalog edits, the
-// store settings, the back-office state (fulfilment + sample orders), the real orders and the
-// uploaded photos. The admin password hash (ms-admin-auth) is deliberately left out — a backup
-// moves data between devices, not credentials.
+// store settings, the back-office state (fulfilment + sample orders), the stock ledger, the real
+// orders and the uploaded photos. The admin password hash (ms-admin-auth) is deliberately left
+// out — a backup moves data between devices, not credentials. `stock` is optional so a backup
+// made before the stock system still restores.
 
 export const BACKUP_APP = "mystic-sand";
 export const BACKUP_VERSION = 1;
@@ -36,6 +38,7 @@ export type Backup = {
   catalog: CatalogEdits;
   settings: Partial<StoreSettings>;
   admin: AdminBackup;
+  stock: SoldMap;
   orders: Record<string, Order>;
   uploads: Record<string, Upload>;
 };
@@ -68,6 +71,7 @@ export function buildBackup(): Backup {
       samplesSeededAt: admin.samplesSeededAt,
       samplesCleared: admin.samplesCleared,
     },
+    stock: useStockStore.getState().sold,
     orders: useCheckout.getState().orders,
     uploads,
   };
@@ -103,9 +107,20 @@ const backupSchema = z.object({
     samplesSeededAt: z.string().nullish(),
     samplesCleared: z.boolean().optional(),
   }),
+  stock: z.record(z.string(), z.number()).optional(),
   orders: z.record(z.string(), z.unknown()),
   uploads: z.record(z.string(), uploadSchema),
 });
+
+/** Keep only positive integer counters, so a hand-edited file can't poison the ledger. */
+function coerceSold(value: unknown): SoldMap {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: SoldMap = {};
+  for (const [sku, n] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof n === "number" && Number.isFinite(n) && n > 0) out[sku] = Math.floor(n);
+  }
+  return out;
+}
 
 const isPlain = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
@@ -144,6 +159,7 @@ export function restoreBackup(raw: string): { uploads: number } {
     samplesSeededAt: data.admin.samplesSeededAt ?? null,
     samplesCleared: data.admin.samplesCleared ?? false,
   });
+  useStockStore.setState({ sold: coerceSold(data.stock) });
   useCheckout.setState({
     orders: { ...useCheckout.getState().orders, ...(data.orders as Record<string, Order>) },
   });

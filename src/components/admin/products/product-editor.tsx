@@ -28,9 +28,11 @@ import { toLatinDigits } from "@/lib/digits";
 import { useMounted } from "@/lib/hooks";
 import { getLiveCatalog, useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
+import { availableFromStock } from "@/lib/stock";
 import { storageUsage } from "@/lib/storage";
 import { saveUpload, StorageFullError, UPLOAD_PREFIX } from "@/lib/uploads";
 import { useCatalogStore } from "@/store/catalog";
+import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { ImageLibraryDialog } from "./image-library-dialog";
 
@@ -106,7 +108,8 @@ function imageKeysOf(product: Product): string[] {
   return keys;
 }
 
-function toForm(product: Product | undefined): EditorForm {
+/** The editor shows AVAILABLE stock (set value − sold since), never the raw catalog value. */
+function toForm(product: Product | undefined, sold: SoldMap): EditorForm {
   if (!product) {
     return {
       name: "",
@@ -153,7 +156,7 @@ function toForm(product: Product | undefined): EditorForm {
       sizeEn: v.size.en,
       sizeAr: v.size.ar,
       price: (v.priceFils / 1000).toFixed(3),
-      stock: String(v.stock),
+      stock: String(availableFromStock(v.stock, sold[v.sku] ?? 0)),
     })),
     images: imageKeysOf(product).map((key) => ({ key })),
     cardKey: product.images.card,
@@ -239,7 +242,7 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
   const router = useRouter();
   const pushToast = useUi((s) => s.pushToast);
 
-  const [defaults] = useState(() => toForm(existing));
+  const [defaults] = useState(() => toForm(existing, useStockStore.getState().sold));
 
   const form = useForm<EditorForm>({
     resolver: zodResolver(schema),
@@ -330,6 +333,11 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
     const store = useCatalogStore.getState();
     if (isNew) store.createProduct(product);
     else store.saveProduct(slug, product);
+
+    // The stock field held AVAILABLE and is now the catalog's set value: zero "sold since set" for
+    // every saved variant so available equals exactly what was typed.
+    const stockStore = useStockStore.getState();
+    for (const v of variants) stockStore.resetSold(v.sku);
 
     // Uploaded photos stay in the reusable library on save: they are only ever removed from the
     // library dialog or Settings → Data → "Delete unused photos".

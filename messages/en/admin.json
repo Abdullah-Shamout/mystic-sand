@@ -2,8 +2,66 @@
   "nav": {
     "orders": "Orders",
     "products": "Products",
+    "stock": "Stock",
     "analysis": "Product analysis",
     "settings": "Settings"
+  },
+  "stock": {
+    "meta": "Stock",
+    "title": "Stock",
+    "intro": "Set the stock of every size. Available is what customers can still buy — the value you set, minus the units sold here. Only orders paid in this browser reduce it.",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Product name or SKU",
+    "collectionLabel": "Collection",
+    "collectionAll": "All collections",
+    "filterLabel": "Stock level",
+    "filter": {
+      "all": "All",
+      "low": "Low",
+      "out": "Out of stock"
+    },
+    "status": {
+      "in": "In stock",
+      "low": "Low",
+      "out": "Out of stock"
+    },
+    "summary": {
+      "products": "Products in stock",
+      "out": "Sizes out of stock",
+      "low": "Sizes low",
+      "units": "Units available"
+    },
+    "col": {
+      "set": "Stock set",
+      "sold": "Sold since set",
+      "available": "Available"
+    },
+    "outChip": "Out of stock",
+    "lowChip": "Low",
+    "hiddenBadge": "Hidden",
+    "customBadge": "Custom",
+    "decrease": "Decrease {size} stock by one",
+    "increase": "Increase {size} stock by one",
+    "setExact": "Set exact stock for {size}",
+    "save": "Save",
+    "saved": "Stock updated for {name}.",
+    "empty": "No sizes match these filters.",
+    "export": "Export",
+    "exporting": "Exporting…",
+    "exportError": "Could not export. Please try again.",
+    "exportSheet": "Stock",
+    "exportCol": {
+      "product": "Product",
+      "collection": "Collections",
+      "size": "Size",
+      "sku": "SKU",
+      "set": "Stock set",
+      "sold": "Sold since set",
+      "available": "Available",
+      "status": "Status",
+      "hidden": "Hidden",
+      "custom": "Custom"
+    }
   },
   "viewStore": "View store",
   "logout": "Log out",
@@ -544,7 +602,7 @@
         "settings": "Reset store settings",
         "settingsDone": "Store settings reset.",
         "productsConfirmTitle": "Reset all product edits?",
-        "productsConfirmMessage": "Discard every product and collection change and restore the original catalog. This can't be undone.",
+        "productsConfirmMessage": "Discard every product and collection change, reset the stock ledger, and restore the original catalog. This can't be undone.",
         "settingsConfirmTitle": "Reset store settings?",
         "settingsConfirmMessage": "Restore the delivery fees, contact numbers and banner to their defaults. This can't be undone.",
         "confirm": "Reset"

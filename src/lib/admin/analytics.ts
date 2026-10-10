@@ -2,6 +2,8 @@ import type { CategorySlug, Localized, Product } from "@/data/types";
 import type { Locale } from "@/i18n/routing";
 import { isCustomSlug, type Catalog } from "@/lib/catalog";
 import { normalizeSearch } from "@/lib/search";
+import { availableFromStock } from "@/lib/stock";
+import type { SoldMap } from "@/store/stock";
 import { inDateRange, type RangeFilter, type SourceFilter, type AdminOrder } from "./orders";
 
 // Pure, React-free product analytics. From the paid + confirming orders of both sources and the
@@ -143,7 +145,7 @@ function sizesFromAgg(agg: Agg | undefined, product?: Product): SizeStat[] {
   return [...sizes, ...rest];
 }
 
-function buildStat(product: Product, agg: Agg | undefined): ProductStat {
+function buildStat(product: Product, agg: Agg | undefined, sold: SoldMap): ProductStat {
   const prices = product.variants.map((v) => v.priceFils);
   return {
     slug: product.slug,
@@ -154,7 +156,8 @@ function buildStat(product: Product, agg: Agg | undefined): ProductStat {
     alsoIn: (product.alsoIn ?? []).filter((c) => c !== product.category),
     priceMinFils: Math.min(...prices),
     priceMaxFils: Math.max(...prices),
-    stock: product.variants.reduce((n, v) => n + v.stock, 0),
+    // "Stock" here is AVAILABLE (set value − sold), the figure customers can still buy.
+    stock: product.variants.reduce((n, v) => n + availableFromStock(v.stock, sold[v.sku] ?? 0), 0),
     hidden: Boolean(product.hidden),
     custom: isCustomSlug(product.slug),
     skus: product.variants.map((v) => v.sku),
@@ -171,11 +174,12 @@ const byUnitsThenName = (a: { units: number; name: string }, b: { units: number;
 export function analyzeProducts(input: {
   orders: AdminOrder[];
   catalog: Catalog;
+  sold: SoldMap;
   filters: AnalysisFilters;
   locale: Locale;
   now: Date;
 }): ProductAnalysis {
-  const { catalog, filters, locale, now } = input;
+  const { catalog, sold, filters, locale, now } = input;
   const selected = selectOrders(input.orders, filters, now);
 
   // ── Roll up every selected line by product slug (and, within it, by SKU). ─────
@@ -208,7 +212,7 @@ export function analyzeProducts(input: {
   }
 
   // ── Per-product stats for the whole catalog (zero-sales products included). ───
-  const allStats = catalog.products.map((p) => buildStat(p, bySlug.get(p.slug)));
+  const allStats = catalog.products.map((p) => buildStat(p, bySlug.get(p.slug), sold));
   const matched = allStats.filter((s) => matchesProduct(s, filters.query, locale));
 
   // ── Group into category sections (a product shows in every category it lists in). ─

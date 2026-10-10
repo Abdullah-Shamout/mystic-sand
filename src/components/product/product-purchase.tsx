@@ -14,6 +14,8 @@ import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
 import { useLiveSettings } from "@/lib/live";
+import { useLiveStock } from "@/lib/live-stock";
+import { LOW_STOCK } from "@/lib/stock";
 import { whatsappHref } from "@/lib/settings";
 import { useAddToBag } from "@/lib/use-add-to-bag";
 import { useBag, useLineQty } from "@/store/bag";
@@ -38,11 +40,19 @@ export function ProductPurchase({ product }: { product: Product }) {
   const addToBag = useAddToBag();
   const openBag = useUi((s) => s.openBag);
   const settings = useLiveSettings();
+  const stock = useLiveStock();
 
-  const [sku, setSku] = useState(() => (product.variants.find((v) => v.stock > 0) ?? product.variants[0]).sku);
+  // The chosen size, but a sold-out size can never be the active one: fall back to the first size
+  // still in stock. Base stock until mounted, so the first client render matches the static HTML.
+  const [picked, setPicked] = useState<string | null>(null);
+  const firstInStock = product.variants.find((v) => stock.available(v.sku) > 0)?.sku;
+  const sku = picked && product.variants.some((v) => v.sku === picked) ? picked : (firstInStock ?? product.variants[0].sku);
+  const setSku = setPicked;
   const variant = product.variants.find((v) => v.sku === sku) ?? product.variants[0];
-  const max = Math.min(variant.stock, maxQtyPerLine);
-  const soldOut = max <= 0;
+  const available = stock.available(variant.sku);
+  const max = Math.min(available, maxQtyPerLine);
+  const soldOut = product.variants.every((v) => stock.available(v.sku) <= 0);
+  const lowLeft = !soldOut && available > 0 && available <= LOW_STOCK;
   const [qtyWanted, setQty] = useState(1);
   const qty = Math.max(1, Math.min(qtyWanted, max));
   const inBag = useLineQty(variant.sku);
@@ -107,15 +117,15 @@ export function ProductPurchase({ product }: { product: Product }) {
           <legend className="caps text-[13px]">{tc("product.chooseSize")}</legend>
           <div className="mt-3 flex flex-wrap gap-2">
             {product.variants.map((v) => {
-              const out = v.stock <= 0;
+              const out = stock.available(v.sku) <= 0;
               return (
                 <label
                   key={v.sku}
                   className={cn(
-                    "inline-flex min-h-11 items-center rounded-full border px-5 text-[14px] transition-colors duration-150",
+                    "inline-flex min-h-11 items-center gap-2 rounded-full border px-5 text-[14px] transition-colors duration-150",
                     "has-checked:border-ink has-checked:bg-ink has-checked:text-paper",
                     "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-racing",
-                    out ? "cursor-not-allowed border-line text-muted line-through" : "cursor-pointer border-ink/25 hover:border-ink",
+                    out ? "cursor-not-allowed border-line text-muted" : "cursor-pointer border-ink/25 hover:border-ink",
                   )}
                 >
                   <input
@@ -127,8 +137,8 @@ export function ProductPurchase({ product }: { product: Product }) {
                     onChange={() => setSku(v.sku)}
                     className="sr-only"
                   />
-                  <bdi className="figures">{v.size[locale]}</bdi>
-                  {out && <span className="sr-only">{` — ${tc("product.soldOut")}`}</span>}
+                  <bdi className={cn("figures", out && "line-through")}>{v.size[locale]}</bdi>
+                  {out && <span className="caps text-[10px] whitespace-nowrap">{tc("product.soldOut")}</span>}
                 </label>
               );
             })}
@@ -138,6 +148,12 @@ export function ProductPurchase({ product }: { product: Product }) {
         <p className="mt-3 text-[14px]">
           <span className="text-muted">{t("size")}</span>
           <bdi className="figures ms-3">{variant.size[locale]}</bdi>
+        </p>
+      )}
+
+      {mounted && lowLeft && (
+        <p className="mt-3 text-[13px] font-medium text-danger" data-testid="pdp-low-stock">
+          {t("onlyLeft", { count: available, n: String(available) })}
         </p>
       )}
 

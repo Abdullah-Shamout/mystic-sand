@@ -13,7 +13,7 @@ A clickable, frontend-only prototype of the **Mystic Sand** perfume store
 - Payments: **KNET** (default), Apple Pay and Visa/Mastercard — **simulated**, see below
 - Built-in **admin area** (orders dashboard, product & collection editing, product analysis, store settings) — English/Arabic, opened with **Enter** in the header (see below)
 
-> This is a prototype for review. Prices, some fragrance notes, delivery fees, contact details and policy texts are placeholders marked `TODO(client)` in `src/data/`.
+> This is a prototype for review. Prices, the delivery fee, contact details and policy texts are placeholders marked `TODO(client)` in `src/data/`.
 
 ## Payments (simulation)
 
@@ -33,9 +33,10 @@ A built-in, browser-only back office for running the demo store. Open it with **
 **What each tab does**
 
 - **Orders** — every order, with KPIs (revenue from completed orders, completed and pending counts, average order), filters (date, status, payment method, delivery, source) and search by customer name or order number (Latin or Arabic digits). Open an order to see all its details, **mark it done** (paid orders only), **download a PDF receipt** or print it, or message the customer on WhatsApp. **Export to Excel** downloads the filtered orders.
-- **Products** — add a product or edit any existing one: names, descriptions and fragrance notes in English and Arabic, sizes/prices (KWD) and stock, **photos** (from the site library or uploaded), the **collections** it appears in, a "New" badge and visibility. Move a product between collections, **hide/show** it, reset an edited base product to the original, or **delete** a custom product. The four collection names and descriptions are editable too.
-- **Product analysis** — units ordered per product, grouped by collection and searchable, with revenue (before order discounts), order counts, current price and stock. **Export** a single collection, or **Export all collections** at once, to Excel.
-- **Settings** — delivery fees (standard and express), the WhatsApp and phone numbers, the **top-banner** messages (per language), the **admin account**, and **Data & backups**: a storage meter, **download backup / restore** (so data can move to another device), **clear or restore the sample orders**, reset catalog edits or settings, and delete unused photos.
+- **Products** — add a product or edit any existing one: names and descriptions in English and Arabic, sizes/prices (KWD) and stock, **photos** (from the site library or uploaded), the **collections** it appears in, a "New" badge and visibility. Move a product between collections, **hide/show** it, reset an edited base product to the original, or **delete** a custom product. The four collection names and descriptions are editable too.
+- **Stock** — the stock of every size of every product (hidden and custom products included), grouped by product and filterable by collection or stock level (All · Low · Out of stock), searchable by name or SKU. Each size shows the **stock set**, the **units sold since it was set** and the **available** figure customers can still buy; adjust it with − / + or type an exact value and **Save**. Summary tiles count products in stock, sizes out, sizes low and total units available. **Export** the table to Excel.
+- **Product analysis** — units ordered per product, grouped by collection and searchable, with revenue (before order discounts), order counts, current price and available stock. **Export** a single collection, or **Export all collections** at once, to Excel.
+- **Settings** — the delivery fee, the WhatsApp and phone numbers, the **top-banner** messages (per language), the **admin account**, and **Data & backups**: a storage meter, **download backup / restore** (so data can move to another device), **clear or restore the sample orders**, reset catalog edits (this also resets the stock ledger) or settings, and delete unused photos.
 
 The dashboard is seeded with about 30 realistic sample orders (tagged **Sample**) so it looks alive; any real order placed in this browser appears alongside them. Clear or restore the samples from **Settings → Data**.
 
@@ -47,7 +48,7 @@ This admin area is a **frontend-only prototype**. There is no server and no data
 - **The sign-in is a demo gate, not real security.** Anyone with the device can open the admin, and the default hash ships in the public bundle. It only keeps casual visitors out of the way.
 - **Safari may erase the data.** Safari (and iOS) clears this kind of storage after **7 days without a visit**. Use **Settings → Data → Download backup** regularly, and prefer **Chrome or Edge** on the admin device.
 - **Shared storage on github.io.** Every project site under the same `*.github.io` account shares one storage area, so other repositories on that account can read or clash with this data. **Use a custom domain** before any real use.
-- **Stock is not reduced by orders.** Placing an order does not decrement a product's stock.
+- **Stock is per browser.** Each size has its own stock, set on the **Stock** tab (or in the product editor). An order paid **in this browser** reduces the available stock of every size it contains, and a size that reaches zero shows **Out of stock** and can no longer be bought. Because there is no server, orders paid on other devices or browsers do **not** reduce the stock shown here — only the ones paid in this browser do.
 
 **A real launch needs a backend:** orders and products in a database, real authentication (server-side sessions), and **server-verified payments** (see *Payments* above). Treat this admin area as a design and workflow preview, not a production system.
 
@@ -88,11 +89,11 @@ The workflow sets `NEXT_PUBLIC_BASE_PATH` to the repository path, so the site wo
 ```
 src/app/[locale]/(shop)/      home, collections, product, bag, orders, contact, FAQ, policies
 src/app/[locale]/(checkout)/  checkout, payment simulation, result
-src/app/[locale]/(admin)/     admin area: orders, products, product analysis, settings
+src/app/[locale]/(admin)/     admin area: orders, products, stock, product analysis, settings
 src/components/               ui kit, layout, product, cart, checkout, payment, home, content, admin
 src/data/                     catalog, categories, Kuwait areas, banks, store settings
 src/lib/                      money, pricing, phone, delivery, search, payments; admin-auth and lib/admin (receipt, Excel, analytics, samples, backup)
-src/store/                    bag, checkout, catalog, settings and admin stores (saved in the browser)
+src/store/                    bag, checkout, catalog, settings, stock and admin stores (saved in the browser)
 messages/{en,ar}/             all interface text (includes the admin namespace)
 scripts/                      media pipeline and screenshot tool
 ```

@@ -9,7 +9,7 @@ import { DRAFT_UPDATED_EVENT, SAMPLE_DETAILS } from "@/components/layout/demo-he
 import type { PaymentMethod } from "@/data/site";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { useLiveCatalog } from "@/lib/live";
+import { getLiveAvailable, useLiveStock } from "@/lib/live-stock";
 import { mockGateway } from "@/lib/payments/mock";
 import { priceLines } from "@/lib/pricing";
 import { checkoutSchema, emptyCheckoutForm, rememberedFields, type CheckoutForm } from "@/lib/validation";
@@ -65,8 +65,10 @@ export function CheckoutFlow() {
   const router = useRouter();
   const announce = useUi((s) => s.announce);
   const openBag = useUi((s) => s.openBag);
-  const catalog = useLiveCatalog();
-  const hasMissing = useBag((s) => priceLines(s.lines, catalog).missing.length > 0);
+  const stock = useLiveStock();
+  const lines = useBag((s) => s.lines);
+  // Missing (unknown/hidden) and out-of-stock lines both have to leave the bag before paying.
+  const blocked = lines.some((l) => stock.available(l.sku) <= 0);
 
   const [defaults] = useState(initialValues);
   const form = useForm<CheckoutForm>({
@@ -156,9 +158,10 @@ export function CheckoutFlow() {
 
   /** Express: the form's details when complete, otherwise the (simulated) wallet's. */
   const openExpressSheet = useCallback(() => {
-    // Same rule as Pay: items that are no longer available have to leave the bag first.
+    // Same rule as Pay: items that are no longer available (or short on stock) leave the bag first.
     const { priced, missing } = priceLines(useBag.getState().lines);
-    if (priced.length === 0 || missing.length > 0) {
+    const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
+    if (priced.length === 0 || missing.length > 0 || short) {
       openBag();
       return;
     }
@@ -209,7 +212,9 @@ export function CheckoutFlow() {
     if (locked.current) return;
     const bag = useBag.getState();
     const { priced, missing } = priceLines(bag.lines);
-    if (priced.length === 0 || missing.length > 0) {
+    // Re-check stock against the live ledger: a size that sold out (or dropped) stops the payment.
+    const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
+    if (priced.length === 0 || missing.length > 0 || short) {
       openBag();
       return;
     }
@@ -279,7 +284,7 @@ export function CheckoutFlow() {
         <div className="min-w-0">
           <h1 className="caps font-serif text-title-sm font-medium md:text-title">{t("title")}</h1>
           <ExpressCheckout onApplePay={openExpressSheet} />
-          {hasMissing && <UnavailableNotice />}
+          {blocked && <UnavailableNotice />}
           {/* Re-mounted on every attempt so screen readers announce it again. */}
           <div key={attempt} role="alert">
             {errorItems.length > 0 && <ErrorSummary items={errorItems} />}

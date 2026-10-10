@@ -19,6 +19,7 @@
   "detailsHeading": "Product details",
   "size": "Size",
   "quantity": "Quantity",
+  "onlyLeft": "{count, plural, one {Only {n} left} other {Only {n} left}}",
   "inBag": "{n} in your bag",
   "buyNow": "Buy now",
   "applePay": "Buy with Apple Pay",

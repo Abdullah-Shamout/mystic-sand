@@ -3,15 +3,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { maxQtyPerLine, promoCodes } from "@/data/site";
-import { visibleBySku, type Catalog } from "@/lib/catalog";
+import { type Catalog } from "@/lib/catalog";
 import { getLiveCatalog } from "@/lib/live";
+import { getLiveAvailable } from "@/lib/live-stock";
 import type { BagLine, Promo } from "@/lib/pricing";
 import { safeJSONStorage } from "@/lib/storage";
 
-export const maxQtyFor = (sku: string, catalog: Catalog = getLiveCatalog()) => {
-  const hit = visibleBySku(catalog, sku);
-  return hit ? Math.min(hit.variant.stock, maxQtyPerLine) : 0;
-};
+/** The most of a SKU that may be in the bag: the available stock, capped by the per-line limit. */
+export const maxQtyFor = (sku: string, catalog: Catalog = getLiveCatalog()) =>
+  Math.min(getLiveAvailable(sku, catalog), maxQtyPerLine);
 
 type BagState = {
   lines: BagLine[];

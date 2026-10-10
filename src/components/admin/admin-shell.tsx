@@ -16,6 +16,7 @@ import { LoginForm } from "./login-form";
 const TABS = [
   { href: "/admin", key: "orders" },
   { href: "/admin/products", key: "products" },
+  { href: "/admin/stock", key: "stock" },
   { href: "/admin/analysis", key: "analysis" },
   { href: "/admin/settings", key: "settings" },
 ] as const;

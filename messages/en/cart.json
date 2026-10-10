@@ -21,6 +21,8 @@
   "remove": "Remove",
   "removeItem": "Remove {name}",
   "unavailable": "No longer available — please remove it to continue.",
+  "outOfStock": "Out of stock — please remove it to continue.",
+  "clamped": "{count, plural, one {Only {n} left — quantity updated} other {Only {n} left — quantity updated}}",
   "upsellTrilogy": "Complete the Trilogy",
   "upsellPair": "Pair it with",
   "add": "Add",

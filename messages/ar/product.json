@@ -19,6 +19,7 @@
   "detailsHeading": "تفاصيل المنتج",
   "size": "الحجم",
   "quantity": "الكمية",
+  "onlyLeft": "{count, plural, one {بقيت قطعة واحدة فقط} two {بقيت قطعتان فقط} few {بقيت {n} قطع فقط} many {بقيت {n} قطعة فقط} other {بقيت {n} قطعة فقط}}",
   "inBag": "{count, plural, one {قطعة واحدة في حقيبة التسوق} two {قطعتان في حقيبة التسوق} few {{n} قطع في حقيبة التسوق} many {{n} قطعة في حقيبة التسوق} other {{n} قطعة في حقيبة التسوق}}",
   "buyNow": "اشترِ الآن",
   "applePay": "اشترِ عبر Apple Pay",

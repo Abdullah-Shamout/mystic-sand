@@ -20,6 +20,8 @@ type CatalogState = {
   saveProduct: (slug: string, edited: Product) => void;
   createProduct: (product: Product) => void;
   setHidden: (slug: string, hidden: boolean) => void;
+  /** Sets one variant's stock (the "set value" the stock ledger counts sales against). */
+  setVariantStock: (sku: string, stock: number) => void;
   setCategory: (slug: string, category: CategorySlug, alsoIn?: CategorySlug[]) => void;
   /** Drops a base product's patch, restoring the original. */
   resetProduct: (slug: string) => void;
@@ -117,6 +119,19 @@ export const useCatalogStore = create<CatalogState>()(
             else delete next.hidden;
             return next;
           };
+          if (isCustomSlug(slug)) writeCustom(slug, mutate);
+          else writeBase(slug, mutate);
+        },
+
+        setVariantStock: (sku, stock) => {
+          const value = Math.max(0, Math.round(stock));
+          const hit = buildCatalog(get().edits).bySku.get(sku);
+          if (!hit) return;
+          const slug = hit.product.slug;
+          const mutate = (p: Product): Product => ({
+            ...p,
+            variants: p.variants.map((v) => (v.sku === sku ? { ...v, stock: value } : v)),
+          });
           if (isCustomSlug(slug)) writeCustom(slug, mutate);
           else writeBase(slug, mutate);
         },

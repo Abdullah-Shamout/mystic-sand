@@ -14,7 +14,9 @@ import { CATEGORY_SLUGS, isCustomSlug, productHref } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
+import { availableFromStock } from "@/lib/stock";
 import { useCatalogStore } from "@/store/catalog";
+import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { ConfirmDialog } from "../confirm-dialog";
 
@@ -40,6 +42,7 @@ export function ProductsList() {
   const t = useTranslations("admin");
   const locale = useLocale() as Locale;
   const catalog = useLiveCatalog();
+  const sold = useStockStore((s) => s.sold);
   const pushToast = useUi((s) => s.pushToast);
 
   const setCategory = useCatalogStore((s) => s.setCategory);
@@ -180,6 +183,7 @@ export function ProductsList() {
               key={product.slug}
               product={product}
               edited={catalog.edited.has(product.slug)}
+              sold={sold}
               catName={catName}
               onMove={onMove}
               onToggleHidden={onToggleHidden}
@@ -284,6 +288,7 @@ function Action({
 function Row({
   product,
   edited,
+  sold,
   catName,
   onMove,
   onToggleHidden,
@@ -292,6 +297,7 @@ function Row({
 }: {
   product: Product;
   edited: boolean;
+  sold: SoldMap;
   catName: (slug: CategorySlug) => string;
   onMove: (product: Product, next: CategorySlug) => void;
   onToggleHidden: (product: Product) => void;
@@ -304,7 +310,8 @@ function Row({
   const prices = product.variants.map((v) => v.priceFils);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  const totalStock = product.variants.reduce((n, v) => n + v.stock, 0);
+  // The "stock" column shows what customers can still buy (available), not the raw set value.
+  const totalStock = product.variants.reduce((n, v) => n + availableFromStock(v.stock, sold[v.sku] ?? 0), 0);
   const alsoIn = (product.alsoIn ?? []).filter((c) => c !== product.category);
 
   return (

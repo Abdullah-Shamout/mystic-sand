@@ -1137,6 +1137,7 @@ test.describe("admin store settings", () => {
       "exportedAt",
       "orders",
       "settings",
+      "stock",
       "uploads",
       "version",
     ]);

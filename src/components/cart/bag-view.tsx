@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useId } from "react";
+import { useEffect, useId, useState } from "react";
 import { ApplePayLogo, PaymentMarks } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
@@ -17,6 +17,7 @@ import { productHref, type Catalog } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
 import { useLiveCatalog, useLiveSettings } from "@/lib/live";
+import { useLiveStock } from "@/lib/live-stock";
 import { computeTotals, priceLines, type BagLine } from "@/lib/pricing";
 import { useAddToBag } from "@/lib/use-add-to-bag";
 import { maxQtyFor, useBag } from "@/store/bag";
@@ -61,7 +62,31 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
   const pushToast = useUi((s) => s.pushToast);
   const announce = useUi((s) => s.announce);
   const catalog = useLiveCatalog();
+  const stock = useLiveStock();
   const { priced, missing } = priceLines(lines, catalog);
+
+  const inStock = priced.filter((line) => stock.available(line.sku) > 0);
+  const outOfStock = priced.filter((line) => stock.available(line.sku) <= 0);
+
+  // Which lines arrived over the available stock — recorded once (at mount, which for the bag is
+  // always post-hydration), so the "quantity updated" notice stays visible after the clamp below
+  // rewrites the stored quantity.
+  const [clamped] = useState<Record<string, number>>(() => {
+    const notices: Record<string, number> = {};
+    for (const line of useBag.getState().lines) {
+      const available = stock.available(line.sku);
+      if (available > 0 && line.qty > available) notices[line.sku] = available;
+    }
+    return notices;
+  });
+
+  // Bring every line down to what can actually be bought (stock, then the per-line cap).
+  useEffect(() => {
+    for (const line of useBag.getState().lines) {
+      const cap = maxQtyFor(line.sku);
+      if (cap > 0 && line.qty > cap) useBag.getState().setQty(line.sku, cap);
+    }
+  }, []);
 
   const removeLine = (sku: string, name: string) => {
     const removed = remove(sku);
@@ -75,50 +100,77 @@ export function BagLines({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <ul className="divide-y divide-line">
-      {priced.map((line) => (
-        <li key={line.sku} className="flex gap-4 px-6 py-5" data-testid="bag-line">
-          <Link
-            href={productHref(line.product.slug)}
-            onClick={onNavigate}
-            className="relative block size-[104px] shrink-0 bg-tile sm:size-[120px]"
-            tabIndex={-1}
-            aria-hidden
-          >
-            <ResponsiveImage image={line.product.images.card} alt="" sizes="120px" />
-          </Link>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <Link
-                  href={productHref(line.product.slug)}
-                  onClick={onNavigate}
-                  className="caps block truncate font-serif text-[18px] font-medium hover:underline"
-                >
-                  <bdi lang="en">{line.product.name}</bdi>
-                </Link>
-                <p className="text-[13px] text-muted">
-                  {line.product.type[locale]} · <bdi className="whitespace-nowrap">{line.variant.size[locale]}</bdi>
-                </p>
+      {inStock.map((line) => {
+        const cap = maxQtyFor(line.sku, catalog);
+        const shownQty = Math.min(line.qty, cap);
+        const notice = clamped[line.sku];
+        return (
+          <li key={line.sku} className="flex gap-4 px-6 py-5" data-testid="bag-line">
+            <Link
+              href={productHref(line.product.slug)}
+              onClick={onNavigate}
+              className="relative block size-[104px] shrink-0 bg-tile sm:size-[120px]"
+              tabIndex={-1}
+              aria-hidden
+            >
+              <ResponsiveImage image={line.product.images.card} alt="" sizes="120px" />
+            </Link>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Link
+                    href={productHref(line.product.slug)}
+                    onClick={onNavigate}
+                    className="caps block truncate font-serif text-[18px] font-medium hover:underline"
+                  >
+                    <bdi lang="en">{line.product.name}</bdi>
+                  </Link>
+                  <p className="text-[13px] text-muted">
+                    {line.product.type[locale]} · <bdi className="whitespace-nowrap">{line.variant.size[locale]}</bdi>
+                  </p>
+                </div>
+                <Price fils={line.variant.priceFils * shownQty} className="text-[15px] font-medium" />
               </div>
-              <Price fils={line.lineFils} className="text-[15px] font-medium" />
+              {notice !== undefined && (
+                <p className="mt-1.5 text-[12px] font-medium text-danger" data-testid="bag-line-clamped">
+                  {t("clamped", { count: notice, n: String(notice) })}
+                </p>
+              )}
+              <div className="mt-auto flex items-center justify-between gap-3 pt-3">
+                <QuantityStepper
+                  value={shownQty}
+                  max={cap}
+                  onChange={(q) => setQty(line.sku, q)}
+                  label={line.product.name}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeLine(line.sku, line.product.name)}
+                  className="-me-2 min-h-11 px-2 text-[13px] underline underline-offset-4 hover:text-danger"
+                  aria-label={t("removeItem", { name: line.product.name })}
+                >
+                  {t("remove")}
+                </button>
+              </div>
             </div>
-            <div className="mt-auto flex items-center justify-between gap-3 pt-3">
-              <QuantityStepper
-                value={line.qty}
-                max={maxQtyFor(line.sku, catalog)}
-                onChange={(q) => setQty(line.sku, q)}
-                label={line.product.name}
-              />
-              <button
-                type="button"
-                onClick={() => removeLine(line.sku, line.product.name)}
-                className="-me-2 min-h-11 px-2 text-[13px] underline underline-offset-4 hover:text-danger"
-                aria-label={t("removeItem", { name: line.product.name })}
-              >
-                {t("remove")}
-              </button>
-            </div>
-          </div>
+          </li>
+        );
+      })}
+      {outOfStock.map((line) => (
+        <li
+          key={line.sku}
+          className="flex items-center justify-between gap-4 px-6 py-4 text-[14px] text-danger"
+          data-testid="bag-line-oos"
+        >
+          <span>
+            <bdi lang="en" className="font-medium">
+              {line.product.name}
+            </bdi>{" "}
+            — {t("outOfStock")}
+          </span>
+          <button type="button" onClick={() => remove(line.sku)} className="min-h-11 underline underline-offset-4">
+            {t("remove")}
+          </button>
         </li>
       ))}
       {missing.map((line) => (
@@ -197,9 +249,14 @@ export function BagSummary({ onNavigate, compact = false }: { onNavigate?: () =>
   const promo = useBag((s) => s.promo);
   const catalog = useLiveCatalog();
   const settings = useLiveSettings();
-  const totals = computeTotals({ lines, promo, catalog, settings });
-  const { missing } = priceLines(lines, catalog);
-  const blocked = missing.length > 0;
+  const stock = useLiveStock();
+  // Totals are priced on what can actually be bought — each line clamped to its available stock.
+  const sellable = lines
+    .map((l) => ({ sku: l.sku, qty: Math.min(l.qty, maxQtyFor(l.sku, catalog)) }))
+    .filter((l) => l.qty > 0);
+  const totals = computeTotals({ lines: sellable, promo, catalog, settings });
+  // Missing (unknown/hidden) and out-of-stock lines both block checkout until removed.
+  const blocked = lines.some((l) => stock.available(l.sku) <= 0);
 
   return (
     <div className={cn("space-y-3 px-6 py-5", compact && "py-4")}>

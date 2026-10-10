@@ -9,6 +9,8 @@ import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { productHref } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
+import { useLiveCatalog } from "@/lib/live";
+import { useLiveStock } from "@/lib/live-stock";
 import { isolatedKWD } from "@/lib/money";
 import { useAddToBag } from "@/lib/use-add-to-bag";
 
@@ -24,9 +26,15 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const t = useTranslations("common");
   const locale = useLocale() as Locale;
   const addToBag = useAddToBag();
+  const catalog = useLiveCatalog();
+  const stock = useLiveStock();
   const variant = product.variants[0];
   const multi = product.variants.length > 1;
-  const soldOut = product.variants.every((v) => v.stock <= 0);
+  // Real products are tracked by the stock ledger; a preview card (not in the catalog) falls back
+  // to its own stock value so it never shows as sold out by accident.
+  const availableOf = (v: Product["variants"][number]) =>
+    catalog.bySku.has(v.sku) ? stock.available(v.sku) : v.stock;
+  const soldOut = product.variants.every((v) => availableOf(v) <= 0);
   const href = productHref(product.slug);
   const minPrice = Math.min(...product.variants.map((v) => v.priceFils));
   const image = product.images.hover ?? product.images.card;

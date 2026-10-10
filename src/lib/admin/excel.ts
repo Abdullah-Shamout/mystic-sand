@@ -453,3 +453,62 @@ export function categoryFileName(slug: string, now: Date): string {
 export function analysisFileName(now: Date): string {
   return `mystic-sand-products-${kuwaitDate(now)}.xlsx`;
 }
+
+// ── Stock export ────────────────────────────────────────────────────────────────
+
+/** One SKU's line in the stock sheet. Text fields are already localised by the caller. */
+export type StockExportRow = {
+  product: string;
+  collection: string;
+  size: string;
+  sku: string;
+  set: number;
+  sold: number;
+  available: number;
+  status: string;
+  hidden: boolean;
+  custom: boolean;
+};
+
+/** A single sheet, one row per SKU: product, size, set value, sold, available and status. */
+export function buildStockExport(input: { rows: StockExportRow[]; locale: Locale; now: Date }): XlsxSheet[] {
+  const { rows, locale } = input;
+  const t = adminTranslator(locale);
+  const rtl = locale === "ar";
+  const h = (key: string) => header(t(`stock.exportCol.${key}`));
+
+  const data: XlsxCell[][] = [
+    [h("product"), h("collection"), h("size"), h("sku"), h("set"), h("sold"), h("available"), h("status"), h("hidden"), h("custom")],
+  ];
+  for (const r of rows) {
+    data.push([
+      label(r.product),
+      label(r.collection),
+      label(r.size),
+      text(r.sku),
+      count(r.set),
+      count(r.sold),
+      count(r.available),
+      label(r.status),
+      bool(r.hidden),
+      bool(r.custom),
+    ]);
+  }
+
+  return [
+    {
+      data,
+      sheet: sheetName(t("stock.exportSheet")),
+      columns: [
+        { width: 24 }, { width: 20 }, { width: 16 }, { width: 20 }, { width: 10 }, { width: 14 }, { width: 11 }, { width: 13 }, { width: 9 }, { width: 9 },
+      ],
+      stickyRowsCount: 1,
+      rightToLeft: rtl,
+    },
+  ];
+}
+
+/** mystic-sand-stock-YYYY-MM-DD.xlsx using the Kuwait calendar date. */
+export function stockFileName(now: Date): string {
+  return `mystic-sand-stock-${kuwaitDate(now)}.xlsx`;
+}

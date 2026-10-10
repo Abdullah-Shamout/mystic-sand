@@ -11,8 +11,9 @@ import { newPaymentFields } from "@/lib/order";
 import { mockGateway } from "@/lib/payments/mock";
 import type { PaymentRecord } from "@/lib/payments/types";
 import { useLiveCatalog, useLiveSettings } from "@/lib/live";
+import { getLiveAvailable } from "@/lib/live-stock";
 import { formatKuwaitPhone } from "@/lib/phone";
-import { computeTotals } from "@/lib/pricing";
+import { computeTotals, priceLines } from "@/lib/pricing";
 import { useBag } from "@/store/bag";
 import { useCheckout } from "@/store/checkout";
 import { useUi } from "@/store/ui";
@@ -60,6 +61,7 @@ export function ApplePaySheet({
   const te = useTranslations("checkout.express");
   const router = useRouter();
   const announce = useUi((s) => s.announce);
+  const openBag = useUi((s) => s.openBag);
   const format = useAddressFormatter();
   const inInstagram = useInstagramBrowser();
   const lines = useBag((s) => s.lines);
@@ -79,6 +81,14 @@ export function ApplePaySheet({
 
   const confirm = () => {
     if (phase !== "idle") return;
+    // Final stock check: if a line sold out or went short, stop and send the shopper to the bag.
+    const { priced, missing } = priceLines(useBag.getState().lines);
+    const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
+    if (priced.length === 0 || missing.length > 0 || short) {
+      onOpenChange(false);
+      openBag();
+      return;
+    }
     setPhase("busy");
     announce(t("processing"));
     timers.current.push(

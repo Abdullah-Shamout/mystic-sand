@@ -8,6 +8,7 @@ import { useBag } from "@/store/bag";
 import { useCatalogStore } from "@/store/catalog";
 import { useCheckout } from "@/store/checkout";
 import { useSettingsStore } from "@/store/settings";
+import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
 
 // Keeps this tab in step with edits made in another tab (the admin saving while the store is
@@ -17,6 +18,7 @@ const PERSISTED = {
   "ms-checkout": useCheckout,
   "ms-catalog": useCatalogStore,
   "ms-settings": useSettingsStore,
+  "ms-stock": useStockStore,
 } as const;
 
 // The admin store is loaded lazily so storefront pages never statically import it (nor the

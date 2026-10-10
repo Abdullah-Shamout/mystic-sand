@@ -6,8 +6,11 @@ import {
   buildAllCategoriesExport,
   buildCategoryExport,
   buildOrdersExport,
+  buildStockExport,
   categoryFileName,
   ordersFileName,
+  stockFileName,
+  type StockExportRow,
   type XlsxSheet,
 } from "./excel";
 import type { AdminOrder, Filters, Kpis } from "./orders";
@@ -49,4 +52,8 @@ export async function exportAllCategories(input: {
   now: Date;
 }): Promise<void> {
   await writeSheets(buildAllCategoriesExport(input), analysisFileName(input.now));
+}
+
+export async function exportStock(input: { rows: StockExportRow[]; locale: Locale; now: Date }): Promise<void> {
+  await writeSheets(buildStockExport(input), stockFileName(input.now));
 }

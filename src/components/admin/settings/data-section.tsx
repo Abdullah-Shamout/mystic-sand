@@ -15,6 +15,7 @@ import { deleteUpload, isUploadKey, listUploadIds, readUpload, UPLOAD_PREFIX } f
 import { useAdminStore } from "@/store/admin";
 import { useCatalogStore } from "@/store/catalog";
 import { useSettingsStore } from "@/store/settings";
+import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { groupNumber, SettingsCard } from "./settings-ui";
 
@@ -117,6 +118,8 @@ export function DataSection() {
 
   const resetProducts = () => {
     useCatalogStore.getState().resetAll();
+    // The stock ledger is part of the catalog edits: clearing one clears the other.
+    useStockStore.getState().resetAll();
     bump();
     pushToast({ title: t("settings.data.reset.productsDone") });
   };
