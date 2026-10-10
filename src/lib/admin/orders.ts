@@ -15,7 +15,7 @@ export type OrderSource = "site" | "sample";
 export type AdminOrder = {
   order: Order;
   source: OrderSource;
-  /** True for paid and confirming orders (a confirming order is paid-pending). */
+  /** True for paid and confirming orders (a confirming order is paid-pending, shown as Pending). */
   paid: boolean;
   fulfillment: "pending" | "done";
   doneAt: string | null;
@@ -24,21 +24,17 @@ export type AdminOrder = {
   placedAt: string;
 };
 
-export type StatusKind = "done" | "pending" | "confirming" | "unpaid" | "failed" | "canceled";
+// Only paid (and still-confirming) orders are listed, and the only states are the fulfilment ones.
+export type StatusKind = "done" | "pending";
 
-/** The single status shown as a chip: fulfilment for paid orders, payment state otherwise. */
+/** The status shown as a chip: Done once fulfilled, otherwise Pending (confirming counts as pending). */
 export function statusKind(item: AdminOrder): StatusKind {
-  if (item.order.status === "confirming") return "confirming";
-  if (item.paid) return item.fulfillment === "done" ? "done" : "pending";
-  if (item.order.status === "failed") return "failed";
-  if (item.order.status === "canceled") return "canceled";
-  return "unpaid";
+  return item.fulfillment === "done" ? "done" : "pending";
 }
 
-export type FulfillmentFilter = "all" | "pending" | "done" | "unpaid";
+export type FulfillmentFilter = "all" | "pending" | "done";
 export type RangeFilter = "today" | "7d" | "30d" | "month" | "all" | "custom";
 export type MethodFilter = "all" | "knet" | "applepay" | "card";
-export type DeliveryFilter = "all" | "standard" | "express";
 export type SourceFilter = "all" | "site" | "sample";
 
 export type Filters = {
@@ -48,7 +44,6 @@ export type Filters = {
   from?: string;
   to?: string;
   method: MethodFilter;
-  delivery: DeliveryFilter;
   source: SourceFilter;
 };
 
@@ -57,7 +52,6 @@ export const defaultFilters: Filters = {
   fulfillment: "all",
   range: "all",
   method: "all",
-  delivery: "all",
   source: "all",
 };
 
@@ -69,8 +63,8 @@ function receiptAttemptFor(order: Order): PaymentRecord | null {
 
 function toAdminOrder(order: Order, source: OrderSource, fulfillment: FulfillmentMap): AdminOrder {
   const paid = order.status === "paid" || order.status === "confirming";
-  // A confirming order is pending and can never be "done", even if a done entry exists.
-  const done = order.status === "paid" && Boolean(fulfillment[order.id]);
+  // Paid and confirming orders alike can be marked done.
+  const done = paid && Boolean(fulfillment[order.id]);
   return {
     order,
     source,
@@ -83,9 +77,9 @@ function toAdminOrder(order: Order, source: OrderSource, fulfillment: Fulfillmen
 }
 
 /**
- * Site orders of every status plus the sample orders. Site orders are `paid` only when their
- * status is paid or confirming; abandoned checkouts (pending/failed/canceled) are included but
- * flagged unpaid.
+ * Site orders plus the sample orders. Site orders are `paid` only when their status is paid or
+ * confirming; abandoned checkouts (pending/failed/canceled) are carried through but filtered out
+ * of the dashboard by applyFilters (only paid/confirming orders are ever listed).
  */
 export function collectOrders(
   siteOrders: Order[],
@@ -166,21 +160,12 @@ export function matchesQuery(order: Order, query: string): boolean {
 
 export function applyFilters(list: AdminOrder[], filters: Filters, now: Date): AdminOrder[] {
   return list.filter((item) => {
+    // Only paid (and still-confirming) orders are ever listed; abandoned checkouts never appear.
+    if (!item.paid) return false;
     if (filters.source !== "all" && item.source !== filters.source) return false;
-
-    if (filters.fulfillment === "unpaid") {
-      if (item.source !== "site") return false;
-      const s = item.order.status;
-      if (s !== "pending" && s !== "failed" && s !== "canceled") return false;
-    } else {
-      // all / pending / done only ever show paid orders.
-      if (!item.paid) return false;
-      if (filters.fulfillment === "pending" && item.fulfillment !== "pending") return false;
-      if (filters.fulfillment === "done" && item.fulfillment !== "done") return false;
-    }
-
+    if (filters.fulfillment === "pending" && item.fulfillment !== "pending") return false;
+    if (filters.fulfillment === "done" && item.fulfillment !== "done") return false;
     if (filters.method !== "all" && item.order.method !== filters.method) return false;
-    if (filters.delivery !== "all" && item.order.details.deliveryMethod !== filters.delivery) return false;
     if (!inRange(item.placedAt, filters, now)) return false;
     if (!matchesQuery(item.order, filters.query)) return false;
     return true;

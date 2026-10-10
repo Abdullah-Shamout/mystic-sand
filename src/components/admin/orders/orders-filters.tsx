@@ -6,7 +6,6 @@ import { SelectInput, TextInput } from "@/components/ui/form";
 import { cn } from "@/lib/cn";
 import {
   defaultFilters,
-  type DeliveryFilter,
   type Filters,
   type FulfillmentFilter,
   type MethodFilter,
@@ -83,14 +82,13 @@ function SelectField<T extends string>({
 
 const RANGES: readonly RangeFilter[] = ["today", "7d", "30d", "month", "all", "custom"];
 const METHODS: readonly MethodFilter[] = ["all", "knet", "applepay", "card"];
-const DELIVERIES: readonly DeliveryFilter[] = ["all", "standard", "express"];
 
 export function OrdersFilters({ value, onChange }: { value: Filters; onChange: (filters: Filters) => void }) {
   const t = useTranslations("admin");
   const uid = useId();
   const set = (patch: Partial<Filters>) => onChange({ ...value, ...patch });
 
-  const fulfillmentOpts = (["all", "pending", "done", "unpaid"] as FulfillmentFilter[]).map((v) => ({
+  const fulfillmentOpts = (["all", "pending", "done"] as FulfillmentFilter[]).map((v) => ({
     value: v,
     label: t(`filters.fulfillment.${v}`),
   }));
@@ -166,14 +164,6 @@ export function OrdersFilters({ value, onChange }: { value: Filters; onChange: (
         </div>
       )}
 
-      <SelectField
-        id={`${uid}-delivery`}
-        label={t("filters.deliveryLabel")}
-        value={value.delivery}
-        values={DELIVERIES}
-        render={(v) => t(`filters.delivery.${v}`)}
-        onChange={(v) => set({ delivery: v })}
-      />
       <Chips
         label={t("filters.sourceLabel")}
         value={value.source}

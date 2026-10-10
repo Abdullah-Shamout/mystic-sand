@@ -4,8 +4,8 @@ import { formatKuwaitPhone, normalizeKuwaitPhone, phoneStatus } from "./phone";
 // zustand): the live getters in src/lib/live.ts resolve the stored overrides against it.
 
 export type StoreSettings = {
+  /** The single delivery fee charged on every order. */
   standardFeeFils: number;
-  expressFeeFils: number;
   /** WhatsApp number in international form, "965XXXXXXXX". */
   whatsapp: string;
   /** Contact phone, 8 local digits. */
@@ -18,7 +18,6 @@ export type StoreSettings = {
 // until the admin saves an override.
 export const defaultSettings: StoreSettings = {
   standardFeeFils: 1000,
-  expressFeeFils: 3000,
   whatsapp: "96590000000",
   phone: "90000000",
   ticker: { en: [], ar: [] },
@@ -49,14 +48,16 @@ const cleanTicker = (value: unknown): string[] | null => {
   return messages;
 };
 
-/** Validates each override against the rules and falls back to the default per field. */
+/**
+ * Validates each override against the rules and falls back to the default per field. An old
+ * stored `expressFeeFils` (from before the single-delivery change) is simply not read here.
+ */
 export function resolveSettings(overrides: Partial<StoreSettings> | undefined | null): StoreSettings {
   const o = overrides ?? {};
   const enTicker = cleanTicker(o.ticker?.en);
   const arTicker = cleanTicker(o.ticker?.ar);
   return {
     standardFeeFils: isFee(o.standardFeeFils) ? o.standardFeeFils : defaultSettings.standardFeeFils,
-    expressFeeFils: isFee(o.expressFeeFils) ? o.expressFeeFils : defaultSettings.expressFeeFils,
     whatsapp: isWhatsapp(o.whatsapp) ? `965${normalizeKuwaitPhone(o.whatsapp)}` : defaultSettings.whatsapp,
     phone: isPhone(o.phone) ? normalizeKuwaitPhone(o.phone) : defaultSettings.phone,
     ticker: {
@@ -80,5 +81,5 @@ export const phoneDisplay = (settings: StoreSettings) => formatKuwaitPhone(setti
 export const whatsappDisplay = (settings: StoreSettings) =>
   formatKuwaitPhone(settings.whatsapp.replace(/^965/, ""));
 
-export const feeFor = (settings: StoreSettings, method: "standard" | "express"): number =>
-  method === "express" ? settings.expressFeeFils : settings.standardFeeFils;
+/** The single delivery fee charged on every order. */
+export const feeFor = (settings: StoreSettings): number => settings.standardFeeFils;

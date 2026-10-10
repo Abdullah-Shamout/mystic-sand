@@ -80,8 +80,7 @@ export function DeliveryDetails({ order }: { order: Order }) {
         <div>
           <Heading>{t("delivery.method")}</Heading>
           <p className="mt-2 text-[15px]">
-            {d.deliveryMethod === "express" ? t("delivery.express") : t("delivery.standard")} ·{" "}
-            <Price fils={order.totals.deliveryFils} />
+            {t("delivery.value")} · <Price fils={order.totals.deliveryFils} />
           </p>
         </div>
       </div>

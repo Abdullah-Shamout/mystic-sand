@@ -65,16 +65,10 @@
     "country": "الكويت"
   },
   "delivery": {
-    "legend": "طريقة التوصيل",
-    "standard": "التوصيل العادي",
+    "legend": "التوصيل",
     "standardTomorrow": "يصلك غداً، {day}",
     "standardOn": "يصلك {day}",
-    "express": "التوصيل السريع خلال ساعتين",
-    "expressOpen": "يصلك خلال ساعتين — اطلب خلال {time}",
-    "expressLaterToday": "متاح اليوم ابتداءً من الساعة {time}",
-    "expressTomorrow": "متاح غداً ابتداءً من الساعة {time}",
-    "checking": "جارٍ التحقق من مواعيد اليوم…",
-    "expressClosed": "انتهى وقت التوصيل السريع لهذا اليوم، لذا حوّلنا طلبك إلى التوصيل العادي."
+    "checking": "جارٍ التحقق من التوصيل…"
   },
   "payment": {
     "legend": "الدفع",
@@ -100,8 +94,7 @@
     "hide": "إخفاء ملخص الطلب",
     "edit": "تعديل الحقيبة",
     "qty": "الكمية: {qty}",
-    "deliveryStandard": "التوصيل · عادي",
-    "deliveryExpress": "التوصيل · سريع",
+    "delivery": "التوصيل",
     "finalNote": "السعر النهائي شامل التوصيل، دون أي رسوم إضافية."
   },
   "promo": {
@@ -146,8 +139,6 @@
     "cardValue": "بطاقة كي نت",
     "shipTo": "الشحن إلى",
     "delivery": "التوصيل",
-    "standard": "عادي",
-    "express": "سريع، خلال ساعتين",
     "contact": "التواصل",
     "subtotal": "المجموع الفرعي",
     "payTo": "ادفع لـ {merchant}",

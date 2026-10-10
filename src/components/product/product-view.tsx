@@ -9,7 +9,6 @@ import { isCustomSlug } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { useLiveCatalog, useLiveProduct } from "@/lib/live";
 import { PDP_END_ID } from "./constants";
-import { NotesBand } from "./notes-band";
 import { ProductAccordions } from "./product-accordions";
 import { ProductBreadcrumb } from "./product-breadcrumb";
 import { ProductGallery } from "./product-gallery";
@@ -23,7 +22,7 @@ const MAX_RELATED = 4;
 /**
  * The whole product page body for one slug, read from the live catalog. Renders the
  * "unavailable" state when the product is hidden, deleted or unknown. `extras` is an
- * optional slot rendered after the notes band (the oud ingredient on OUD).
+ * optional slot rendered after the details (the oud ingredient on OUD).
  */
 export function ProductView({ slug, extras }: { slug: string; extras?: ReactNode }) {
   const t = useTranslations("product");
@@ -78,13 +77,14 @@ export function ProductView({ slug, extras }: { slug: string; extras?: ReactNode
               </>
             )}
           </p>
+          {/* The short tagline the client sets in the editor, shown under the type line. */}
+          {product.tagline[locale] && <p className="mt-2 text-[14px] text-muted">{product.tagline[locale]}</p>}
           {/* Reset the size/quantity state whenever the live variants change. */}
           <ProductPurchase key={JSON.stringify(product.variants)} product={product} />
           <ProductAccordions product={product} />
         </StickyColumn>
       </div>
 
-      {product.notes && <NotesBand notes={product.notes} />}
       {extras}
 
       {related.length > 0 && (

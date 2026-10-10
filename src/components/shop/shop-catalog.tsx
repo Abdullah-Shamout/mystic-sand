@@ -135,7 +135,12 @@ export function ShopToolbar({ active, count }: { active: string; count: number }
               const next = e.target.value;
               if (!isSort(next)) return;
               sortStore.set(next);
-              announce(t("sort.announce", { order: t(`sort.${SORT_LABEL[next]}`) }));
+              // "Featured" reads as "-" in the menu, so announce a spoken label instead of "Sorted by -".
+              announce(
+                next === "featured"
+                  ? t("sort.featuredAnnounce")
+                  : t("sort.announce", { order: t(`sort.${SORT_LABEL[next]}`) }),
+              );
             }}
             className="h-11 cursor-pointer appearance-none border-0 border-b border-ink/25 bg-transparent ps-1 pe-7 text-ink transition-colors hover:border-ink"
           >

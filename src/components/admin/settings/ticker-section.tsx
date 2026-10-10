@@ -3,7 +3,6 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { expressWindow } from "@/components/content/values";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/ui/form";
 import type { Locale } from "@/i18n/routing";
@@ -207,7 +206,7 @@ function TickerPreview({ lists }: { lists: Lists }) {
   const tc = useTranslations("common");
   const locale = useLocale() as Locale;
 
-  const builtIn = [tc("announcement.payment"), tc("announcement.express", { window: expressWindow(locale) })];
+  const builtIn = [tc("announcement.payment"), tc("announcement.delivery")];
   const custom = cleanList(lists[locale]);
   const messages = custom.length > 0 ? custom : builtIn;
 

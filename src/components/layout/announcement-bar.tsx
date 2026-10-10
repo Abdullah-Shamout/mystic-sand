@@ -2,7 +2,6 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { expressWindow } from "@/components/content/values";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { useLiveSettings } from "@/lib/live";
@@ -19,9 +18,7 @@ export function AnnouncementBar() {
   const settings = useLiveSettings();
   const custom = settings.ticker[locale];
   const messages =
-    custom.length > 0
-      ? custom
-      : [t("announcement.payment"), t("announcement.express", { window: expressWindow(locale) })];
+    custom.length > 0 ? custom : [t("announcement.payment"), t("announcement.delivery")];
   const [{ current, previous }, setState] = useState<{ current: number; previous: number | null }>({
     current: 0,
     previous: null,

@@ -65,16 +65,10 @@
     "country": "Kuwait"
   },
   "delivery": {
-    "legend": "Delivery method",
-    "standard": "Standard delivery",
+    "legend": "Delivery",
     "standardTomorrow": "Arrives tomorrow, {day}",
     "standardOn": "Arrives {day}",
-    "express": "2-hour express",
-    "expressOpen": "Delivered within 2 hours — order within {time}",
-    "expressLaterToday": "Available today from {time}",
-    "expressTomorrow": "Available from {time} tomorrow",
-    "checking": "Checking today’s schedule…",
-    "expressClosed": "Express delivery has just closed for today, so we’ve switched your order to standard delivery."
+    "checking": "Checking delivery…"
   },
   "payment": {
     "legend": "Payment",
@@ -100,8 +94,7 @@
     "hide": "Hide order summary",
     "edit": "Edit bag",
     "qty": "Qty {qty}",
-    "deliveryStandard": "Delivery · Standard",
-    "deliveryExpress": "Delivery · Express",
+    "delivery": "Delivery",
     "finalNote": "Final price, including delivery. No hidden fees."
   },
   "promo": {
@@ -146,8 +139,6 @@
     "cardValue": "KNET Debit",
     "shipTo": "Ship to",
     "delivery": "Delivery",
-    "standard": "Standard",
-    "express": "Express, within 2 hours",
     "contact": "Contact",
     "subtotal": "Subtotal",
     "payTo": "Pay {merchant}",

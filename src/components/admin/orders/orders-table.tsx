@@ -82,9 +82,6 @@ export function OrdersTable({
               {t("orders.th.items")}
             </th>
             <th scope="col" className="caps px-3 py-2.5 text-start text-[12px] font-medium text-muted">
-              {t("orders.th.delivery")}
-            </th>
-            <th scope="col" className="caps px-3 py-2.5 text-start text-[12px] font-medium text-muted">
               {t("orders.th.payment")}
             </th>
             <SortHeader label={t("orders.th.total")} active={sort.key === "total"} dir={sort.dir} onClick={() => toggle("total")} align="end" />
@@ -102,7 +99,7 @@ export function OrdersTable({
             const area = areaById(order.details.areaId);
             const itemsCount = order.lines.reduce((n, l) => n + l.qty, 0);
             const isDone = item.fulfillment === "done";
-            const canMarkDone = order.status === "paid";
+            const canMarkDone = item.paid;
             return (
               <tr
                 key={order.id}
@@ -138,7 +135,6 @@ export function OrdersTable({
                 </td>
                 <td className="px-3 py-3 text-muted">{area ? area.name[locale] : "—"}</td>
                 <td className="px-3 py-3 whitespace-nowrap text-muted">{t("orders.itemsCount", { count: itemsCount })}</td>
-                <td className="px-3 py-3 whitespace-nowrap text-muted">{t(`orders.delivery.${order.details.deliveryMethod}`)}</td>
                 <td className="px-3 py-3 whitespace-nowrap text-muted">{t(`orders.method.${order.method}`)}</td>
                 <td className="px-3 py-3 text-end">
                   <Price fils={order.totals.totalFils} className="font-medium" />

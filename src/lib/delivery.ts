@@ -32,27 +32,7 @@ export function kuwaitClock(date: Date): KuwaitClock {
   };
 }
 
-const toMinutes = (hhmm: string) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-};
-
-export type ExpressStatus =
-  | { state: "open"; minutesLeft: number }
-  | { state: "later-today"; opensAt: string }
-  | { state: "tomorrow"; opensAt: string };
-
-export function expressStatus(now: Date): ExpressStatus {
-  const clock = kuwaitClock(now);
-  const opens = clock.weekday === "Fri" ? delivery.express.fridayOpens : delivery.express.opens;
-  const last = toMinutes(delivery.express.lastOrder);
-  if (clock.minutes < toMinutes(opens)) return { state: "later-today", opensAt: opens };
-  if (clock.minutes <= last) return { state: "open", minutesLeft: last - clock.minutes };
-  const tomorrowIsFriday = clock.weekday === "Thu";
-  return { state: "tomorrow", opensAt: tomorrowIsFriday ? delivery.express.fridayOpens : delivery.express.opens };
-}
-
-/** Standard delivery arrives `leadDays` after today (Kuwait calendar). */
+/** Delivery arrives `leadDays` after today (Kuwait calendar). */
 export function standardArrival(now: Date): Date {
   return new Date(now.getTime() + delivery.standard.leadDays * 24 * 60 * 60 * 1000);
 }
@@ -75,11 +55,4 @@ export function formatDateTime(iso: string, locale: Locale): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(iso));
-}
-
-export function formatDuration(minutes: number, locale: Locale): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (locale === "ar") return h > 0 ? `${h} س ${m} د` : `${m} د`;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }

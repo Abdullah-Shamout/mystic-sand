@@ -165,8 +165,8 @@ export function Invoice({
           </span>
         </Field>
         <Field k="invoice.deliveryMethod">
-          {tAr(`delivery.${d.deliveryMethod}`)}
-          <En className="text-muted">{tEn(`delivery.${d.deliveryMethod}`)}</En>
+          {tAr("delivery.value")}
+          <En className="text-muted">{tEn("delivery.value")}</En>
         </Field>
         <Field k="invoice.address" className="col-span-2">
           {area && (

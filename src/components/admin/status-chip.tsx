@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CircleCheck, CircleDashed, CircleX, Clock, Hourglass, type LucideIcon } from "lucide-react";
+import { CircleCheck, Clock, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import type { StatusKind } from "@/lib/admin/orders";
@@ -9,10 +9,6 @@ import type { StatusKind } from "@/lib/admin/orders";
 const STYLES: Record<StatusKind, { icon: LucideIcon; tone: string }> = {
   done: { icon: CircleCheck, tone: "border-success/30 bg-success/10 text-success" },
   pending: { icon: Clock, tone: "border-sand-deep/40 bg-sand/25 text-ink" },
-  confirming: { icon: Hourglass, tone: "border-line bg-tile text-muted" },
-  unpaid: { icon: CircleDashed, tone: "border-line bg-tile text-muted" },
-  failed: { icon: CircleX, tone: "border-danger/30 bg-danger/10 text-danger" },
-  canceled: { icon: Ban, tone: "border-line bg-tile text-muted" },
 };
 
 export function StatusChip({ kind, className }: { kind: StatusKind; className?: string }) {

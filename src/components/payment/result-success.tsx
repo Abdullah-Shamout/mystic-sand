@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
-import { delivery } from "@/data/site";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { formatDay, standardArrival } from "@/lib/delivery";
@@ -17,7 +16,7 @@ import { useBag } from "@/store/bag";
 import { useCheckout, type Order } from "@/store/checkout";
 import { useUi } from "@/store/ui";
 import { DeliveryDetails } from "./delivery-details";
-import { firstName, isolate, kuwaitTime } from "./format";
+import { firstName, isolate } from "./format";
 import { Invoice } from "./invoice";
 import { OrderSummary } from "./order-summary";
 import { PaymentDetails } from "./payment-details";
@@ -48,15 +47,7 @@ export function ResultSuccess({ order, attempt }: { order: Order; attempt: Payme
 
   // Promised from the moment of payment, so a later visit still shows the original estimate.
   const paidAt = new Date(attempt.at);
-  const hours = Math.round(delivery.express.windowMinutes / 60);
-  const estimate =
-    order.details.deliveryMethod === "express"
-      ? t("success.deliveryExpress", {
-          hours,
-          hoursText: String(hours),
-          time: kuwaitTime(new Date(paidAt.getTime() + delivery.express.windowMinutes * 60_000)),
-        })
-      : t("success.deliveryStandard", { day: formatDay(standardArrival(paidAt), locale) });
+  const estimate = t("success.deliveryStandard", { day: formatDay(standardArrival(paidAt), locale) });
 
   const shareText = t("success.shareText", {
     id: isolate(order.id),

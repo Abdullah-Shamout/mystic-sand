@@ -9,7 +9,6 @@ import { DRAFT_UPDATED_EVENT, SAMPLE_DETAILS } from "@/components/layout/demo-he
 import type { PaymentMethod } from "@/data/site";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { expressStatus } from "@/lib/delivery";
 import { useLiveCatalog } from "@/lib/live";
 import { mockGateway } from "@/lib/payments/mock";
 import { priceLines } from "@/lib/pricing";
@@ -81,7 +80,6 @@ export function CheckoutFlow() {
     handleSubmit,
     reset,
     getValues,
-    setValue,
     subscribe,
     formState: { errors },
   } = form;
@@ -92,7 +90,6 @@ export function CheckoutFlow() {
   });
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [expressClosed, setExpressClosed] = useState(false);
   const [redirect, setRedirect] = useState<{ method: "knet" | "card"; amountFils: number } | null>(null);
   const [sheet, setSheet] = useState<{ open: boolean; details: OrderDetails }>(() => ({
     open: false,
@@ -216,12 +213,6 @@ export function CheckoutFlow() {
       openBag();
       return;
     }
-    if (values.deliveryMethod === "express" && expressStatus(new Date()).state !== "open") {
-      setValue("deliveryMethod", "standard", { shouldDirty: true });
-      setExpressClosed(true);
-      focusField("deliveryMethod");
-      return;
-    }
     setAttempt(0);
     // Save now rather than in 300ms: we are about to leave the page.
     window.clearTimeout(saveTimer.current);
@@ -315,7 +306,7 @@ export function CheckoutFlow() {
                 <AddressSection />
               </>
             )}
-            <DeliverySection expressClosedNotice={expressClosed} />
+            <DeliverySection />
             <PaymentSection busy={busy} />
           </form>
         </div>

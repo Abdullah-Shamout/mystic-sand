@@ -101,7 +101,7 @@ function Footer({ item }: { item: AdminOrder }) {
   const fulfill = useFulfillment();
   const { order } = item;
   const isDone = item.fulfillment === "done";
-  const canMarkDone = order.status === "paid";
+  const canMarkDone = item.paid;
 
   const copy = async () => {
     try {

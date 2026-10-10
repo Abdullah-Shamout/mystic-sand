@@ -55,9 +55,8 @@ export function computeTotals(input: {
   const subtotalFils = priced.reduce((n, l) => n + l.lineFils, 0);
   const discountFils = input.promo ? Math.round((subtotalFils * input.promo.percent) / 100) : 0;
   const merchandise = subtotalFils - discountFils;
-  const method = input.deliveryMethod ?? "standard";
-  // Delivery is always charged: there is no free-delivery threshold.
-  const deliveryFils = itemCount === 0 ? 0 : feeFor(input.settings ?? getLiveSettings(), method);
+  // There is one delivery type, charged on every non-empty order (no free-delivery threshold).
+  const deliveryFils = itemCount === 0 ? 0 : feeFor(input.settings ?? getLiveSettings());
   return {
     itemCount,
     subtotalFils,

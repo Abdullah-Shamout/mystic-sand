@@ -13,7 +13,6 @@
   "subtotal": "المجموع الفرعي",
   "discount": "الخصم ({code})",
   "delivery": "التوصيل",
-  "deliveryHint": "عادي",
   "total": "الإجمالي",
   "checkout": "إتمام الشراء",
   "expressCheckout": "دفع سريع",

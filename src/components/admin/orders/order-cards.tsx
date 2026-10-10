@@ -23,7 +23,7 @@ export function OrderCards({ rows, onOpen }: { rows: AdminOrder[]; onOpen: (id: 
         const area = areaById(order.details.areaId);
         const itemsCount = order.lines.reduce((n, l) => n + l.qty, 0);
         const isDone = item.fulfillment === "done";
-        const canMarkDone = order.status === "paid";
+        const canMarkDone = item.paid;
         return (
           <li key={order.id} data-testid="order-card" className="border border-line bg-paper p-4">
             <div className="flex items-start justify-between gap-3">
@@ -54,8 +54,7 @@ export function OrderCards({ rows, onOpen }: { rows: AdminOrder[]; onOpen: (id: 
 
             <div className="mt-3 flex items-end justify-between gap-3">
               <p className="text-[12px] text-muted">
-                {t("orders.itemsCount", { count: itemsCount })} · {t(`orders.delivery.${order.details.deliveryMethod}`)} ·{" "}
-                {t(`orders.method.${order.method}`)}
+                {t("orders.itemsCount", { count: itemsCount })} · {t(`orders.method.${order.method}`)}
               </p>
               <Price fils={order.totals.totalFils} className="text-[15px] font-medium" />
             </div>

@@ -1,34 +1,32 @@
 "use client";
 
-import { Check, RotateCcw } from "lucide-react";
+import { Check } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { ApplePayLogo, PaymentMarks, WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
-import { delivery, maxQtyPerLine } from "@/data/site";
+import { maxQtyPerLine } from "@/data/site";
 import type { Product } from "@/data/types";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { useMounted } from "@/lib/hooks";
 import { useLiveSettings } from "@/lib/live";
-import { isolatedKWD } from "@/lib/money";
-import { feeFor, whatsappHref } from "@/lib/settings";
+import { whatsappHref } from "@/lib/settings";
 import { useAddToBag } from "@/lib/use-add-to-bag";
 import { useBag, useLineQty } from "@/store/bag";
 import { useUi } from "@/store/ui";
 import { isolate, PDP_END_ID } from "./constants";
-import { DeliveryPromise } from "./delivery-promise";
 
 // The mobile header is 64px + hairline; the main button counts as gone once it has
 // slid completely under it.
 const MOBILE_HEADER_PX = 65;
 
 /**
- * Price → size → quantity → Add to bag / Buy now / Apple Pay, then payment
- * marks and the delivery promise. Also owns the phone-only buy bar that slides up
+ * Price → size → quantity → Add to bag / Buy now / Apple Pay, then the payment
+ * marks and a WhatsApp help link. Also owns the phone-only buy bar that slides up
  * once the main Add to bag button has scrolled away.
  */
 export function ProductPurchase({ product }: { product: Product }) {
@@ -206,18 +204,7 @@ export function ProductPurchase({ product }: { product: Product }) {
 
       <PaymentMarks className="mt-4 justify-center" />
 
-      <div className="mt-6 space-y-2 border-t border-line pt-5">
-        <DeliveryPromise />
-        <p className="flex gap-3 text-[14px] leading-snug text-muted">
-          <RotateCcw className="mt-0.5 size-[18px] shrink-0 text-ink" strokeWidth={1.25} aria-hidden />
-          <span>
-            {t("delivery.perks", {
-              amount: isolatedKWD(feeFor(settings, "standard"), locale),
-              days: delivery.returnsDays,
-              d: String(delivery.returnsDays),
-            })}
-          </span>
-        </p>
+      <div className="mt-6 border-t border-line pt-5">
         <a
           href={whatsapp("helpText")}
           target="_blank"

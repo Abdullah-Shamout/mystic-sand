@@ -41,7 +41,7 @@
         "title": "Our products",
         "body": [
           "We describe our fragrances as accurately as we can. Photographs are for illustration, and colours, packaging and labels may differ slightly from what you see on screen.",
-          "Fragrance notes describe the character of each scent; they are not a list of ingredients. Our products contain alcohol and aromatic ingredients. If your skin is sensitive, test a small amount first, and stop using a product if irritation occurs.",
+          "Our scent descriptions convey the character of each fragrance; they are not a list of ingredients. Our products contain alcohol and aromatic ingredients. If your skin is sensitive, test a small amount first, and stop using a product if irritation occurs.",
           "Perfumes and room sprays are flammable. Keep them away from heat, flames and direct sunlight, and out of the reach of children."
         ]
       },
@@ -309,7 +309,7 @@
   "delivery": {
     "meta": {
       "title": "Delivery",
-      "description": "Delivery fees and timings across Kuwait, and express delivery from Mystic Sand."
+      "description": "Delivery fees and timings across Kuwait from Mystic Sand."
     },
     "eyebrow": "Customer care",
     "title": "Delivery",
@@ -322,43 +322,31 @@
         ]
       },
       "options": {
-        "title": "Delivery options and fees",
+        "title": "Delivery fee and time",
         "body": [
           {
             "table": {
               "head": [
-                "Option",
+                "Service",
                 "Fee",
                 "Delivery time"
               ],
               "rows": [
                 [
-                  "Standard",
+                  "Delivery",
                   "{standardFee}",
                   "Arrives {standardWhen}"
-                ],
-                [
-                  "Express",
-                  "{expressFee}",
-                  "Within {expressWindow} of ordering, for orders placed between {opens} and {lastOrder} (from {fridayOpens} on Fridays)"
                 ]
               ]
             }
           },
-          "A delivery fee applies to every order."
+          "A delivery fee applies to every order. During public holidays such as Eid, and in exceptional circumstances, delivery may take longer — we’ll always let you know."
         ]
       },
       "price": {
         "title": "The price you pay",
         "body": [
-          "Your bag shows the standard delivery fee; at checkout you see the fee for the option you choose, and the full total — products plus delivery — before you pay. Nothing more is charged on delivery."
-        ]
-      },
-      "express": {
-        "title": "Express delivery hours",
-        "body": [
-          "Express delivery is available every day from {opens} until {lastOrder} (from {fridayOpens} on Fridays). Outside these hours, checkout shows when express delivery will be available again, and standard delivery stays open.",
-          "During public holidays such as Eid, and in exceptional circumstances, delivery may take longer. We’ll always let you know."
+          "Your bag shows the delivery fee, and at checkout you see the full total — products plus delivery — before you pay. Nothing more is charged on delivery."
         ]
       },
       "address": {

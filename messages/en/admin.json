@@ -29,11 +29,7 @@
     "itemsCount": "{count, plural, one {# item} other {# items}}",
     "status": {
       "done": "Done",
-      "pending": "Pending",
-      "confirming": "Confirming",
-      "unpaid": "Unpaid",
-      "failed": "Failed",
-      "canceled": "Canceled"
+      "pending": "Pending"
     },
     "source": {
       "site": "Website",
@@ -44,17 +40,12 @@
       "applepay": "Apple Pay",
       "card": "Card"
     },
-    "delivery": {
-      "standard": "Standard",
-      "express": "Express"
-    },
     "th": {
       "number": "Order no.",
       "date": "Date",
       "customer": "Customer",
       "area": "Area",
       "items": "Items",
-      "delivery": "Delivery",
       "payment": "Payment",
       "total": "Total",
       "status": "Status",
@@ -107,7 +98,6 @@
         "area": "Area",
         "governorate": "Governorate",
         "address": "Address",
-        "delivery": "Delivery",
         "method": "Payment",
         "bank": "Bank",
         "promo": "Promo",
@@ -168,7 +158,6 @@
     "rangeLabel": "Period",
     "fulfillmentLabel": "Status",
     "methodLabel": "Payment",
-    "deliveryLabel": "Delivery",
     "sourceLabel": "Source",
     "from": "From",
     "to": "To",
@@ -177,8 +166,7 @@
     "fulfillment": {
       "all": "All",
       "pending": "Pending",
-      "done": "Done",
-      "unpaid": "Unpaid checkouts"
+      "done": "Done"
     },
     "range": {
       "today": "Today",
@@ -193,11 +181,6 @@
       "knet": "KNET",
       "applepay": "Apple Pay",
       "card": "Card"
-    },
-    "delivery": {
-      "all": "All delivery",
-      "standard": "Standard",
-      "express": "Express"
     },
     "source": {
       "all": "All",
@@ -290,7 +273,6 @@
     "sections": {
       "basics": "Basics",
       "text": "Text",
-      "notes": "Notes",
       "variants": "Sizes & prices",
       "photos": "Photos",
       "options": "Search & related"
@@ -313,14 +295,6 @@
       "description": "Description",
       "howTo": "How to use"
     },
-    "notes": {
-      "hint": "Optional fragrance notes, each with an English and Arabic name.",
-      "top": "Top notes",
-      "heart": "Heart notes",
-      "base": "Base notes",
-      "add": "Add note",
-      "remove": "Remove note"
-    },
     "variants": {
       "hint": "At least one size. Prices are in KWD.",
       "size": "Size",
@@ -340,7 +314,7 @@
       "moveUp": "Move up",
       "moveDown": "Move down",
       "remove": "Remove photo",
-      "addFromLibrary": "Add from site photos",
+      "addFromLibrary": "Add photos",
       "upload": "Upload photo",
       "uploading": "Processing…",
       "studio": "Studio photo on a white background",
@@ -356,16 +330,26 @@
       }
     },
     "library": {
-      "title": "Site photos",
-      "intro": "Pick photos to add ({remaining} slots left).",
+      "title": "Photos",
+      "intro": "Pick photos to add ({remaining} slots left). Uploaded photos stay here for reuse on any product.",
       "added": "Added",
-      "add": "{count, plural, =0 {Add photos} one {Add # photo} other {Add # photos}}"
+      "add": "{count, plural, =0 {Add photos} one {Add # photo} other {Add # photos}}",
+      "siteGroup": "Site photos",
+      "uploadsGroup": "Your uploads",
+      "uploadsEmpty": "Photos you upload to any product appear here.",
+      "delete": "Delete this uploaded photo",
+      "deleteConfirmTitle": "Delete this photo?",
+      "deleteConfirmMessage": "Permanently delete this uploaded photo from the library. This can’t be undone.",
+      "deleteConfirmInUse": "This photo is still used by {count, plural, one {# product} other {# products}}. Deleting it removes it there too.",
+      "deleteConfirm": "Delete photo"
     },
     "options": {
       "aliases": "Search keywords",
-      "aliasesHint": "Extra search terms, separated by commas.",
+      "aliasesHint": "Not shown on the store — extra terms that help customers find this product in search. Separate with commas.",
       "related": "Related products",
-      "relatedHint": "Shown at the bottom of the product page."
+      "relatedHint": "Shown at the bottom of the product page.",
+      "relatedSearch": "Search products",
+      "relatedEmpty": "No products match your search."
     },
     "preview": {
       "title": "Live preview",
@@ -459,10 +443,9 @@
     "resetToDefault": "Reset to default",
     "inUse": "In use now:",
     "delivery": {
-      "title": "Delivery fees",
-      "intro": "Charged at checkout. Amounts are in KWD, up to 3 decimals.",
-      "standard": "Standard delivery",
-      "express": "Express delivery",
+      "title": "Delivery fee",
+      "intro": "The single delivery fee charged at checkout. Amounts are in KWD, up to 3 decimals.",
+      "fee": "Delivery fee",
       "hint": "For example 1.500",
       "error": "Enter an amount between 0.000 and 50.000."
     },
@@ -546,12 +529,12 @@
       },
       "photos": {
         "title": "Unused photos",
-        "intro": "Uploaded photos no longer used by any product.",
+        "intro": "Uploaded photos no longer used by any product. Deleting them also removes them from the photo library in the product editor.",
         "count": "{count, plural, =0 {No unused photos} one {# unused photo} other {# unused photos}} · {size} characters",
         "delete": "Delete unused photos",
         "deleted": "{count, plural, =0 {No photos deleted} one {# photo deleted} other {# photos deleted}}.",
         "confirmTitle": "Delete unused photos?",
-        "confirmMessage": "Permanently delete {count, plural, one {# unused photo} other {# unused photos}}. This can't be undone.",
+        "confirmMessage": "Permanently delete {count, plural, one {# unused photo} other {# unused photos}}. They will also disappear from the photo library. This can't be undone.",
         "confirm": "Delete photos"
       },
       "reset": {

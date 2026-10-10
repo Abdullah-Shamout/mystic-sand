@@ -93,7 +93,7 @@ export function buildOrdersExport(input: {
   // ── Orders sheet ───────────────────────────────────────────────────────────
   const ordersHeader: XlsxCell[] = [
     h("number"), h("placed"), h("done"), h("status"), h("source"), h("customer"), h("phone"), h("email"),
-    h("area"), h("governorate"), h("address"), h("delivery"), h("method"), h("bank"), h("promo"), h("items"),
+    h("area"), h("governorate"), h("address"), h("method"), h("bank"), h("promo"), h("items"),
     h("subtotal"), h("discount"), h("deliveryFee"), h("total"), h("paymentId"), h("tranId"), h("ref"), h("auth"),
   ];
 
@@ -116,7 +116,6 @@ export function buildOrdersExport(input: {
       label(area ? area.name[locale] : ""),
       label(area ? governorates[area.governorate][locale] : ""),
       label(addressLine(o, t)),
-      label(t(`orders.delivery.${o.details.deliveryMethod}`)),
       label(t(`orders.method.${o.method}`)),
       label(bank ? bank.name[locale] : ""),
       text(o.promoCode ?? ""),
@@ -134,7 +133,7 @@ export function buildOrdersExport(input: {
 
   const ordersColumns = [
     { width: 12 }, { width: 17 }, { width: 17 }, { width: 13 }, { width: 10 }, { width: 22 }, { width: 13 }, { width: 24 },
-    { width: 16 }, { width: 18 }, { width: 34 }, { width: 11 }, { width: 11 }, { width: 24 }, { width: 10 }, { width: 7 },
+    { width: 16 }, { width: 18 }, { width: 34 }, { width: 11 }, { width: 24 }, { width: 10 }, { width: 7 },
     { width: 11 }, { width: 11 }, { width: 11 }, { width: 11 }, { width: 22 }, { width: 18 }, { width: 16 }, { width: 10 },
   ];
 
@@ -185,7 +184,6 @@ export function buildOrdersExport(input: {
     [label(t("filters.rangeLabel")), label(rangeLabel)],
     [label(t("filters.fulfillmentLabel")), label(t(`filters.fulfillment.${filters.fulfillment}`))],
     [label(t("filters.methodLabel")), label(t(`filters.method.${filters.method}`))],
-    [label(t("filters.deliveryLabel")), label(t(`filters.delivery.${filters.delivery}`))],
     [label(t("filters.sourceLabel")), label(t(`filters.source.${filters.source}`))],
     [label(t("filters.searchLabel")), text(filters.query)],
     [label(t("orders.export.summary.generated")), dateCell(now.toISOString())],

@@ -17,14 +17,9 @@ export const site = {
 } as const;
 
 export const delivery = {
-  // Fees now live in src/lib/settings.ts (defaultSettings). There is no free-delivery threshold.
+  // Fee now lives in src/lib/settings.ts (defaultSettings). There is one delivery type and no
+  // free-delivery threshold.
   standard: { leadDays: 1 },
-  express: {
-    windowMinutes: 120,
-    opens: "10:00",
-    lastOrder: "20:00",
-    fridayOpens: "14:00",
-  },
   returnsDays: 14,
 } as const;
 

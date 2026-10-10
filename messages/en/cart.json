@@ -13,7 +13,6 @@
   "subtotal": "Subtotal",
   "discount": "Discount ({code})",
   "delivery": "Delivery",
-  "deliveryHint": "Standard",
   "total": "Total",
   "checkout": "Checkout",
   "expressCheckout": "Express checkout",

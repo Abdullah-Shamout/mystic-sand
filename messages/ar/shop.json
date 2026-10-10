@@ -15,7 +15,8 @@
   "count": "{count, plural, one {منتج واحد} two {منتجان} few {{n} منتجات} many {{n} منتجاً} other {{n} منتج}}",
   "sort": {
     "label": "ترتيب حسب",
-    "featured": "المقترحة",
+    "featured": "-",
+    "featuredAnnounce": "الترتيب الافتراضي",
     "priceAsc": "السعر: الأقل أولاً",
     "priceDesc": "السعر: الأعلى أولاً",
     "announce": "تم الترتيب حسب: {order}"

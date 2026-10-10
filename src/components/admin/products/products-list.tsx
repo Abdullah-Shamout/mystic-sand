@@ -10,10 +10,9 @@ import { categories as baseCategories } from "@/data/categories";
 import type { CategorySlug, Localized, Product } from "@/data/types";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { CATEGORY_SLUGS, isCustomSlug, productHref, type Catalog } from "@/lib/catalog";
+import { CATEGORY_SLUGS, isCustomSlug, productHref } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
-import { getLiveCatalog, useLiveCatalog } from "@/lib/live";
-import { deleteUpload, isUploadKey, uploadIdFromKey } from "@/lib/uploads";
+import { useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
 import { useCatalogStore } from "@/store/catalog";
 import { useUi } from "@/store/ui";
@@ -35,17 +34,6 @@ function matches(product: Product, query: string, locale: Locale): boolean {
     .map(normalizeSearch)
     .join(" ");
   return haystack.includes(q);
-}
-
-/** Every upload key referenced by any product in the catalog, so an unused one can be pruned. */
-function referencedUploads(catalog: Catalog): Set<string> {
-  const keys = new Set<string>();
-  for (const p of catalog.products) {
-    for (const key of [p.images.card, p.images.hover, ...p.images.gallery]) {
-      if (key && isUploadKey(key)) keys.add(key);
-    }
-  }
-  return keys;
 }
 
 export function ProductsList() {
@@ -111,16 +99,10 @@ export function ProductsList() {
   };
 
   const doDelete = (product: Product) => {
-    const uploads = [product.images.card, product.images.hover, ...product.images.gallery].filter(
-      (k): k is string => typeof k === "string" && isUploadKey(k),
-    );
+    // Uploaded photos are a reusable library now: deleting a product leaves its uploads in place,
+    // so they can still be chosen for other products. They are only removed from the library dialog
+    // or Settings → Data → "Delete unused photos".
     deleteProduct(product.slug);
-    // Drop uploads this product used that no other product references any more (read the
-    // catalog rebuilt from the store's state *after* the delete).
-    const stillUsed = referencedUploads(getLiveCatalog());
-    for (const key of new Set(uploads)) {
-      if (!stillUsed.has(key)) deleteUpload(uploadIdFromKey(key));
-    }
     pushToast({ title: t("products.toast.deleted", { name: product.name }) });
   };
 

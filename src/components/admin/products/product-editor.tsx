@@ -19,23 +19,17 @@ import { Button } from "@/components/ui/button";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/ui/form";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { CategorySlug, Localized, Notes, Product } from "@/data/types";
+import type { CategorySlug, Product } from "@/data/types";
 import { Link, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { ImageError, compressImage } from "@/lib/admin/image";
-import { baseCatalog, CATEGORY_SLUGS, productHref, type Catalog } from "@/lib/catalog";
+import { baseCatalog, CATEGORY_SLUGS, productHref } from "@/lib/catalog";
 import { toLatinDigits } from "@/lib/digits";
 import { useMounted } from "@/lib/hooks";
 import { getLiveCatalog, useLiveCatalog } from "@/lib/live";
+import { normalizeSearch } from "@/lib/search";
 import { storageUsage } from "@/lib/storage";
-import {
-  deleteUpload,
-  isUploadKey,
-  saveUpload,
-  StorageFullError,
-  UPLOAD_PREFIX,
-  uploadIdFromKey,
-} from "@/lib/uploads";
+import { saveUpload, StorageFullError, UPLOAD_PREFIX } from "@/lib/uploads";
 import { useCatalogStore } from "@/store/catalog";
 import { useUi } from "@/store/ui";
 import { ImageLibraryDialog } from "./image-library-dialog";
@@ -68,8 +62,6 @@ function parseStock(input: string): number | null {
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
 
-const noteRow = z.object({ en: z.string(), ar: z.string() });
-
 const variantSchema = z.object({
   sku: z.string(),
   sizeEn: z.string().trim().min(1, "sizeRequired"),
@@ -94,9 +86,6 @@ const schema = z.object({
   descriptionAr: z.string().trim().min(1, "descriptionRequired"),
   howToEn: z.string(),
   howToAr: z.string(),
-  notesTop: z.array(noteRow),
-  notesHeart: z.array(noteRow),
-  notesBase: z.array(noteRow),
   variants: z.array(variantSchema).min(1, "variantsRequired"),
   images: z.array(z.object({ key: z.string().min(1) })).min(1, "imagesRequired"),
   cardKey: z.string(),
@@ -108,8 +97,6 @@ const schema = z.object({
 type EditorForm = z.infer<typeof schema>;
 
 // ── Form <-> product mapping ────────────────────────────────────────────────────
-
-const row = (l: Localized) => ({ en: l.en, ar: l.ar });
 
 /** All distinct image keys of a product (gallery, plus card/hover if not already there). */
 function imageKeysOf(product: Product): string[] {
@@ -137,9 +124,6 @@ function toForm(product: Product | undefined): EditorForm {
       descriptionAr: "",
       howToEn: "",
       howToAr: "",
-      notesTop: [],
-      notesHeart: [],
-      notesBase: [],
       variants: [{ sku: "", sizeEn: "", sizeAr: "", price: "", stock: "" }],
       images: [],
       cardKey: "",
@@ -164,9 +148,6 @@ function toForm(product: Product | undefined): EditorForm {
     descriptionAr: product.description.ar,
     howToEn: product.howTo.en,
     howToAr: product.howTo.ar,
-    notesTop: product.notes?.top.map(row) ?? [],
-    notesHeart: product.notes?.heart.map(row) ?? [],
-    notesBase: product.notes?.base.map(row) ?? [],
     variants: product.variants.map((v) => ({
       sku: v.sku,
       sizeEn: v.size.en,
@@ -205,34 +186,6 @@ function slugify(name: string): string {
 
 function randomSuffix(): string {
   return Math.random().toString(36).slice(2, 6).padEnd(4, "x");
-}
-
-function buildNotes(values: EditorForm): Notes | undefined {
-  const clean = (rows: Array<{ en: string; ar: string }>): Localized[] =>
-    rows.map((r) => ({ en: r.en.trim(), ar: r.ar.trim() })).filter((r) => r.en || r.ar);
-  const top = clean(values.notesTop);
-  const heart = clean(values.notesHeart);
-  const base = clean(values.notesBase);
-  if (top.length === 0 && heart.length === 0 && base.length === 0) return undefined;
-  return { top, heart, base };
-}
-
-/** Every upload key referenced by any product in the catalog. */
-function referencedUploads(catalog: Catalog): Set<string> {
-  const keys = new Set<string>();
-  for (const p of catalog.products) {
-    for (const key of [p.images.card, p.images.hover, ...p.images.gallery]) {
-      if (key && isUploadKey(key)) keys.add(key);
-    }
-  }
-  return keys;
-}
-
-function collectUploads(product: Product | undefined): string[] {
-  if (!product) return [];
-  return [...new Set([product.images.card, product.images.hover, ...product.images.gallery])].filter(
-    (k): k is string => typeof k === "string" && isUploadKey(k),
-  );
 }
 
 // ── Skeleton & entry ────────────────────────────────────────────────────────────
@@ -287,7 +240,6 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
   const pushToast = useUi((s) => s.pushToast);
 
   const [defaults] = useState(() => toForm(existing));
-  const initialUploads = useRef<string[]>(collectUploads(existing));
 
   const form = useForm<EditorForm>({
     resolver: zodResolver(schema),
@@ -366,7 +318,6 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
       tagline: { en: values.taglineEn.trim(), ar: values.taglineAr.trim() },
       description: { en: values.descriptionEn.trim(), ar: values.descriptionAr.trim() },
       howTo: { en: values.howToEn.trim(), ar: values.howToAr.trim() },
-      notes: buildNotes(values),
       variants,
       images,
       badge: values.badge ? ("new" as const) : undefined,
@@ -380,13 +331,8 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
     if (isNew) store.createProduct(product);
     else store.saveProduct(slug, product);
 
-    // Prune uploads this product no longer uses and nothing else references.
-    const nextKeys = new Set([...gallery, cardKey, hoverKey].filter((k): k is string => Boolean(k)));
-    const removed = initialUploads.current.filter((k) => !nextKeys.has(k));
-    if (removed.length > 0) {
-      const refs = referencedUploads(getLiveCatalog());
-      for (const key of removed) if (!refs.has(key)) deleteUpload(uploadIdFromKey(key));
-    }
+    // Uploaded photos stay in the reusable library on save: they are only ever removed from the
+    // library dialog or Settings → Data → "Delete unused photos".
 
     reset(values);
     pushToast({ title: t("editor.saved", { name: product.name }) });
@@ -428,7 +374,6 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
           <div className="min-w-0 space-y-12">
             <BasicsSection />
             <TextSection />
-            <NotesSection />
             <VariantsSection control={control} />
             <PhotosSection />
             <OptionsSection slug={slug} isNew={isNew} />
@@ -626,75 +571,6 @@ function TextSection() {
       <BilingualField base="description" labelKey="editor.text.description" textarea required />
       <BilingualField base="howTo" labelKey="editor.text.howTo" textarea />
     </section>
-  );
-}
-
-const NOTE_GROUPS = [
-  { name: "notesTop", labelKey: "editor.notes.top" },
-  { name: "notesHeart", labelKey: "editor.notes.heart" },
-  { name: "notesBase", labelKey: "editor.notes.base" },
-] as const;
-
-function NotesSection() {
-  const t = useTranslations("admin");
-  return (
-    <section className="space-y-6">
-      <SectionHeading title={t("editor.sections.notes")} hint={t("editor.notes.hint")} />
-      {NOTE_GROUPS.map((group) => (
-        <NotesGroup key={group.name} name={group.name} title={t(group.labelKey)} />
-      ))}
-    </section>
-  );
-}
-
-function NotesGroup({ name, title }: { name: (typeof NOTE_GROUPS)[number]["name"]; title: string }) {
-  const t = useTranslations("admin");
-  const { control, register } = useFormContext<EditorForm>();
-  const fa = useFieldArray({ control, name });
-
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h3 className="caps text-[13px] font-medium">{title}</h3>
-        <button
-          type="button"
-          onClick={() => fa.append({ en: "", ar: "" })}
-          className="caps inline-flex items-center gap-1 text-[12px] text-racing underline-offset-4 hover:underline"
-        >
-          <Plus className="size-3.5" strokeWidth={1.5} aria-hidden />
-          {t("editor.notes.add")}
-        </button>
-      </div>
-      {fa.fields.length > 0 && (
-        <ul className="mt-2 space-y-2">
-          {fa.fields.map((f, i) => (
-            <li key={f.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-              <TextInput
-                dir="ltr"
-                placeholder={t("editor.lang.en")}
-                className="h-10 text-[14px]"
-                {...register(`${name}.${i}.en` as const)}
-              />
-              <TextInput
-                dir="rtl"
-                lang="ar"
-                placeholder={t("editor.lang.ar")}
-                className="h-10 text-[14px]"
-                {...register(`${name}.${i}.ar` as const)}
-              />
-              <button
-                type="button"
-                onClick={() => fa.remove(i)}
-                aria-label={t("editor.notes.remove")}
-                className="inline-flex size-10 items-center justify-center text-muted transition-colors hover:text-danger"
-              >
-                <Trash2 className="size-4" strokeWidth={1.5} aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 
@@ -1018,9 +894,21 @@ function OptionsSection({ slug, isNew }: { slug: string; isNew: boolean }) {
   const t = useTranslations("admin");
   const locale = useLocale() as Locale;
   const catalog = useLiveCatalog();
-  const { register } = useFormContext<EditorForm>();
+  const { register, control } = useFormContext<EditorForm>();
+  const [relatedQuery, setRelatedQuery] = useState("");
+  const selected = useWatch({ control, name: "related" }) ?? [];
 
+  // Every product in the live catalog (base, edited and custom — newest included) except the one
+  // being edited, narrowed by the search box; already-selected products always stay visible.
   const others = catalog.products.filter((p) => p.slug !== slug || isNew);
+  const q = normalizeSearch(relatedQuery);
+  const shown = q
+    ? others.filter(
+        (p) =>
+          selected.includes(p.slug) ||
+          normalizeSearch(`${p.name} ${p.type.en} ${p.type[locale]} ${p.aliases.join(" ")}`).includes(q),
+      )
+    : others;
 
   return (
     <section className="space-y-5">
@@ -1034,16 +922,29 @@ function OptionsSection({ slug, isNew }: { slug: string; isNew: boolean }) {
       <fieldset>
         <legend className="text-[14px] text-ink">{t("editor.options.related")}</legend>
         <p className="mb-2 text-[13px] text-muted">{t("editor.options.relatedHint")}</p>
+        <TextInput
+          type="search"
+          value={relatedQuery}
+          placeholder={t("editor.options.relatedSearch")}
+          aria-label={t("editor.options.relatedSearch")}
+          onChange={(e) => setRelatedQuery(e.target.value)}
+          className="mb-2 h-10 text-[14px]"
+          data-testid="editor-related-search"
+        />
         <div className="max-h-48 overflow-y-auto border border-line bg-paper p-3">
-          <div className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
-            {others.map((p) => (
-              <label key={p.slug} className="flex min-h-8 cursor-pointer items-center gap-2 text-[14px]">
-                <input type="checkbox" value={p.slug} className="size-[18px] accent-racing" {...register("related")} />
-                <bdi lang="en">{p.name}</bdi>
-                <span className="text-[12px] text-muted">· {p.type[locale]}</span>
-              </label>
-            ))}
-          </div>
+          {shown.length === 0 ? (
+            <p className="py-2 text-[13px] text-muted">{t("editor.options.relatedEmpty")}</p>
+          ) : (
+            <div className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
+              {shown.map((p) => (
+                <label key={p.slug} className="flex min-h-8 cursor-pointer items-center gap-2 text-[14px]">
+                  <input type="checkbox" value={p.slug} className="size-[18px] accent-racing" {...register("related")} />
+                  <bdi lang="en">{p.name}</bdi>
+                  <span className="text-[12px] text-muted">· {p.type[locale]}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       </fieldset>
     </section>

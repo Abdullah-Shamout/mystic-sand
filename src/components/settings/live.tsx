@@ -13,10 +13,10 @@ import { feeFor, phoneDisplay, telHref, whatsappDisplay, whatsappHref } from "@/
 const ltrIsolate = (text: string) => `⁦${text}⁩`;
 
 /** Delivery fee, formatted KWD (isolated for use as text). */
-export function LiveFee({ kind }: { kind: "standard" | "express" }) {
+export function LiveFee() {
   const settings = useLiveSettings();
   const locale = useLocale() as Locale;
-  return <>{isolatedKWD(feeFor(settings, kind), locale)}</>;
+  return <>{isolatedKWD(feeFor(settings), locale)}</>;
 }
 
 /** Contact phone, e.g. "+965 9000 0000". `isolate` wraps it in an LTR isolate for Arabic text. */

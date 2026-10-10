@@ -3,7 +3,6 @@
 import { ChevronDown, ShoppingBag, Tag, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
@@ -11,20 +10,17 @@ import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { toLatinDigits } from "@/lib/digits";
 import { useLiveCatalog, useLiveSettings } from "@/lib/live";
-import { computeTotals, priceLines, type DeliveryMethod, type Totals } from "@/lib/pricing";
-import type { CheckoutForm } from "@/lib/validation";
+import { computeTotals, priceLines, type Totals } from "@/lib/pricing";
 import { useBag } from "@/store/bag";
 import { useUi } from "@/store/ui";
 
-/** Live totals for the delivery method chosen in the form. */
-export function useCheckoutTotals(): { totals: Totals; deliveryMethod: DeliveryMethod } {
-  const { control } = useFormContext<CheckoutForm>();
-  const deliveryMethod = useWatch({ control, name: "deliveryMethod" });
+/** Live order totals (one delivery fee, always charged on a non-empty bag). */
+export function useCheckoutTotals(): { totals: Totals } {
   const lines = useBag((s) => s.lines);
   const promo = useBag((s) => s.promo);
   const catalog = useLiveCatalog();
   const settings = useLiveSettings();
-  return { totals: computeTotals({ lines, promo, deliveryMethod, catalog, settings }), deliveryMethod };
+  return { totals: computeTotals({ lines, promo, catalog, settings }) };
 }
 
 function Row({ label, children, className }: { label: React.ReactNode; children: React.ReactNode; className?: string }) {
@@ -39,13 +35,11 @@ function Row({ label, children, className }: { label: React.ReactNode; children:
 /** Subtotal → total, shared by the summary and the Apple Pay sheet. */
 export function TotalsList({
   totals,
-  deliveryMethod,
   promoCode,
   totalLabel,
   className,
 }: {
   totals: Totals;
-  deliveryMethod: DeliveryMethod;
   promoCode: string | null;
   totalLabel?: string;
   className?: string;
@@ -62,7 +56,7 @@ export function TotalsList({
           −<Price fils={totals.discountFils} />
         </Row>
       )}
-      <Row label={deliveryMethod === "express" ? t("deliveryExpress") : t("deliveryStandard")}>
+      <Row label={t("delivery")}>
         <Price fils={totals.deliveryFils} />
       </Row>
       <Row label={totalLabel ?? tc("total")} className="border-t border-line pt-3 text-[17px] font-medium">
@@ -210,7 +204,7 @@ export function PromoField() {
 
 function SummaryBody() {
   const t = useTranslations("checkout.summary");
-  const { totals, deliveryMethod } = useCheckoutTotals();
+  const { totals } = useCheckoutTotals();
   const promo = useBag((s) => s.promo);
   return (
     <>
@@ -218,12 +212,7 @@ function SummaryBody() {
       <div className="border-t border-line py-4">
         <PromoField />
       </div>
-      <TotalsList
-        totals={totals}
-        deliveryMethod={deliveryMethod}
-        promoCode={promo?.code ?? null}
-        className="border-t border-line pt-4"
-      />
+      <TotalsList totals={totals} promoCode={promo?.code ?? null} className="border-t border-line pt-4" />
       <p className="mt-3 text-[13px] text-muted">{t("finalNote")}</p>
     </>
   );

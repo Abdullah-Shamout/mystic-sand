@@ -9,10 +9,8 @@ import { useLiveProduct } from "@/lib/live";
 import { formatKWD } from "@/lib/money";
 import { AddToBagButton } from "./add-to-bag-button";
 
-const TIERS = ["top", "heart", "base"] as const;
-
 /**
- * The product-dependent half of the AURA feature: live name, notes, price, tagline and the
+ * The product-dependent half of the AURA feature: live name, price, tagline and the
  * add-to-bag button. The Reem Kufi font (next/font, server-only) comes in as `signatureFont`.
  */
 export function AuraPanel({ signatureFont }: { signatureFont: string }) {
@@ -21,7 +19,6 @@ export function AuraPanel({ signatureFont }: { signatureFont: string }) {
   const product = useLiveProduct("aura");
   if (!product) return null;
   const variant = product.variants[0];
-  const notes = product.notes;
 
   return (
     <>
@@ -35,19 +32,6 @@ export function AuraPanel({ signatureFont }: { signatureFont: string }) {
       </p>
       {locale === "en" && <p className="mt-1 text-[14px] text-ink/70">{t("tagline")}</p>}
       <p className="mt-5 max-w-sm text-[15px] leading-relaxed text-ink/85">{t("body")}</p>
-
-      {notes && (
-        <dl className="mt-8 grid w-full max-w-md grid-cols-3 divide-x divide-ink/20 border-y border-ink/20 rtl:divide-x-reverse">
-          {TIERS.map((tier) => (
-            <div key={tier} className="px-2 py-5">
-              <dt className="caps text-[11px] text-ink/70 md:text-[12px]">{t(tier)}</dt>
-              <dd className="mt-2 text-[14px] leading-snug">
-                {notes[tier].map((note) => note[locale]).join(locale === "ar" ? "، " : ", ")}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
 
       <p className="mt-8 flex items-baseline gap-3">
         <bdi className="figures text-[19px] font-medium">{formatKWD(variant.priceFils, locale)}</bdi>

@@ -26,13 +26,6 @@
   "notifyText": "Hello Mystic Sand, please let me know when {name} is back in stock.",
   "help": "Questions? Chat with us on WhatsApp",
   "helpText": "Hello Mystic Sand, I have a question about {name}.",
-  "delivery": {
-    "expressOpen": "Order within <b>{time}</b> for {h}-hour delivery today",
-    "expressLater": "Express delivery from <b>{time}</b> today",
-    "expressTomorrow": "Express delivery from <b>{time}</b> tomorrow",
-    "standard": "Standard delivery arrives <b>{day}</b>",
-    "perks": "Delivery from {amount} · {d}-day returns on unopened items"
-  },
   "gallery": {
     "label": "{name} — images",
     "position": "Image {index} of {total}",
@@ -43,27 +36,7 @@
   },
   "accordion": {
     "description": "Description",
-    "howToWear": "How to wear",
-    "howToUse": "How to use",
-    "notes": "Notes",
-    "delivery": "Delivery & returns"
-  },
-  "notes": {
-    "title": "The notes",
-    "top": "Top notes",
-    "heart": "Heart notes",
-    "base": "Base notes"
-  },
-  "info": {
-    "standardTitle": "Standard delivery",
-    "standard": "{fee} anywhere in Kuwait. Arrives {days, plural, one {the next day} other {within {d} days}}.",
-    "expressTitle": "{h}-hour express",
-    "express": "{fee}, daily from {opens} (Fridays from {friday}). Last orders at {last}.",
-    "returnsTitle": "Returns",
-    "returns": "Unopened items in their original packaging can be returned within {days, plural, one {a day} other {{d} days}}.",
-    "payment": "Pay with KNET, Apple Pay or card — no extra charge for any payment method.",
-    "deliveryLink": "Delivery information",
-    "returnsLink": "Returns & exchange"
+    "howToUse": "How to use"
   },
   "oud": {
     "eyebrow": "The ingredient",

@@ -219,9 +219,7 @@ export function BagSummary({ onNavigate, compact = false }: { onNavigate?: () =>
           </div>
         )}
         <div className="flex justify-between">
-          <dt>
-            {t("delivery")} <span className="text-[12px] text-muted">· {t("deliveryHint")}</span>
-          </dt>
+          <dt>{t("delivery")}</dt>
           <dd>
             <Price fils={totals.deliveryFils} />
           </dd>

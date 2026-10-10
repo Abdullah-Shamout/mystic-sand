@@ -195,7 +195,6 @@ test.describe("admin orders dashboard", () => {
     const completed = doneSamples(admin).length;
     const pending = 30 - completed;
     const knet = admin.samples.filter((o) => o.method === "knet").length;
-    const express = admin.samples.filter((o) => o.details.deliveryMethod === "express").length;
 
     const kpiCompleted = await readInt(page, "kpi-completed-value");
 
@@ -221,13 +220,25 @@ test.describe("admin orders dashboard", () => {
     await expect.poll(() => resultCount(page)).toBe(knet);
     await page.getByLabel("Payment").selectOption("all");
 
-    await page.getByLabel("Delivery").selectOption("express");
-    await expect.poll(() => resultCount(page)).toBe(express);
-    await page.getByLabel("Delivery").selectOption("all");
-
     await page.getByRole("button", { name: "Website", exact: true }).click();
     await expect.poll(() => resultCount(page)).toBe(0);
     await expect(page.getByText("No orders match these filters.")).toBeVisible();
+  });
+
+  test("there is no Unpaid filter, no Delivery filter and no Confirming status", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/");
+    await expect.poll(() => resultCount(page)).toBe(30);
+
+    // The fulfilment chips are only All / Pending / Done — no "Unpaid checkouts".
+    await expect(page.getByRole("button", { name: "Unpaid checkouts" })).toHaveCount(0);
+    // The delivery filter is gone entirely.
+    await expect(page.getByLabel("Delivery")).toHaveCount(0);
+    // Status chips are only Pending and Done — never Confirming, Unpaid, Failed or Canceled.
+    const table = page.locator("table");
+    await expect(table.getByText("Confirming", { exact: true })).toHaveCount(0);
+    await expect(table.getByText("Unpaid", { exact: true })).toHaveCount(0);
+    await expect(table.getByText(/^(Pending|Done)$/).first()).toBeVisible();
   });
 
   test("marking a paid order done updates KPIs, survives reload and undoes", async ({ page }) => {
@@ -483,6 +494,43 @@ test.describe("admin products", () => {
     expect(upload.h).toBeGreaterThan(0);
     expect(["packshot", "photo"]).toContain(upload.kind);
     expect(upload.data.startsWith("data:image/")).toBe(true);
+  });
+
+  test("an uploaded photo joins the reusable library and shows for another product after reload", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/products/edit/?p=new");
+
+    await page.getByTestId("editor-upload-input").setInputFiles({
+      name: "shot.png",
+      mimeType: "image/png",
+      buffer: TINY_PNG,
+    });
+    await expect(page.getByTestId("editor-photos").locator("li")).toHaveCount(1);
+
+    // Reload into a fresh product; the upload persists and shows under "Your uploads" in the library.
+    await page.reload();
+    await page.getByTestId("editor-add-library").click();
+    await expect(page.getByTestId("library-uploads").getByTestId("library-upload-item")).toHaveCount(1);
+  });
+
+  test("the editor's related search finds a custom product", async ({ page }) => {
+    await signIn(page);
+    await page.addInitScript((product) => {
+      localStorage.setItem(
+        "ms-catalog",
+        JSON.stringify({ state: { edits: { patches: {}, added: [product], categories: {} } }, version: 1 }),
+      );
+    }, CUSTOM_PRODUCT("c-related-search-aaaa", "Zephyr Nights", "renders/aura", "MS-ZEPHYR"));
+
+    await page.goto("/en/admin/products/edit/?p=i");
+    const search = page.getByTestId("editor-related-search");
+    await expect(search).toBeVisible();
+    // The custom product (added to the live catalog) is found by the related search.
+    await search.fill("Zephyr");
+    await expect(page.getByText("Zephyr Nights")).toBeVisible();
+    // A non-matching query filters it back out.
+    await search.fill("zzqqxx-nothing");
+    await expect(page.getByText("Zephyr Nights")).toHaveCount(0);
   });
 
   test("editing a base product's price flows to the store and resets", async ({ page }) => {
@@ -922,7 +970,15 @@ const readOverrides = async (page: Page) =>
 test.describe("admin store settings", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
 
-  test("a standard fee of 1.500 flows to the bag and FAQ, then resets to 1.000", async ({ page }) => {
+  test("settings shows a single delivery fee field", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/settings/");
+    await expect(page.getByTestId("settings-standard-fee")).toBeVisible();
+    // The old separate express-fee field is gone.
+    await expect(page.getByTestId("settings-express-fee")).toHaveCount(0);
+  });
+
+  test("a delivery fee of 1.500 flows to the bag and FAQ, then resets to 1.000", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/settings/");
     const standard = page.getByTestId("settings-standard-fee");

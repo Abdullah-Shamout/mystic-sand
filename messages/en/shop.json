@@ -15,7 +15,8 @@
   "count": "{count, plural, one {{n} product} other {{n} products}}",
   "sort": {
     "label": "Sort by",
-    "featured": "Featured",
+    "featured": "-",
+    "featuredAnnounce": "Default order",
     "priceAsc": "Price: low to high",
     "priceDesc": "Price: high to low",
     "announce": "Sorted by {order}"

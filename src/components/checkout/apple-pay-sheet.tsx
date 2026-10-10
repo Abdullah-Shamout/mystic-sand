@@ -152,8 +152,7 @@ export function ApplePaySheet({
           </div>
           <div className="grid grid-cols-[84px_minmax(0,1fr)] gap-4 py-3.5">
             <dt className="caps pt-0.5 text-[12px] text-muted">{t("delivery")}</dt>
-            <dd className="flex flex-wrap items-baseline justify-between gap-x-3">
-              <span>{details.deliveryMethod === "express" ? t("express") : t("standard")}</span>
+            <dd className="flex flex-wrap items-baseline justify-end gap-x-3">
               <Price fils={totals.deliveryFils} />
             </dd>
           </div>
@@ -176,7 +175,6 @@ export function ApplePaySheet({
 
         <TotalsList
           totals={totals}
-          deliveryMethod={details.deliveryMethod}
           promoCode={promo?.code ?? null}
           totalLabel={t("payTo", { merchant: iso("MYSTIC SAND") })}
           className="mt-4"

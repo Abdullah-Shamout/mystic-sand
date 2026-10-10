@@ -1,9 +1,9 @@
 "use client";
 
-import { Clock, RotateCcw, ShieldCheck, Truck } from "lucide-react";
+import { RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
-import { expressWindow, formatDays, ltr, standardWhen } from "@/components/content/values";
+import { formatDays, standardWhen } from "@/components/content/values";
 import { WhatsAppAnchor } from "@/components/settings/live";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
@@ -23,12 +23,7 @@ export function ServiceStrip() {
     {
       icon: Truck,
       title: t("delivery.title"),
-      text: t("delivery.text", { fee: isolatedKWD(feeFor(settings, "standard"), locale), when: standardWhen(locale) }),
-    },
-    {
-      icon: Clock,
-      title: t("express.title", { window: expressWindow(locale) }),
-      text: t("express.text", { lastOrder: ltr(delivery.express.lastOrder) }),
+      text: t("delivery.text", { fee: isolatedKWD(feeFor(settings), locale), when: standardWhen(locale) }),
     },
     { icon: RotateCcw, title: t("returns.title"), text: t("returns.text", { window: formatDays(delivery.returnsDays, locale) }) },
     { icon: ShieldCheck, title: t("payment.title"), text: t("payment.text") },
@@ -39,7 +34,7 @@ export function ServiceStrip() {
       <h2 id="services-title" className="sr-only">
         {t("title")}
       </h2>
-      <ul className="mx-auto grid max-w-[1440px] grid-cols-2 gap-x-6 gap-y-12 px-6 py-16 md:py-20 lg:grid-cols-4">
+      <ul className="mx-auto grid max-w-[1200px] grid-cols-1 gap-x-6 gap-y-12 px-6 py-16 sm:grid-cols-3 md:py-20">
         {items.map(({ icon: Icon, title, text }, i) => (
           <Reveal as="li" key={title} index={i} className="flex flex-col items-center text-center">
             <Icon className="size-7" strokeWidth={1} aria-hidden />

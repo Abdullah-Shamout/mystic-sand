@@ -27,9 +27,6 @@
     "signature": "كل رشة، تأسر لحظة",
     "tagline": "Every spray captures the moment",
     "body": "A light, joyful veil of scent for skin, hair and clothes.",
-    "top": "Top",
-    "heart": "Heart",
-    "base": "Base",
     "cta": "Discover AURA",
     "alt": "AURA all over spray on stone plinths in soft afternoon light"
   },
@@ -48,11 +45,7 @@
     "title": "Our services",
     "delivery": {
       "title": "Delivery across Kuwait",
-      "text": "Standard delivery for {fee}, arriving {when}."
-    },
-    "express": {
-      "title": "Express in {window}",
-      "text": "Order by {lastOrder} for delivery the same day."
+      "text": "Delivery for {fee}, arriving {when}."
     },
     "returns": {
       "title": "Easy returns",

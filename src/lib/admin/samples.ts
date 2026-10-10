@@ -18,7 +18,6 @@ import { mulberry32 } from "./prng";
 const SEED = 0x5a17d9;
 const DAY = 24 * 60 * 60 * 1000;
 const COUNT = 30;
-const CONFIRMING = 2;
 
 const NAMES_LATIN = [
   "Fatma Al-Kandari", "Yousef Al-Sabah", "Noura Al-Mutairi", "Abdullah Al-Rashidi", "Dana Al-Ajmi",
@@ -52,7 +51,7 @@ const NOTES_AR = [
   "هدية — بدون فاتورة بالداخل لو سمحت.",
 ];
 
-/** Internal draft: everything that doesn't depend on the paid/confirming decision. */
+/** Internal draft: everything needed to build a paid sample order. */
 type Draft = {
   id: string;
   placed: Date;
@@ -62,7 +61,7 @@ type Draft = {
   details: Order["details"];
   method: Order["method"];
   bankId: string | undefined;
-  deliveryMethod: "standard" | "express";
+  deliveryMethod: "standard";
   promo: Promo | null;
   doneRoll: number;
   doneDaysRoll: number;
@@ -119,7 +118,8 @@ export function generateSampleOrders(now: Date): { orders: Order[]; done: Record
       return r < 0.55 ? "knet" : r < 0.85 ? "applepay" : "card";
     })();
     const bankId = method === "knet" ? pick(banks).id : undefined;
-    const deliveryMethod: "standard" | "express" = rng() < 0.25 ? "express" : "standard";
+    // One delivery type everywhere — every sample order uses it.
+    const deliveryMethod = "standard" as const;
     const promo: Promo | null = rng() < 0.15 ? { code: "SAND10", percent: promoCodes.SAND10.percent } : null;
 
     // 1–3 distinct products, each with a random variant.
@@ -184,19 +184,11 @@ export function generateSampleOrders(now: Date): { orders: Order[]; done: Record
     });
   }
 
-  // The two most recent orders are still "confirming" (late bank confirmation); the rest are paid.
-  const confirming = new Set(
-    [...drafts]
-      .sort((a, b) => b.placed.getTime() - a.placed.getTime())
-      .slice(0, CONFIRMING)
-      .map((d) => d.id),
-  );
-
+  // Every sample order is paid (CAPTURED); some are then marked done (fulfilled).
   const orders: Order[] = [];
   const done: Record<string, string> = {};
 
   for (const d of drafts) {
-    const status: Order["status"] = confirming.has(d.id) ? "confirming" : "paid";
     const totals = computeTotals({
       lines: d.bagLines,
       deliveryMethod: d.deliveryMethod,
@@ -207,7 +199,7 @@ export function generateSampleOrders(now: Date): { orders: Order[]; done: Record
 
     const attempt: PaymentRecord = {
       method: d.method,
-      result: status === "paid" ? "CAPTURED" : "PENDING",
+      result: "CAPTURED",
       paymentId: `100${digits(15)}`,
       trackId: d.id,
       tranId: digits(15),
@@ -229,18 +221,16 @@ export function generateSampleOrders(now: Date): { orders: Order[]; done: Record
       promoCode: d.promo?.code ?? null,
       bagKey: bagKey({ lines: d.bagLines, deliveryMethod: d.deliveryMethod, promo: d.promo }),
       method: d.method,
-      status,
+      status: "paid",
       attempts: [attempt],
-      finalizedAt: status === "paid" ? d.placed.toISOString() : null,
+      finalizedAt: d.placed.toISOString(),
     });
 
-    if (status === "paid") {
-      const ageDays = (nowMs - d.placed.getTime()) / DAY;
-      const makeDone = ageDays > 2 ? d.doneRoll < 0.85 : d.doneRoll < 0.12;
-      if (makeDone) {
-        const doneTime = Math.min(d.placed.getTime() + (1 + d.doneDaysRoll) * DAY, nowMs);
-        done[d.id] = new Date(doneTime).toISOString();
-      }
+    const ageDays = (nowMs - d.placed.getTime()) / DAY;
+    const makeDone = ageDays > 2 ? d.doneRoll < 0.85 : d.doneRoll < 0.12;
+    if (makeDone) {
+      const doneTime = Math.min(d.placed.getTime() + (1 + d.doneDaysRoll) * DAY, nowMs);
+      done[d.id] = new Date(doneTime).toISOString();
     }
   }
 

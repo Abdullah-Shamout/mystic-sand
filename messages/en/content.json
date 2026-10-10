@@ -73,11 +73,11 @@
           },
           "cost": {
             "q": "How much does delivery cost?",
-            "a": "Standard delivery is {standardFee} and express delivery is {expressFee}. The delivery fee is always shown in your bag and at checkout, before you pay."
+            "a": "Delivery is {standardFee} to every area of Kuwait. The delivery fee is always shown in your bag and at checkout, before you pay."
           },
           "time": {
             "q": "How quickly will my order arrive?",
-            "a": "Standard orders arrive {standardWhen}. Express orders reach you within {expressWindow} when you order between {opens} and {lastOrder} (from {fridayOpens} on Fridays). Read more in our <delivery>delivery policy</delivery>."
+            "a": "Orders arrive {standardWhen}. Read more in our <delivery>delivery policy</delivery>."
           },
           "track": {
             "q": "How can I follow my order?",

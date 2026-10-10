@@ -100,6 +100,19 @@ test.describe("shopping flows", () => {
     await expect(bag.getByText("KWD 39.000")).toBeVisible(); // + KWD 1.000 delivery
   });
 
+  test("checkout shows one Delivery block with the fee and no choice of method", async ({ page }) => {
+    await addFromProductPage(page, "i");
+    await page.goto("/en/checkout/");
+
+    const deliverySection = page.locator("section:has(#ck-delivery-title)");
+    await expect(deliverySection).toBeVisible();
+    // No standard/express choice — the delivery section carries no radios.
+    await expect(deliverySection.getByRole("radio")).toHaveCount(0);
+    await expect(deliverySection.getByText("KWD 1.000")).toBeVisible();
+    // The old delivery-method wording is gone ("Express checkout", a payment feature, is unrelated).
+    await expect(page.getByText(/2-hour express|Standard delivery/i)).toHaveCount(0);
+  });
+
   test("a bag of discontinued products shows no totals and no checkout", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("ms-bag", JSON.stringify({ state: { lines: [{ sku: "MS-TRILOGY-SET", qty: 1 }], promo: null }, version: 2 }));
@@ -194,6 +207,42 @@ test.describe("navigation and media", () => {
     const images = page.locator("article").filter({ hasText: "Mist" }).locator("img");
     await expect(images).toHaveCount(1);
     await expect(images.first()).toHaveAttribute("src", /renders\/mist/);
+  });
+
+  test("the shop sort's default option reads “-”", async ({ page }) => {
+    await page.goto("/en/shop/");
+    const sort = page.getByLabel("Sort by");
+    await expect(sort).toHaveValue("featured");
+    await expect(sort.locator("option").first()).toHaveText("-");
+  });
+
+  test("the product page shows How to use and the tagline, with no notes or delivery boxes", async ({ page }) => {
+    // Seed a custom tagline through the live catalog (ms-catalog) and see it on the page.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "ms-catalog",
+        JSON.stringify({
+          state: {
+            edits: {
+              patches: { i: { tagline: { en: "A seeded tagline for testing.", ar: "سطر تعريفي تجريبي." } } },
+              added: [],
+              categories: {},
+            },
+          },
+          version: 1,
+        }),
+      );
+    });
+    await page.goto("/en/product/i/");
+
+    await expect(page.getByText("A seeded tagline for testing.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "How to use" })).toBeVisible();
+    // No fragrance notes and no delivery boxes anywhere on the page.
+    await expect(page.getByText("The notes")).toHaveCount(0);
+    await expect(page.getByText("Delivery & returns")).toHaveCount(0);
+    await expect(page.getByText(/Standard delivery arrives|Order within/i)).toHaveCount(0);
+    // The WhatsApp help link stays.
+    await expect(page.getByRole("link", { name: /Chat with us on WhatsApp/ })).toBeVisible();
   });
 
   test("product photos show one at a time, with arrows", async ({ page }) => {

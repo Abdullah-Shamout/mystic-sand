@@ -26,13 +26,6 @@
   "notifyText": "مرحباً Mystic Sand، أرجو إبلاغي عند توفّر {name} من جديد.",
   "help": "لديك سؤال؟ تحدّث معنا عبر واتساب",
   "helpText": "مرحباً Mystic Sand، لديّ سؤال عن {name}.",
-  "delivery": {
-    "expressOpen": "اطلب خلال <b>{time}</b> ليصلك اليوم خلال {hours, plural, one {ساعة} two {ساعتين} few {{h} ساعات} many {{h} ساعة} other {{h} ساعة}}",
-    "expressLater": "التوصيل السريع متاح اليوم ابتداءً من الساعة <b>{time}</b>",
-    "expressTomorrow": "التوصيل السريع متاح غداً ابتداءً من الساعة <b>{time}</b>",
-    "standard": "يصل التوصيل العادي يوم <b>{day}</b>",
-    "perks": "التوصيل ابتداءً من {amount} · إرجاع خلال {days, plural, one {يوم واحد} two {يومين} few {{d} أيام} many {{d} يوماً} other {{d} يوم}} للمنتجات غير المفتوحة"
-  },
   "gallery": {
     "label": "صور {name}",
     "position": "الصورة {index} من {total}",
@@ -43,27 +36,7 @@
   },
   "accordion": {
     "description": "الوصف",
-    "howToWear": "طريقة الاستعمال",
-    "howToUse": "طريقة الاستخدام",
-    "notes": "النفحات العطرية",
-    "delivery": "التوصيل والإرجاع"
-  },
-  "notes": {
-    "title": "النفحات",
-    "top": "مقدّمة العطر",
-    "heart": "قلب العطر",
-    "base": "قاعدة العطر"
-  },
-  "info": {
-    "standardTitle": "التوصيل العادي",
-    "standard": "{fee} لجميع مناطق الكويت. {days, plural, one {يصلك في اليوم التالي} two {يصلك خلال يومين} few {يصلك خلال {d} أيام} many {يصلك خلال {d} يوماً} other {يصلك خلال {d} يوم}}.",
-    "expressTitle": "التوصيل السريع خلال {hours, plural, one {ساعة} two {ساعتين} few {{h} ساعات} many {{h} ساعة} other {{h} ساعة}}",
-    "express": "{fee}، يومياً من الساعة {opens} (أيام الجمعة من الساعة {friday})، وآخر موعد للطلب الساعة {last}.",
-    "returnsTitle": "الإرجاع",
-    "returns": "يمكن إرجاع المنتجات غير المفتوحة في تغليفها الأصلي خلال {days, plural, one {يوم واحد} two {يومين} few {{d} أيام} many {{d} يوماً} other {{d} يوم}}.",
-    "payment": "ادفع عبر كي نت أو Apple Pay أو البطاقة — دون رسوم إضافية على أي طريقة دفع.",
-    "deliveryLink": "معلومات التوصيل",
-    "returnsLink": "الإرجاع والاستبدال"
+    "howToUse": "طريقة الاستخدام"
   },
   "oud": {
     "eyebrow": "المكوّن",
