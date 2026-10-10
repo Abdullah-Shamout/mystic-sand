@@ -339,7 +339,6 @@ function filterRows(filters: AnalysisFilters, now: Date, t: (key: string) => str
   return [
     [label(t("analysis.export.summary.filters")), null],
     [label(t("filters.rangeLabel")), label(rangeLabel)],
-    [label(t("filters.sourceLabel")), label(t(`filters.source.${filters.source}`))],
     [label(t("analysis.completedOnly")), label(t(filters.completedOnly ? "analysis.export.yes" : "analysis.export.no"))],
     [label(t("filters.searchLabel")), text(filters.query)],
     [label(t("analysis.export.summary.generated")), dateCell(now.toISOString())],

@@ -12,6 +12,7 @@
   "increase": "Increase quantity",
   "maxReached": "Maximum quantity reached",
   "storageFull": "This browser’s storage is full — some changes may not be saved.",
+  "stockRefused": "Some items are no longer available in the quantity you chose — your bag has been updated, you have not been charged.",
   "announcement": {
     "payment": "Pay securely with KNET, Apple Pay or card",
     "delivery": "Delivery to every area of Kuwait",

@@ -4,7 +4,7 @@ import { isCustomSlug, type Catalog } from "@/lib/catalog";
 import { normalizeSearch } from "@/lib/search";
 import { availableFromStock } from "@/lib/stock";
 import type { SoldMap } from "@/store/stock";
-import { inDateRange, type RangeFilter, type SourceFilter, type AdminOrder } from "./orders";
+import { inDateRange, type RangeFilter, type AdminOrder } from "./orders";
 
 // Pure, React-free product analytics. From the paid + confirming orders of both sources and the
 // live catalog it rolls up units ordered, orders and revenue per product (joined by line.slug so
@@ -15,7 +15,6 @@ export type AnalysisFilters = {
   range: RangeFilter;
   from?: string;
   to?: string;
-  source: SourceFilter;
   /** Only count orders that have been marked done (fulfillment). */
   completedOnly: boolean;
 };
@@ -23,7 +22,6 @@ export type AnalysisFilters = {
 export const defaultAnalysisFilters: AnalysisFilters = {
   query: "",
   range: "all",
-  source: "all",
   completedOnly: false,
 };
 
@@ -114,11 +112,10 @@ function matchesRemoved(stat: RemovedStat, query: string): boolean {
   return normalizeSearch(`${stat.name} ${stat.slug}`).includes(q);
 }
 
-/** Orders counted: paid + confirming, passing the source, date-range and completed-only filters. */
+/** Orders counted: paid + confirming (all sources), passing the date-range and completed-only filters. */
 function selectOrders(orders: AdminOrder[], filters: AnalysisFilters, now: Date): AdminOrder[] {
   return orders.filter((item) => {
     if (!item.paid) return false;
-    if (filters.source !== "all" && item.source !== filters.source) return false;
     if (filters.completedOnly && item.fulfillment !== "done") return false;
     return inDateRange(item.placedAt, filters.range, filters.from, filters.to, now);
   });

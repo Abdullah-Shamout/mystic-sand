@@ -5,14 +5,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMounted } from "@/lib/hooks";
 import { AccountSection } from "./account-section";
 import { ContactSection } from "./contact-section";
-import { DataSection } from "./data-section";
 import { DeliverySection } from "./delivery-section";
 import { TickerSection } from "./ticker-section";
 
 /**
- * Store settings: delivery fees, contact numbers, the top banner, the admin account and the
- * browser's data (storage, backups, sample orders, resets, unused photos). Everything is saved
- * in this browser only, so the page shows a skeleton until mounted and reads the live stores.
+ * Store settings: delivery fees, contact numbers, the top banner and the admin account. Everything
+ * is saved in this browser only, so the page shows a skeleton until mounted and reads the live stores.
  */
 export function SettingsPage() {
   const t = useTranslations("admin");
@@ -29,7 +27,6 @@ export function SettingsPage() {
         <ContactSection />
         <TickerSection />
         <AccountSection />
-        <DataSection />
       </div>
     </div>
   );

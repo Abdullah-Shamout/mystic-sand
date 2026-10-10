@@ -43,7 +43,10 @@ export function CheckoutSkeleton() {
 /** Empty bag on /checkout: an inline invitation (never a redirect), plus the last order if any. */
 export function CheckoutEmpty() {
   const t = useTranslations("checkout.empty");
-  const lastOrderId = useCheckout((s) => (s.lastOrderId && s.orders[s.lastOrderId] ? s.lastOrderId : null));
+  // Only ever link to a paid order (guards against stale data pointing at an unpaid attempt).
+  const lastOrderId = useCheckout((s) =>
+    s.lastOrderId && s.orders[s.lastOrderId]?.status === "paid" ? s.lastOrderId : null,
+  );
 
   return (
     <div>

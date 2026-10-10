@@ -73,6 +73,36 @@ test.describe("shopping flows", () => {
     await expect(page.getByRole("button", { name: /Try again/i }).or(page.getByRole("link", { name: /Try again/i }))).toBeVisible();
   });
 
+  test("My orders is empty until a paid order, then lists it as Confirmed", async ({ page }) => {
+    await page.goto("/en/orders/");
+    await expect(page.getByText("No orders yet")).toBeVisible();
+    await expect(page.getByTestId("order-history")).toHaveCount(0);
+
+    await addFromProductPage(page, "i");
+    await page.goto("/en/checkout/");
+    await fillCheckout(page);
+    await payWithKnet(page);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
+
+    await page.goto("/en/orders/");
+    await expect(page.getByTestId("order-history")).toBeVisible();
+    await expect(page.getByText("No orders yet")).toHaveCount(0);
+    await expect(page.getByText("Confirmed").first()).toBeVisible();
+  });
+
+  test("a failed payment leaves My orders empty", async ({ page }) => {
+    await addFromProductPage(page, "aura");
+    await page.goto("/en/checkout/");
+    await page.evaluate(() => sessionStorage.setItem("ms-demo-outcome", "NOT CAPTURED"));
+    await fillCheckout(page);
+    await payWithKnet(page);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/not completed/i);
+
+    await page.goto("/en/orders/");
+    await expect(page.getByText("No orders yet")).toBeVisible();
+    await expect(page.getByTestId("order-history")).toHaveCount(0);
+  });
+
   test("landline numbers are rejected with a clear message", async ({ page }) => {
     await addFromProductPage(page, "cafe");
     await page.goto("/en/checkout/");

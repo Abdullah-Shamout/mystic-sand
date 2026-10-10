@@ -1,6 +1,6 @@
 import type { PaymentGateway, PaymentRecord, PaymentResult } from "./types";
 
-const RESULTS: PaymentResult[] = ["CAPTURED", "NOT CAPTURED", "CANCELED", "PENDING"];
+const RESULTS: PaymentResult[] = ["CAPTURED", "NOT CAPTURED", "CANCELED"];
 
 /** Simulated gateway: sends the shopper to the in-site KNET/card simulator. */
 export const mockGateway: PaymentGateway = {

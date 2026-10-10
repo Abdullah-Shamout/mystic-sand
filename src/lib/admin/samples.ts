@@ -1,6 +1,7 @@
 import { banks } from "@/data/banks";
 import { areas } from "@/data/kuwait-areas";
 import { promoCodes } from "@/data/site";
+import type { Product } from "@/data/types";
 import type { Locale } from "@/i18n/routing";
 import { baseCatalog } from "@/lib/catalog";
 import { kuwaitClock } from "@/lib/delivery";
@@ -18,6 +19,13 @@ import { mulberry32 } from "./prng";
 const SEED = 0x5a17d9;
 const DAY = 24 * 60 * 60 * 1000;
 const COUNT = 30;
+
+// The fixed built-in order's id. It sits at the very top of the sample range (MS-10000..19999) and
+// is reserved so the PRNG generator never draws it; real orders use MS-20000..99999, so there is no
+// collision with a real checkout. Older builds placed this order at MS-20714 (inside the real range);
+// those ids are migrated to FIXED_ORDER_ID by the admin store's samplesVersion top-up.
+export const FIXED_ORDER_ID = "MS-19999";
+export const LEGACY_FIXED_ORDER_IDS = ["MS-20714"] as const;
 
 const NAMES_LATIN = [
   "Fatma Al-Kandari", "Yousef Al-Sabah", "Noura Al-Mutairi", "Abdullah Al-Rashidi", "Dana Al-Ajmi",
@@ -82,7 +90,8 @@ export function generateSampleOrders(now: Date): { orders: Order[]; done: Record
   const kuwaitMidnight = Date.UTC(today.year, today.month - 1, today.day);
 
   const baseProducts = baseCatalog.visible;
-  const usedIds = new Set<string>();
+  // Reserve the fixed built-in id so a random sample never collides with it.
+  const usedIds = new Set<string>([FIXED_ORDER_ID]);
   const nowMs = now.getTime();
 
   const drafts: Draft[] = [];
@@ -234,5 +243,94 @@ export function generateSampleOrders(now: Date): { orders: Order[]; done: Record
     }
   }
 
-  return { orders, done };
+  const fixed = fixedSampleOrders(now);
+  return { orders: [...orders, ...fixed.orders], done: { ...done, ...fixed.done } };
+}
+
+// ── Fixed built-in orders ──────────────────────────────────────────────────────
+// Specific, non-random sample orders that must always be present (and are topped up into admin
+// browsers seeded before they existed — see the admin store's samplesVersion). Each has a stable
+// id so the top-up never duplicates it.
+
+/** A recent, paid-but-not-yet-fulfilled KNET order from the customer on +965 6709 5252. */
+export function fixedSampleOrders(now: Date): { orders: Order[]; done: Record<string, string> } {
+  const mmdd = (date: Date) => {
+    const c = kuwaitClock(date);
+    return `${String(c.month).padStart(2, "0")}${String(c.day).padStart(2, "0")}`;
+  };
+  // Placed yesterday (within the last two days) so it sits near the top of the dashboard.
+  const placed = new Date(Math.min(now.getTime() - DAY, now.getTime()));
+
+  const pick = (slug: string, fallback: number): Product => baseCatalog.bySlug.get(slug) ?? baseCatalog.visible[fallback];
+  const chosen = [pick("i", 0), pick("cafe", 3)];
+
+  const lines: OrderLine[] = [];
+  const bagLines: BagLine[] = [];
+  for (const product of chosen) {
+    const variant = product.variants[0];
+    lines.push({
+      sku: variant.sku,
+      slug: product.slug,
+      qty: 1,
+      priceFils: variant.priceFils,
+      name: product.name,
+      size: variant.size,
+      image: product.images.card,
+    });
+    bagLines.push({ sku: variant.sku, qty: 1 });
+  }
+
+  const deliveryMethod = "standard" as const;
+  const totals = computeTotals({ lines: bagLines, deliveryMethod, promo: null, catalog: baseCatalog, settings: defaultSettings });
+
+  const details: Order["details"] = {
+    name: "Abdulaziz Al-Mutairi",
+    phone: "67095252",
+    email: "a.almutairi@gmail.com",
+    areaId: "jabriya",
+    housing: "house",
+    block: "4",
+    street: "Street 11",
+    avenue: "",
+    building: "27",
+    floor: "",
+    apartment: "",
+    mapsLink: "",
+    notes: "Please call on arrival.",
+    deliveryMethod,
+    paymentMethod: "knet",
+    saveDetails: true,
+  };
+
+  const attempt: PaymentRecord = {
+    method: "knet",
+    result: "CAPTURED",
+    paymentId: "100479210385561027",
+    trackId: FIXED_ORDER_ID,
+    tranId: "481032957610423",
+    ref: "582104739162",
+    auth: "604218",
+    postDate: mmdd(placed),
+    amountFils: totals.totalFils,
+    bankId: "nbk",
+    at: placed.toISOString(),
+  };
+
+  const order: Order = {
+    id: FIXED_ORDER_ID,
+    createdAt: placed.toISOString(),
+    locale: "en",
+    lines,
+    totals,
+    details,
+    promoCode: null,
+    bagKey: bagKey({ lines: bagLines, deliveryMethod, promo: null }),
+    method: "knet",
+    status: "paid",
+    attempts: [attempt],
+    finalizedAt: placed.toISOString(),
+  };
+
+  // Paid but still pending (not marked done), so it stays near the top.
+  return { orders: [order], done: {} };
 }

@@ -167,11 +167,10 @@
     "viewLabel": "عرض الطلب {id}",
     "items": "{count, plural, one {قطعة واحدة} two {قطعتان} few {# قطع} many {# قطعة} other {# قطعة}}",
     "statuses": {
-      "paid": "مدفوع",
+      "paid": "مؤكد",
       "pending": "بانتظار الدفع",
       "failed": "لم يكتمل",
-      "canceled": "ملغى",
-      "confirming": "قيد التأكيد"
+      "canceled": "ملغى"
     },
     "methods": {
       "knet": "كي نت",

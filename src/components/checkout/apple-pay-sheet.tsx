@@ -7,6 +7,7 @@ import { ApplePayLogo } from "@/components/brand/brand-icons";
 import { Modal } from "@/components/ui/modal";
 import { Price } from "@/components/ui/price";
 import { useRouter } from "@/i18n/navigation";
+import { clampBagToStock, orderExceedsStock } from "@/lib/capture";
 import { newPaymentFields } from "@/lib/order";
 import { mockGateway } from "@/lib/payments/mock";
 import type { PaymentRecord } from "@/lib/payments/types";
@@ -59,9 +60,11 @@ export function ApplePaySheet({
 }) {
   const t = useTranslations("checkout.applePay");
   const te = useTranslations("checkout.express");
+  const tc = useTranslations("common");
   const router = useRouter();
   const announce = useUi((s) => s.announce);
   const openBag = useUi((s) => s.openBag);
+  const pushToast = useUi((s) => s.pushToast);
   const format = useAddressFormatter();
   const inInstagram = useInstagramBrowser();
   const lines = useBag((s) => s.lines);
@@ -79,14 +82,22 @@ export function ApplePaySheet({
   const totals = computeTotals({ lines, promo, deliveryMethod: details.deliveryMethod, catalog, settings });
   const address = format(details);
 
+  /** Refuses the capture: clamp the bag, tell the shopper, and send them back to it. */
+  const refuse = () => {
+    clampBagToStock();
+    setPhase("idle");
+    onOpenChange(false);
+    pushToast({ title: tc("stockRefused") });
+    openBag();
+  };
+
   const confirm = () => {
     if (phase !== "idle") return;
     // Final stock check: if a line sold out or went short, stop and send the shopper to the bag.
     const { priced, missing } = priceLines(useBag.getState().lines);
     const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
     if (priced.length === 0 || missing.length > 0 || short) {
-      onOpenChange(false);
-      openBag();
+      refuse();
       return;
     }
     setPhase("busy");
@@ -95,6 +106,11 @@ export function ApplePaySheet({
       window.setTimeout(() => {
         const orderId = createOrder();
         const order = useCheckout.getState().orders[orderId];
+        // Capture-time re-check (covers the last unit being taken in another tab meanwhile).
+        if (!order || orderExceedsStock(order)) {
+          refuse();
+          return;
+        }
         const now = new Date();
         const record: PaymentRecord = {
           method: "applepay",

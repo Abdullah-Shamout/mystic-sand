@@ -12,6 +12,13 @@ import type { Order } from "@/store/checkout";
 
 export type FulfillmentMap = Record<string, { doneAt: string }>;
 
+// Bump when a new fixed built-in order is added to src/lib/admin/samples.ts. seedSamples then tops
+// up admin browsers seeded at an older version with the missing built-in orders (without touching
+// the random samples), unless the admin cleared the samples.
+// v3: the fixed order moved from MS-20714 (inside the real-order range) to MS-19999 (reserved in the
+// sample range); the top-up renames the legacy order and carries over any fulfilment.
+export const SAMPLES_VERSION = 3;
+
 type AdminState = {
   /** orderId → when it was marked done. Covers both sample and real orders. */
   fulfillment: FulfillmentMap;
@@ -19,10 +26,12 @@ type AdminState = {
   samples: Order[];
   samplesSeededAt: string | null;
   samplesCleared: boolean;
+  /** The SAMPLES_VERSION the current samples were generated/topped-up at. */
+  samplesVersion: number;
 
   markDone: (ids: string[], nowIso: string) => void;
   markPending: (ids: string[]) => void;
-  /** Generates the sample orders once. No-op if already seeded or explicitly cleared. */
+  /** Seeds the sample orders once, and tops up missing built-in orders on later versions. */
   seedSamples: (nowIso: string) => void;
   clearSamples: () => void;
   restoreSamples: (nowIso: string) => void;
@@ -34,6 +43,7 @@ const EMPTY_STATE = {
   samples: [] as Order[],
   samplesSeededAt: null as string | null,
   samplesCleared: false,
+  samplesVersion: 0,
 };
 
 const toDoneEntries = (done: Record<string, string>): FulfillmentMap =>
@@ -57,15 +67,45 @@ export const useAdminStore = create<AdminState>()(
       },
 
       seedSamples: (nowIso) => {
-        if (get().samplesSeededAt || get().samplesCleared) return;
-        void import("@/lib/admin/samples").then(({ generateSampleOrders }) => {
+        const { samplesCleared, samplesSeededAt, samplesVersion } = get();
+        if (samplesCleared) return; // the admin removed the samples on purpose
+        if (samplesSeededAt && samplesVersion >= SAMPLES_VERSION) return; // already up to date
+        void import("@/lib/admin/samples").then((m) => {
           const current = get();
-          if (current.samplesSeededAt || current.samplesCleared) return;
-          const { orders, done } = generateSampleOrders(new Date(nowIso));
+          if (current.samplesCleared) return;
+          if (current.samplesSeededAt && current.samplesVersion >= SAMPLES_VERSION) return;
+          if (!current.samplesSeededAt) {
+            // Fresh browser: generate the full set (random samples + built-in orders).
+            const { orders, done } = m.generateSampleOrders(new Date(nowIso));
+            set({
+              samples: orders,
+              samplesSeededAt: nowIso,
+              samplesVersion: SAMPLES_VERSION,
+              fulfillment: { ...current.fulfillment, ...toDoneEntries(done) },
+            });
+            return;
+          }
+          // Already seeded at an older version: drop any legacy-id copies of a built-in order
+          // (carrying their fulfilment onto the new id), then add the built-in orders it is missing.
+          const { orders, done } = m.fixedSampleOrders(new Date(nowIso));
+          const newId = m.FIXED_ORDER_ID;
+          const legacy = new Set<string>(m.LEGACY_FIXED_ORDER_IDS);
+
+          const samples = current.samples.filter((o) => !legacy.has(o.id));
+          const fulfillment = { ...current.fulfillment };
+          for (const legacyId of m.LEGACY_FIXED_ORDER_IDS) {
+            if (fulfillment[legacyId]) {
+              if (!fulfillment[newId]) fulfillment[newId] = fulfillment[legacyId];
+              delete fulfillment[legacyId];
+            }
+          }
+
+          const existing = new Set(samples.map((o) => o.id));
+          const missing = orders.filter((o) => !existing.has(o.id));
           set({
-            samples: orders,
-            samplesSeededAt: nowIso,
-            fulfillment: { ...current.fulfillment, ...toDoneEntries(done) },
+            samples: [...samples, ...missing],
+            samplesVersion: SAMPLES_VERSION,
+            fulfillment: { ...fulfillment, ...toDoneEntries(done) },
           });
         });
       },
@@ -86,6 +126,7 @@ export const useAdminStore = create<AdminState>()(
           set({
             samples: orders,
             samplesSeededAt: nowIso,
+            samplesVersion: SAMPLES_VERSION,
             samplesCleared: false,
             fulfillment: { ...current.fulfillment, ...toDoneEntries(done) },
           });
@@ -104,6 +145,7 @@ export const useAdminStore = create<AdminState>()(
         samples: s.samples,
         samplesSeededAt: s.samplesSeededAt,
         samplesCleared: s.samplesCleared,
+        samplesVersion: s.samplesVersion,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<AdminState>;
@@ -113,6 +155,8 @@ export const useAdminStore = create<AdminState>()(
           samples: Array.isArray(p.samples) ? p.samples : [],
           samplesSeededAt: typeof p.samplesSeededAt === "string" ? p.samplesSeededAt : null,
           samplesCleared: p.samplesCleared === true,
+          // Missing (older build) → 0, which triggers the built-in-order top-up on next seed.
+          samplesVersion: typeof p.samplesVersion === "number" ? p.samplesVersion : 0,
         };
       },
     },

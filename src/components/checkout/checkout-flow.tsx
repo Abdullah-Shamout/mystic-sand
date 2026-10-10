@@ -61,10 +61,12 @@ function UnavailableNotice() {
  */
 export function CheckoutFlow() {
   const t = useTranslations("checkout");
+  const tc = useTranslations("common");
   const locale = useLocale() as Locale;
   const router = useRouter();
   const announce = useUi((s) => s.announce);
   const openBag = useUi((s) => s.openBag);
+  const pushToast = useUi((s) => s.pushToast);
   const stock = useLiveStock();
   const lines = useBag((s) => s.lines);
   // Missing (unknown/hidden) and out-of-stock lines both have to leave the bag before paying.
@@ -162,13 +164,14 @@ export function CheckoutFlow() {
     const { priced, missing } = priceLines(useBag.getState().lines);
     const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
     if (priced.length === 0 || missing.length > 0 || short) {
+      if (short) pushToast({ title: tc("stockRefused") });
       openBag();
       return;
     }
     const values = getValues();
     const details = detailsComplete(values) ? values : { ...values, ...SAMPLE_DETAILS };
     setSheet({ open: true, details: withoutTerms(details) });
-  }, [getValues, openBag]);
+  }, [getValues, openBag, pushToast, tc]);
 
   // "Apple Pay" from the bag drawer or product page lands here with ?express=applepay (once).
   useEffect(() => {
@@ -215,6 +218,7 @@ export function CheckoutFlow() {
     // Re-check stock against the live ledger: a size that sold out (or dropped) stops the payment.
     const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
     if (priced.length === 0 || missing.length > 0 || short) {
+      if (short) pushToast({ title: tc("stockRefused") });
       openBag();
       return;
     }

@@ -18,17 +18,17 @@ A clickable, frontend-only prototype of the **Mystic Sand** perfume store
 ## Payments (simulation)
 
 No real payment is processed and the site never asks for card numbers, PINs or SMS codes.
-The checkout creates an order and opens an in-site simulation of KNET's hosted page (bank → card → submit → confirm → SMS code), with a demo panel to choose the outcome: `CAPTURED`, `NOT CAPTURED`, `CANCELED` or `PENDING`. The result page shows the same fields KNET returns to a merchant (payment ID, transaction ID, track ID, reference, auth code, post date).
+The checkout runs an in-site simulation of KNET's hosted page (bank → card → submit → confirm → SMS code), with a demo panel to choose the outcome: `CAPTURED`, `NOT CAPTURED` or `CANCELED`. No order a shopper can see is created before payment; only a captured payment becomes a **Confirmed** order (in *My orders* and on the receipt). The result page shows the same fields KNET returns to a merchant (payment ID, transaction ID, track ID, reference, auth code, post date).
 
 For production, replace `src/lib/payments/mock.ts` with a server-side integration (KNET through the acquiring bank, or a provider such as MyFatoorah, Tap, UPayments, Hesabe or Ottu): the server creates the payment, redirects to the provider's hosted page, and **verifies the result server-side** before marking an order paid.
 
-**Presenter tools:** add `?demo=1` to any URL to show a small *Demo* panel (fill a sample Kuwait address, choose the next payment result, reset demo data). `?reset=1` clears the bag and orders; `?code=SAND10` applies a demo promo code.
+**Presenter tools:** add `?demo=1` to any URL to show a small *Demo* panel (fill a sample Kuwait address, choose the next payment result — captured, not captured or cancelled — reset demo data). `?reset=1` clears the bag and orders; `?code=SAND10` applies a demo promo code.
 
 ## Admin area
 
 A built-in, browser-only back office for running the demo store. Open it with **"Enter"** at the top of the header (it reads **"دخول"** in Arabic), or go straight to **`/<locale>/admin/`** (for example `/en/admin/` or `/ar/admin/`). It is fully English/Arabic with right-to-left support, like the rest of the site.
 
-**Default sign-in:** username `admin`, password `MysticSand2026`. Change them in **Settings → Admin account** (enter the current password, then a new username and/or a password of at least 8 characters). Credentials are kept only as a SHA-256 hash in this browser.
+**Default sign-in:** username `admin`, password `MysticSand@2026`. Change them in **Settings** — a separate **Change username** card and **Change password** card, each asking for the current password. A new password must be at least 8 characters with a capital letter, a number and a special character (a live checklist shows the rules). Credentials are kept only as a SHA-256 hash in this browser.
 
 **What each tab does**
 
@@ -36,9 +36,9 @@ A built-in, browser-only back office for running the demo store. Open it with **
 - **Products** — add a product or edit any existing one: names and descriptions in English and Arabic, sizes/prices (KWD) and stock, **photos** (from the site library or uploaded), the **collections** it appears in, a "New" badge and visibility. Move a product between collections, **hide/show** it, reset an edited base product to the original, or **delete** a custom product. The four collection names and descriptions are editable too.
 - **Stock** — the stock of every size of every product (hidden and custom products included), grouped by product and filterable by collection or stock level (All · Low · Out of stock), searchable by name or SKU. Each size shows the **stock set**, the **units sold since it was set** and the **available** figure customers can still buy; adjust it with − / + or type an exact value and **Save**. Summary tiles count products in stock, sizes out, sizes low and total units available. **Export** the table to Excel.
 - **Product analysis** — units ordered per product, grouped by collection and searchable, with revenue (before order discounts), order counts, current price and available stock. **Export** a single collection, or **Export all collections** at once, to Excel.
-- **Settings** — the delivery fee, the WhatsApp and phone numbers, the **top-banner** messages (per language), the **admin account**, and **Data & backups**: a storage meter, **download backup / restore** (so data can move to another device), **clear or restore the sample orders**, reset catalog edits (this also resets the stock ledger) or settings, and delete unused photos.
+- **Settings** — the delivery fee, the WhatsApp and phone numbers, the **top-banner** messages (per language), and the **admin account** (separate username and password cards). Everything is saved in this browser only; there is no backup/restore — the data cannot move to another device.
 
-The dashboard is seeded with about 30 realistic sample orders (tagged **Sample**) so it looks alive; any real order placed in this browser appears alongside them. Clear or restore the samples from **Settings → Data**.
+The dashboard is seeded with about 30 realistic sample orders (tagged **Sample**) so it looks alive; any real order placed in this browser appears alongside them.
 
 ### Important limits (please read before any real use)
 
@@ -46,7 +46,7 @@ This admin area is a **frontend-only prototype**. There is no server and no data
 
 - **One browser only.** Orders placed by shoppers on other devices or browsers **do not arrive here**, and product, price or settings edits made here are **not seen by other shoppers**. Each browser keeps its own separate copy.
 - **The sign-in is a demo gate, not real security.** Anyone with the device can open the admin, and the default hash ships in the public bundle. It only keeps casual visitors out of the way.
-- **Safari may erase the data.** Safari (and iOS) clears this kind of storage after **7 days without a visit**. Use **Settings → Data → Download backup** regularly, and prefer **Chrome or Edge** on the admin device.
+- **Safari may erase the data.** Safari (and iOS) clears this kind of storage after **7 days without a visit**, and there is no backup. Visit the admin regularly, and prefer **Chrome or Edge** on the admin device.
 - **Shared storage on github.io.** Every project site under the same `*.github.io` account shares one storage area, so other repositories on that account can read or clash with this data. **Use a custom domain** before any real use.
 - **Stock is per browser.** Each size has its own stock, set on the **Stock** tab (or in the product editor). An order paid **in this browser** reduces the available stock of every size it contains, and a size that reaches zero shows **Out of stock** and can no longer be bought. Because there is no server, orders paid on other devices or browsers do **not** reduce the stock shown here — only the ones paid in this browser do.
 

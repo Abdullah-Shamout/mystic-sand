@@ -7,12 +7,14 @@ import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { Link, useRouter } from "@/i18n/navigation";
+import { clampBagToStock, orderExceedsStock } from "@/lib/capture";
 import { cn } from "@/lib/cn";
 import { useLiveSettings } from "@/lib/live";
 import { mockGateway } from "@/lib/payments/mock";
 import { whatsappHref } from "@/lib/settings";
 import type { PaymentRecord } from "@/lib/payments/types";
 import type { Order } from "@/store/checkout";
+import { useUi } from "@/store/ui";
 import { isolate } from "./format";
 import { PaymentDetails } from "./payment-details";
 import { useFocusOnMount } from "./use-focus-on-mount";
@@ -31,8 +33,10 @@ export function ResultFailed({
   reason: "timeout" | null;
 }) {
   const t = useTranslations("payment");
+  const tc = useTranslations("common");
   const router = useRouter();
   const settings = useLiveSettings();
+  const pushToast = useUi((s) => s.pushToast);
   const [busy, setBusy] = useState(false);
   const heading = useFocusOnMount<HTMLHeadingElement>();
   const declined = attempt?.result === "NOT CAPTURED";
@@ -49,6 +53,14 @@ export function ResultFailed({
 
   const retry = () => {
     setBusy(true);
+    // "Try again" reuses the stored order — re-check stock before reopening the gateway, so a
+    // size that sold out (or was lowered) since the failed attempt can never be captured now.
+    if (orderExceedsStock(order)) {
+      clampBagToStock();
+      pushToast({ title: tc("stockRefused") });
+      router.push("/cart");
+      return;
+    }
     const { redirectPath } = mockGateway.initiate({
       orderId: order.id,
       method: retryMethod,

@@ -5,11 +5,10 @@ import { useTranslations } from "next-intl";
 import type { DemoOutcome } from "@/components/layout/demo-helpers";
 import { RadioCard } from "@/components/ui/form";
 
-const OPTIONS: Array<{ value: DemoOutcome; key: "captured" | "notCaptured" | "canceled" | "pending" }> = [
+const OPTIONS: Array<{ value: DemoOutcome; key: "captured" | "notCaptured" | "canceled" }> = [
   { value: "CAPTURED", key: "captured" },
   { value: "NOT CAPTURED", key: "notCaptured" },
   { value: "CANCELED", key: "canceled" },
-  { value: "PENDING", key: "pending" },
 ];
 
 /** Presenter panel: picks how this simulated payment ends. Collapsed by default. */

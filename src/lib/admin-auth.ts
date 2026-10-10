@@ -14,12 +14,12 @@ import { useSyncExternalStore } from "react";
  * `mystic-sand-admin:<username lowercased>:<password>`. The username is case-insensitive.
  */
 
-// Default: username "admin", password "MysticSand2026".
+// Default: username "admin", password "MysticSand@2026".
 // Recompute with:
-//   node -e "const c=require('crypto');console.log(c.createHash('sha256').update('mystic-sand-admin:admin:MysticSand2026').digest('hex'))"
+//   node -e "const c=require('crypto');console.log(c.createHash('sha256').update('mystic-sand-admin:admin:MysticSand@2026').digest('hex'))"
 export const DEFAULT_ADMIN = {
   username: "admin",
-  hash: "2f5f7bd65913a6a163260a843d332f584bca5c1c525c1569a79b0a78ac6d764f",
+  hash: "2efdd381b4d1ca407002492d5c51328151161d462e2c99e44fd4b3943e3474ce",
 } as const;
 
 const CREDS_KEY = "ms-admin-auth";

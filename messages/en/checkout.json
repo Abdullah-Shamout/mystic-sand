@@ -167,11 +167,10 @@
     "viewLabel": "View order {id}",
     "items": "{count, plural, one {# item} other {# items}}",
     "statuses": {
-      "paid": "Paid",
+      "paid": "Confirmed",
       "pending": "Payment pending",
       "failed": "Not completed",
-      "canceled": "Cancelled",
-      "confirming": "Confirming"
+      "canceled": "Cancelled"
     },
     "methods": {
       "knet": "KNET",

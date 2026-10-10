@@ -15,7 +15,7 @@ import {
   type AnalysisFilters,
   type RemovedStat,
 } from "@/lib/admin/analytics";
-import { collectOrders, type RangeFilter, type SourceFilter } from "@/lib/admin/orders";
+import { collectOrders, type RangeFilter } from "@/lib/admin/orders";
 import { useLiveCatalog } from "@/lib/live";
 import { useMounted, useNow } from "@/lib/hooks";
 import { useAdminStore } from "@/store/admin";
@@ -26,7 +26,6 @@ import { KpiTile } from "../kpi-tile";
 import { CategorySectionView } from "./category-section";
 
 const RANGES: readonly RangeFilter[] = ["today", "7d", "30d", "month", "all", "custom"];
-const SOURCES: readonly SourceFilter[] = ["all", "site", "sample"];
 
 /** An LTR-isolated integer. */
 function Num({ value }: { value: number }) {
@@ -225,7 +224,7 @@ export function ProductAnalysis() {
         />
       </div>
 
-      <div className="grid gap-3 border border-line bg-paper p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto] lg:items-end">
+      <div className="grid gap-3 border border-line bg-paper p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
         <div>
           <label htmlFor="analysis-search" className="caps mb-1.5 block text-[12px] text-muted">
             {t("analysis.searchLabel")}
@@ -256,23 +255,6 @@ export function ProductAnalysis() {
             ))}
           </SelectInput>
         </div>
-        <div>
-          <label htmlFor="analysis-source" className="caps mb-1.5 block text-[12px] text-muted">
-            {t("analysis.sourceLabel")}
-          </label>
-          <SelectInput
-            id="analysis-source"
-            value={filters.source}
-            onChange={(e) => set({ source: e.target.value as SourceFilter })}
-            className="lg:w-36"
-          >
-            {SOURCES.map((s) => (
-              <option key={s} value={s}>
-                {t(`filters.source.${s}`)}
-              </option>
-            ))}
-          </SelectInput>
-        </div>
         <label className="caps flex min-h-12 cursor-pointer items-center gap-2 text-[13px] text-ink">
           <input
             type="checkbox"
@@ -285,7 +267,7 @@ export function ProductAnalysis() {
         </label>
 
         {filters.range === "custom" && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:col-span-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:col-span-3">
             <div>
               <label htmlFor="analysis-from" className="caps mb-1.5 block text-[12px] text-muted">
                 {t("filters.from")}

@@ -9,7 +9,7 @@ import { useUi } from "@/store/ui";
 import { DEMO_FLAG } from "./url-actions";
 
 export const DEMO_OUTCOME = "ms-demo-outcome";
-export type DemoOutcome = "CAPTURED" | "NOT CAPTURED" | "CANCELED" | "PENDING";
+export type DemoOutcome = "CAPTURED" | "NOT CAPTURED" | "CANCELED";
 
 /** Sample shopper used by "Fill sample Kuwait address". */
 export const SAMPLE_DETAILS = {
@@ -34,7 +34,7 @@ export const DRAFT_UPDATED_EVENT = "ms:draft-updated";
 export function readDemoOutcome(): DemoOutcome {
   try {
     const v = sessionStorage.getItem(DEMO_OUTCOME);
-    if (v === "NOT CAPTURED" || v === "CANCELED" || v === "PENDING") return v;
+    if (v === "NOT CAPTURED" || v === "CANCELED") return v;
   } catch {
     // storage blocked
   }
@@ -106,7 +106,6 @@ export function DemoHelpers() {
                 <option value="CAPTURED">CAPTURED</option>
                 <option value="NOT CAPTURED">NOT CAPTURED</option>
                 <option value="CANCELED">CANCELED</option>
-                <option value="PENDING">PENDING</option>
               </select>
             </label>
             <button

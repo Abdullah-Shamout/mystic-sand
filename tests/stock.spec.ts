@@ -1,9 +1,8 @@
-import fs from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 // The stock system: per-size available stock, the admin Stock page, bag/checkout caps, the
-// once-only decrement on a paid order, and backup/restore of the ledger. Run `npm run build`
-// first — these hit the static export served at localhost:4319. Long flows run on desktop.
+// once-only decrement on a paid order, and the capture-time guard that never oversells. Run
+// `npm run build` first — these hit the static export served at localhost:4319. Long flows run on desktop.
 
 const FAR_FUTURE = 4102444800000; // ~ year 2100 (ms), so the admin opens without signing in
 
@@ -203,34 +202,119 @@ test.describe("stock system", () => {
     await page.goto("/en/admin/");
     await expect
       .poll(async () => (await page.getByTestId("orders-count").innerText()).replace(/[^\d]/g, ""))
-      .toBe("30");
+      .toBe("31");
     expect(Object.keys(await readSold(page))).toHaveLength(0);
   });
 
-  test("backup carries the stock ledger and reset product edits clears it", async ({ page }) => {
+  // ── Capture-time guard: never sell out of stock, or more than the stock ──
+  // A stored order in the ms-checkout shape, for seeding a pay/result page directly.
+  const STORED_ORDER = (id: string, status: string, qty: number) => ({
+    id,
+    createdAt: new Date(Date.now() - 3_600_000).toISOString(),
+    locale: "en",
+    lines: [{ sku: "MS-I-50", slug: "i", qty, priceFils: 19000, name: "I", size: { en: "50 ml", ar: "50 مل" }, image: "renders/i" }],
+    totals: { itemCount: qty, subtotalFils: 19000 * qty, discountFils: 0, deliveryFils: 1000, totalFils: 19000 * qty + 1000 },
+    details: {
+      name: "Stock Tester", phone: "99887766", email: "", areaId: "salmiya", housing: "house",
+      block: "1", street: "Street 1", avenue: "", building: "5", floor: "", apartment: "",
+      mapsLink: "", notes: "", deliveryMethod: "standard", paymentMethod: "knet", saveDetails: true,
+    },
+    promoCode: null,
+    bagKey: `MS-I-50x${qty}|standard|`,
+    method: "knet",
+    status,
+    attempts:
+      status === "failed"
+        ? [{ method: "knet", result: "NOT CAPTURED", paymentId: "100000000000000001", trackId: id, postDate: "1009", amountFils: 19000 * qty + 1000, at: new Date().toISOString() }]
+        : [],
+    finalizedAt: null,
+  });
+
+  test("opening the pay page for an order that now exceeds stock is refused", async ({ page }) => {
+    // I's base stock is 24; 24 sold → available 0. The stored pending order asks for 1.
+    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 24 } }, 1);
+    await seedStore(page, "ms-checkout", { draft: {}, remembered: null, lastOrderId: null, orders: { "MS-90001": STORED_ORDER("MS-90001", "pending", 1) } }, 2);
+
+    await page.goto("/en/checkout/pay/?order=MS-90001&method=knet");
+    await page.waitForURL(/\/cart\//);
+    await expect(page.getByTestId("gateway")).toHaveCount(0);
+    expect((await readSold(page))["MS-I-50"]).toBe(24); // never captured
+  });
+
+  test("Try again is refused when stock dropped below the order", async ({ page }) => {
+    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 24 } }, 1);
+    await seedStore(page, "ms-checkout", { draft: {}, remembered: null, lastOrderId: null, orders: { "MS-90002": STORED_ORDER("MS-90002", "failed", 1) } }, 2);
+
+    await page.goto("/en/checkout/result/?order=MS-90002");
+    await expect(page.getByTestId("result-failed")).toBeVisible();
+    await page.getByTestId("retry-payment").click();
+    await page.waitForURL(/\/cart\//);
+    await expect(page.getByTestId("gateway")).toHaveCount(0);
+    expect((await readSold(page))["MS-I-50"]).toBe(24);
+  });
+
+  test("two tabs cannot both sell the last unit", async ({ page, context }) => {
     await signIn(page);
-    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 3 } }, 1);
-    await page.goto("/en/admin/settings/");
+    await setStock(page, "MS-I-50", 1);
 
-    // The backup JSON includes the ledger.
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      page.getByTestId("backup-download").click(),
-    ]);
-    const path = (await download.path())!;
-    const json = JSON.parse(fs.readFileSync(path, "utf8"));
-    expect(json.stock).toEqual({ "MS-I-50": 3 });
+    // Tab A buys the last unit through KNET.
+    await page.goto("/en/product/i/");
+    await page.getByTestId("pdp-add-to-bag").click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.goto("/en/checkout/");
+    await fillCheckout(page);
+    await payWithKnet(page);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
+    expect((await readSold(page))["MS-I-50"]).toBe(1);
 
-    // Reset product edits also clears the ledger.
-    await page.getByTestId("reset-products").click();
-    await page.getByTestId("confirm-accept").click();
-    await expect.poll(() => readSold(page).then((s) => Object.keys(s).length)).toBe(0);
+    // Tab B holds an older pending order for the same SKU; capturing it is refused.
+    const tabB = await context.newPage();
+    await tabB.goto("/en/");
+    await tabB.evaluate((order) => {
+      const raw = JSON.parse(localStorage.getItem("ms-checkout") || "{}");
+      const state = raw.state ?? { draft: {}, remembered: null, orders: {}, lastOrderId: null };
+      state.orders[order.id] = order;
+      localStorage.setItem("ms-checkout", JSON.stringify({ state, version: 2 }));
+    }, STORED_ORDER("MS-90003", "pending", 1));
 
-    // Restoring the backup brings it back.
-    await page.getByTestId("backup-file").setInputFiles(path);
-    await page.getByTestId("confirm-accept").click();
-    await expect(page.getByText("Backup restored.")).toBeVisible();
-    await expect.poll(() => readSold(page).then((s) => s["MS-I-50"] ?? 0)).toBe(3);
+    await tabB.goto("/en/checkout/pay/?order=MS-90003&method=knet");
+    await tabB.waitForURL(/\/cart\//);
+    await expect(tabB.getByTestId("gateway")).toHaveCount(0);
+    expect((await readSold(tabB))["MS-I-50"]).toBe(1); // still 1, never 2
+    await tabB.close();
+  });
+
+  test("Apple Pay with no stock is refused", async ({ page }) => {
+    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 24 } }, 1);
+    await seedStore(page, "ms-bag", { lines: [{ sku: "MS-I-50", qty: 1 }], promo: null }, 2);
+
+    await page.goto("/en/checkout/?express=applepay");
+    await page.waitForTimeout(700);
+    // The sheet never captures: no confirm button appears and nothing is sold.
+    await expect(page.getByTestId("applepay-confirm")).toHaveCount(0);
+    await expect(page).toHaveURL(/\/en\/checkout\//);
+    expect((await readSold(page))["MS-I-50"]).toBe(24);
+  });
+
+  test("quick add and the stepper never exceed the available stock", async ({ page }) => {
+    await signIn(page);
+    await setStock(page, "MS-I-50", 1);
+
+    await page.goto("/en/product/i/");
+    await expect(page.getByTestId("pdp-low-stock")).toHaveText("Only 1 left");
+    const qty = page.getByRole("group", { name: "Quantity for I" }).first();
+    await expect(qty.getByRole("button", { name: "Maximum quantity reached" })).toBeDisabled();
+
+    await page.getByTestId("pdp-add-to-bag").click();
+    await expect(page.getByRole("dialog").getByTestId("bag-line")).toHaveCount(1);
+
+    // A second quick add is capped with the "max reached" toast; the bag still holds 1.
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(700); // clear the double-tap guard
+    await page.getByTestId("pdp-add-to-bag").click();
+    await expect(page.getByText("You can add up to 1 of this item.")).toBeVisible();
+    const lineQty = await page.evaluate(() => JSON.parse(localStorage.getItem("ms-bag") || "{}").state?.lines?.[0]?.qty);
+    expect(lineQty).toBe(1);
   });
 
   test("the Stock page opens without console errors in English and Arabic", async ({ page }) => {

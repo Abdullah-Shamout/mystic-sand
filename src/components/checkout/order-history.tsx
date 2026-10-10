@@ -12,16 +12,8 @@ import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/delivery";
 import { useMounted } from "@/lib/hooks";
-import { useCheckout, type Order, type OrderStatus } from "@/store/checkout";
+import { useCheckout, type Order } from "@/store/checkout";
 import { iso } from "./form-helpers";
-
-const chip: Record<OrderStatus, string> = {
-  paid: "border-racing bg-racing text-cream",
-  confirming: "border-sand-deep bg-sand/40 text-ink",
-  pending: "border-line text-muted",
-  failed: "border-danger/50 text-danger",
-  canceled: "border-line text-muted",
-};
 
 function OrderRow({ order }: { order: Order }) {
   const t = useTranslations("checkout.orders");
@@ -54,8 +46,9 @@ function OrderRow({ order }: { order: Order }) {
         aria-hidden
       />
       <div className="col-span-3 flex flex-wrap items-center gap-x-4 gap-y-2 md:col-span-1">
-        <span className={cn("caps inline-flex min-h-6 items-center border px-2 text-[11px] font-medium", chip[order.status])}>
-          {t(`statuses.${order.status}`)}
+        {/* Only paid orders are ever listed, so every one reads "Confirmed". */}
+        <span className="caps inline-flex min-h-6 items-center border border-racing bg-racing px-2 text-[11px] font-medium text-cream">
+          {t("statuses.paid")}
         </span>
         <span className="text-[13px] text-muted">{t(`methods.${order.method}`)}</span>
       </div>
@@ -82,7 +75,11 @@ export function OrderHistory() {
     );
   }
 
-  const list = Object.values(orders).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  // Shoppers only ever see paid orders here — failed, canceled or still-pending attempts (and any
+  // old "confirming" order from stored data) never appear, each listed as "Confirmed".
+  const list = Object.values(orders)
+    .filter((o) => o.status === "paid")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   if (list.length === 0) {
     return (

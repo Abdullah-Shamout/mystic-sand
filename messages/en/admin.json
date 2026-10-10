@@ -433,7 +433,6 @@
     "searchLabel": "Search",
     "searchPlaceholder": "Name, type or SKU",
     "periodLabel": "Period",
-    "sourceLabel": "Source",
     "completedOnly": "Completed orders only",
     "reset": "Reset filters",
     "exportAll": "Export all collections",
@@ -536,76 +535,37 @@
       "builtInNote": "Using the built-in messages."
     },
     "account": {
-      "title": "Admin account",
-      "intro": "Change the username and password used to sign in to this admin area.",
       "note": "This is a browser-only demo gate, not real security. Anyone with this device can sign in.",
       "current": "Current password",
       "newUsername": "New username",
       "newPassword": "New password",
       "confirm": "Confirm new password",
-      "save": "Update account",
-      "saved": "Account updated.",
       "show": "Show password",
       "hide": "Hide password",
+      "username": {
+        "title": "Change username",
+        "intro": "Update the username used to sign in to this admin area.",
+        "save": "Update username",
+        "saved": "Username updated."
+      },
+      "password": {
+        "title": "Change password",
+        "intro": "Update the password used to sign in to this admin area.",
+        "save": "Update password",
+        "saved": "Password updated."
+      },
+      "rules": {
+        "title": "Your password must have:",
+        "length": "At least 8 characters",
+        "upper": "One capital letter",
+        "number": "One number",
+        "special": "One special character"
+      },
       "errors": {
         "current": "That current password is not correct.",
         "username": "Use 2 to 32 characters for the username.",
-        "password": "Use at least 8 characters for the password.",
+        "password": "Choose a password that meets all the rules.",
         "confirm": "The two passwords do not match."
-      }
-    },
-    "data": {
-      "title": "Data & backups",
-      "intro": "Everything lives in this browser. Back up before you clear data or move to another device.",
-      "storage": {
-        "title": "Storage",
-        "used": "{percent}% of this browser's budget used",
-        "detail": "{total} characters used · {ms} by Mystic Sand",
-        "warn": "Storage is almost full. Delete unused photos or clear some data."
-      },
-      "backup": {
-        "title": "Backup",
-        "intro": "Download everything (products, settings, orders and photos) as one file, or restore it on another device.",
-        "download": "Download backup",
-        "restore": "Restore from file",
-        "downloaded": "Backup downloaded.",
-        "restored": "Backup restored.",
-        "invalid": "That file is not a valid Mystic Sand backup. Nothing was changed.",
-        "storageFull": "This browser's storage filled up before the restore finished.",
-        "confirmTitle": "Restore from backup?",
-        "confirmMessage": "This replaces the current product edits, settings and admin data, and adds the orders and photos from the file. This can't be undone.",
-        "confirmAccept": "Restore"
-      },
-      "samples": {
-        "title": "Sample orders",
-        "intro": "Demo orders tagged \"Sample\" in the dashboard.",
-        "count": "{count, plural, =0 {No sample orders} one {# sample order} other {# sample orders}}",
-        "clear": "Clear sample orders",
-        "restore": "Restore sample orders",
-        "cleared": "Sample orders cleared.",
-        "restored": "Sample orders restored."
-      },
-      "photos": {
-        "title": "Unused photos",
-        "intro": "Uploaded photos no longer used by any product. Deleting them also removes them from the photo library in the product editor.",
-        "count": "{count, plural, =0 {No unused photos} one {# unused photo} other {# unused photos}} · {size} characters",
-        "delete": "Delete unused photos",
-        "deleted": "{count, plural, =0 {No photos deleted} one {# photo deleted} other {# photos deleted}}.",
-        "confirmTitle": "Delete unused photos?",
-        "confirmMessage": "Permanently delete {count, plural, one {# unused photo} other {# unused photos}}. They will also disappear from the photo library. This can't be undone.",
-        "confirm": "Delete photos"
-      },
-      "reset": {
-        "title": "Reset",
-        "products": "Reset product edits",
-        "productsDone": "Product edits reset.",
-        "settings": "Reset store settings",
-        "settingsDone": "Store settings reset.",
-        "productsConfirmTitle": "Reset all product edits?",
-        "productsConfirmMessage": "Discard every product and collection change, reset the stock ledger, and restore the original catalog. This can't be undone.",
-        "settingsConfirmTitle": "Reset store settings?",
-        "settingsConfirmMessage": "Restore the delivery fees, contact numbers and banner to their defaults. This can't be undone.",
-        "confirm": "Reset"
       }
     }
   }

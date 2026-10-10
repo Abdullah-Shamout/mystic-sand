@@ -89,7 +89,6 @@ export const useCheckout = create<CheckoutState>()(
               ...get().orders,
               [existing.id]: { ...existing, ...input, id: existing.id, status: "pending" },
             },
-            lastOrderId: existing.id,
           });
           return existing.id;
         }
@@ -100,7 +99,9 @@ export const useCheckout = create<CheckoutState>()(
           attempts: [],
           finalizedAt: null,
         };
-        set({ orders: { ...get().orders, [order.id]: order }, lastOrderId: order.id });
+        // `lastOrderId` deliberately points only at a paid order (set in finalize), never at a
+        // pending/abandoned checkout, so the empty-checkout "View your last order" link is safe.
+        set({ orders: { ...get().orders, [order.id]: order } });
         return order.id;
       },
 
@@ -121,6 +122,8 @@ export const useCheckout = create<CheckoutState>()(
         const remembered = order.details.saveDetails ? pick({ ...order.details, acceptTerms: true }) : get().remembered;
         set({
           orders: { ...get().orders, [orderId]: { ...order, finalizedAt: now.toISOString() } },
+          // Only a paid order ever becomes the "last order" surfaced on the empty checkout page.
+          lastOrderId: orderId,
           remembered,
           // One-off fields are cleared; saved details stay.
           draft: {

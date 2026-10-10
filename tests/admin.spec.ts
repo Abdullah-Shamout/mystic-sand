@@ -7,7 +7,8 @@ import { strFromU8, unzipSync } from "fflate";
 // Run `npm run build` first — they hit the static export served at localhost:4319.
 
 const ADMIN_USER = "admin";
-const ADMIN_PASS = "MysticSand2026";
+const ADMIN_PASS = "MysticSand@2026";
+const OLD_ADMIN_PASS = "MysticSand2026";
 
 test.describe("admin header entry", () => {
   test('the header offers "Enter" in English and "دخول" in Arabic', async ({ page }) => {
@@ -146,21 +147,21 @@ const toArabicIndic = (s: string) => s.replace(/[0-9]/g, (d) => String.fromCharC
 test.describe("admin orders dashboard", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
 
-  test("lists 30 sample orders with matching KPI counts and revenue", async ({ page }) => {
+  test("lists 31 sample orders with matching KPI counts and revenue", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
+    await expect.poll(() => resultCount(page)).toBe(31);
     await expect(page.getByTestId("order-row").first().getByText("Sample")).toBeVisible();
 
     const admin = await readAdmin(page);
-    expect(admin.samples).toHaveLength(30);
+    expect(admin.samples).toHaveLength(31);
 
     const completed = doneSamples(admin).length;
     const expectedRevenue = doneSamples(admin).reduce((sum, o) => sum + o.totals.totalFils, 0);
 
     const kpiCompleted = await readInt(page, "kpi-completed-value");
     const kpiPending = await readInt(page, "kpi-pending-value");
-    expect(kpiCompleted + kpiPending).toBe(30);
+    expect(kpiCompleted + kpiPending).toBe(31);
     expect(kpiCompleted).toBe(completed);
     expect(await readKwd(page, "kpi-revenue-value")).toBe(expectedRevenue);
   });
@@ -168,14 +169,14 @@ test.describe("admin orders dashboard", () => {
   test("search narrows by Latin name, Arabic name and order number (Arabic digits too)", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
+    await expect.poll(() => resultCount(page)).toBe(31);
     const admin = await readAdmin(page);
     const search = page.getByTestId("orders-search");
 
     const latin = admin.samples.find((o) => /^[A-Za-z]/.test(o.details.name))!;
     await search.fill(latin.details.name);
     await expect(page.getByText(latin.id).first()).toBeVisible();
-    await expect.poll(() => resultCount(page)).toBeLessThan(30);
+    await expect.poll(() => resultCount(page)).toBeLessThan(31);
 
     const arabic = admin.samples.find((o) => /[؀-ۿ]/.test(o.details.name))!;
     await search.fill(arabic.details.name);
@@ -190,10 +191,10 @@ test.describe("admin orders dashboard", () => {
   test("each filter narrows to a consistent set of rows", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
+    await expect.poll(() => resultCount(page)).toBe(31);
     const admin = await readAdmin(page);
     const completed = doneSamples(admin).length;
-    const pending = 30 - completed;
+    const pending = 31 - completed;
     const knet = admin.samples.filter((o) => o.method === "knet").length;
 
     const kpiCompleted = await readInt(page, "kpi-completed-value");
@@ -213,7 +214,7 @@ test.describe("admin orders dashboard", () => {
     await page.getByLabel("Period").selectOption("7d");
     const c7 = await resultCount(page);
     expect(c7).toBeLessThanOrEqual(c30);
-    expect(c30).toBeLessThanOrEqual(30);
+    expect(c30).toBeLessThanOrEqual(31);
     await page.getByLabel("Period").selectOption("all");
 
     await page.getByLabel("Payment").selectOption("knet");
@@ -228,7 +229,7 @@ test.describe("admin orders dashboard", () => {
   test("there is no Unpaid filter, no Delivery filter and no Confirming status", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
+    await expect.poll(() => resultCount(page)).toBe(31);
 
     // The fulfilment chips are only All / Pending / Done — no "Unpaid checkouts".
     await expect(page.getByRole("button", { name: "Unpaid checkouts" })).toHaveCount(0);
@@ -244,7 +245,7 @@ test.describe("admin orders dashboard", () => {
   test("marking a paid order done updates KPIs, survives reload and undoes", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
+    await expect.poll(() => resultCount(page)).toBe(31);
 
     const beforeCompleted = await readInt(page, "kpi-completed-value");
     const beforePending = await readInt(page, "kpi-pending-value");
@@ -277,7 +278,7 @@ test.describe("admin orders dashboard", () => {
   test("the ?order= query opens that order's drawer", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
+    await expect.poll(() => resultCount(page)).toBe(31);
     const admin = await readAdmin(page);
     const sample = admin.samples[0];
 
@@ -291,7 +292,7 @@ test.describe("admin orders dashboard", () => {
   test("Excel export downloads a filtered .xlsx that unzips to an order id", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
+    await expect.poll(() => resultCount(page)).toBe(31);
     const admin = await readAdmin(page);
 
     const [download] = await Promise.all([
@@ -332,7 +333,7 @@ test.describe("admin orders dashboard", () => {
   test("the receipt downloads as a real PDF over 20 KB", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
+    await expect.poll(() => resultCount(page)).toBe(31);
     const admin = await readAdmin(page);
 
     await page.goto(`/en/admin/?order=${admin.samples[0].id}`);
@@ -386,12 +387,42 @@ test.describe("admin orders dashboard", () => {
     });
 
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
+    // 31 built-in samples + the 1 real website order.
+    await expect.poll(() => resultCount(page)).toBe(32);
 
     await page.getByRole("button", { name: "Website", exact: true }).click();
     await expect.poll(() => resultCount(page)).toBe(1);
     await expect(page.getByTestId("order-row").filter({ hasText: "MS-50001" })).toHaveCount(1);
     await expect(page.getByTestId("order-row").first().getByText("Sample")).toHaveCount(0);
+  });
+
+  test("the built-in 67095252 order is searchable and its receipt downloads", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/");
+    await expect.poll(() => resultCount(page)).toBe(31);
+
+    // Searchable by the full phone and by a partial.
+    const search = page.getByTestId("orders-search");
+    await search.fill("67095252");
+    await expect.poll(() => resultCount(page)).toBe(1);
+    await expect(page.getByText("MS-19999").first()).toBeVisible();
+    await expect(page.getByText("Abdulaziz Al-Mutairi").first()).toBeVisible();
+
+    await search.fill("6709");
+    await expect(page.getByText("MS-19999").first()).toBeVisible();
+
+    // Its receipt is a real PDF (the full fake payment record makes the invoice render).
+    await page.goto("/en/admin/?order=MS-19999");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    const [download] = await Promise.all([
+      page.waitForEvent("download", { timeout: 30_000 }),
+      dialog.getByTestId("receipt-pdf").click(),
+    ]);
+    expect(download.suggestedFilename()).toBe("Mystic-Sand-Invoice-MS-19999.pdf");
+    const buf = fs.readFileSync((await download.path())!);
+    expect(buf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(buf.length).toBeGreaterThan(50_000);
   });
 
   test("the storefront bundle contains no jsPDF or write-excel-file code", async ({ page }) => {
@@ -726,7 +757,7 @@ test.describe("admin product analysis", () => {
     await expect(sectionRows(page, "home")).toHaveCount(3);
 
     const samples = paidSamples(await readSamplesFull(page));
-    expect(samples.length).toBe(30);
+    expect(samples.length).toBe(31);
     const unitsBySlug: Record<string, number> = {};
     for (const o of samples) for (const l of o.lines) unitsBySlug[l.slug] = (unitsBySlug[l.slug] ?? 0) + l.qty;
 
@@ -926,6 +957,14 @@ test.describe("admin product analysis", () => {
     expect(await removed.getAttribute("data-units")).toBe("2");
   });
 
+  test("product analysis has no Source filter", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/analysis/");
+    await expect(page.getByTestId("kpi-analysis-units-value")).toBeVisible();
+    // The Source select (site/sample) is gone — analysis always covers all orders.
+    await expect(page.locator("#analysis-source")).toHaveCount(0);
+  });
+
   test("the analysis page opens without console errors in English and Arabic", async ({ page }) => {
     await signIn(page);
     const errors: string[] = [];
@@ -1069,7 +1108,40 @@ test.describe("admin store settings", () => {
     );
   });
 
-  test("the account password and username can be changed, log out, and only the new one works", async ({ page }) => {
+  test("the default login works with MysticSand@2026 and the old password fails", async ({ page }) => {
+    await page.goto("/en/");
+    await page.getByRole("button", { name: "Enter", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Username", { exact: true }).fill(ADMIN_USER);
+
+    // The old default no longer works.
+    await dialog.getByLabel("Password", { exact: true }).fill(OLD_ADMIN_PASS);
+    await dialog.getByRole("button", { name: "Sign in" }).click();
+    await expect(dialog.getByRole("alert")).toBeVisible();
+
+    // The new default does.
+    await dialog.getByLabel("Password", { exact: true }).fill(ADMIN_PASS);
+    await dialog.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL(/\/en\/admin\/$/);
+  });
+
+  test("the username is changed in its own card, with the current password", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/settings/");
+
+    // A wrong current password is rejected.
+    await page.getByTestId("account-username-current").fill("not-the-password");
+    await page.getByTestId("account-username").fill("admin2");
+    await page.getByTestId("account-username-save").click();
+    await expect(page.getByText("That current password is not correct.")).toBeVisible();
+
+    // The correct current password applies the change.
+    await page.getByTestId("account-username-current").fill(ADMIN_PASS);
+    await page.getByTestId("account-username-save").click();
+    await expect(page.getByText("Username updated.")).toBeVisible();
+  });
+
+  test("the password checklist enforces the strong rule and only the new password works", async ({ page }) => {
     // A real UI sign-in (no injected session) so the log-out step actually clears it.
     await page.goto("/en/");
     await page.getByRole("button", { name: "Enter", exact: true }).click();
@@ -1080,20 +1152,32 @@ test.describe("admin store settings", () => {
     await page.waitForURL(/\/en\/admin\/$/);
 
     await page.goto("/en/admin/settings/");
-    // A wrong current password is rejected.
-    await page.getByTestId("account-current").fill("not-the-password");
-    await page.getByTestId("account-username").fill("admin2");
-    await page.getByTestId("account-new").fill("NewPass123");
-    await page.getByTestId("account-confirm").fill("NewPass123");
-    await page.getByTestId("account-save").click();
-    await expect(page.getByText("That current password is not correct.")).toBeVisible();
+    const save = page.getByTestId("account-password-save");
+    await page.getByTestId("account-password-current").fill(ADMIN_PASS);
 
-    // The correct current password applies the change.
-    await page.getByTestId("account-current").fill(ADMIN_PASS);
-    await page.getByTestId("account-save").click();
-    await expect(page.getByText("Account updated.")).toBeVisible();
+    // A weak password fails every rule and blocks saving.
+    await page.getByTestId("account-new").fill("weak");
+    await expect(page.getByTestId("rule-length")).toHaveAttribute("data-met", "false");
+    await expect(page.getByTestId("rule-special")).toHaveAttribute("data-met", "false");
+    await expect(save).toBeDisabled();
 
-    // Log out, then the old credentials fail and the new ones work.
+    // Missing only a special character still blocks saving.
+    await page.getByTestId("account-new").fill("Password1");
+    await expect(page.getByTestId("rule-special")).toHaveAttribute("data-met", "false");
+    await expect(save).toBeDisabled();
+
+    // A strong password ticks every rule; saving still waits for the confirmation to match.
+    await page.getByTestId("account-new").fill("Password@1");
+    for (const rule of ["rule-length", "rule-upper", "rule-number", "rule-special"]) {
+      await expect(page.getByTestId(rule)).toHaveAttribute("data-met", "true");
+    }
+    await expect(save).toBeDisabled();
+    await page.getByTestId("account-confirm").fill("Password@1");
+    await expect(save).toBeEnabled();
+    await save.click();
+    await expect(page.getByText("Password updated.")).toBeVisible();
+
+    // Log out, then only the new password works.
     await page.getByRole("button", { name: "Log out" }).click();
     await page.waitForURL(/\/en\/$/);
     await page.getByRole("button", { name: "Enter", exact: true }).click();
@@ -1103,117 +1187,9 @@ test.describe("admin store settings", () => {
     await back.getByRole("button", { name: "Sign in" }).click();
     await expect(back.getByRole("alert")).toBeVisible();
 
-    await back.getByLabel("Username", { exact: true }).fill("admin2");
-    await back.getByLabel("Password", { exact: true }).fill("NewPass123");
+    await back.getByLabel("Password", { exact: true }).fill("Password@1");
     await back.getByRole("button", { name: "Sign in" }).click();
     await page.waitForURL(/\/en\/admin\/$/);
-  });
-
-  test("a backup downloads valid JSON without a password hash and restores edits and samples", async ({ page }) => {
-    await signIn(page);
-    await page.addInitScript((product) => {
-      localStorage.setItem(
-        "ms-catalog",
-        JSON.stringify({ state: { edits: { patches: {}, added: [product], categories: {} } }, version: 1 }),
-      );
-    }, CUSTOM_PRODUCT("c-backup-test-aaaa", "Backup Test", "renders/aura", "MS-BKTST"));
-
-    await page.goto("/en/admin/settings/");
-    await expect(page.getByTestId("samples-count")).toHaveText("30 sample orders");
-
-    // Download the backup and check its shape.
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      page.getByTestId("backup-download").click(),
-    ]);
-    expect(download.suggestedFilename()).toMatch(/^mystic-sand-backup-\d{4}-\d{2}-\d{2}\.json$/);
-    const backupPath = (await download.path())!;
-    const text = fs.readFileSync(backupPath, "utf8");
-    const json = JSON.parse(text);
-    expect(Object.keys(json).sort()).toEqual([
-      "admin",
-      "app",
-      "catalog",
-      "exportedAt",
-      "orders",
-      "settings",
-      "stock",
-      "uploads",
-      "version",
-    ]);
-    expect(json.app).toBe("mystic-sand");
-    expect(json.catalog.added).toHaveLength(1);
-    expect(json.admin.samples).toHaveLength(30);
-    // No credentials and no password hash anywhere in the file.
-    expect(text).not.toContain("ms-admin-auth");
-    expect(text).not.toContain("2f5f7bd65913a6a163260a843d332f584bca5c1c525c1569a79b0a78ac6d764f");
-
-    // Wipe the product edits and the samples.
-    await page.getByTestId("reset-products").click();
-    await page.getByTestId("confirm-accept").click();
-    await page.getByTestId("samples-clear").click();
-    await expect(page.getByTestId("samples-count")).toHaveText("No sample orders");
-    expect(
-      await page.evaluate(() => JSON.parse(localStorage.getItem("ms-catalog") || "{}").state?.edits?.added?.length ?? 0),
-    ).toBe(0);
-
-    // Restore from the downloaded file.
-    await page.getByTestId("backup-file").setInputFiles(backupPath);
-    await page.getByTestId("confirm-accept").click();
-    await expect(page.getByText("Backup restored.")).toBeVisible();
-
-    await expect
-      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("ms-catalog") || "{}").state?.edits?.added?.length ?? 0))
-      .toBe(1);
-    await expect
-      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("ms-admin") || "{}").state?.samples?.length ?? 0))
-      .toBe(30);
-  });
-
-  test("clearing and restoring sample orders updates the dashboard count", async ({ page }) => {
-    await signIn(page);
-    await page.goto("/en/admin/settings/");
-    await expect(page.getByTestId("samples-count")).toHaveText("30 sample orders");
-
-    await page.getByTestId("samples-clear").click();
-    await expect(page.getByTestId("samples-count")).toHaveText("No sample orders");
-    await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(0);
-
-    await page.goto("/en/admin/settings/");
-    await page.getByTestId("samples-restore").click();
-    await expect(page.getByTestId("samples-count")).toHaveText("30 sample orders");
-    await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(30);
-  });
-
-  test("delete unused photos removes an orphan upload but keeps a referenced one", async ({ page }) => {
-    await signIn(page);
-    await page.addInitScript((product) => {
-      localStorage.setItem(
-        "ms-img:orphan123",
-        JSON.stringify({ w: 10, h: 10, kind: "photo", data: "data:image/webp;base64,AAAA" }),
-      );
-      localStorage.setItem(
-        "ms-img:used456",
-        JSON.stringify({ w: 10, h: 10, kind: "photo", data: "data:image/webp;base64,BBBB" }),
-      );
-      localStorage.setItem(
-        "ms-catalog",
-        JSON.stringify({ state: { edits: { patches: {}, added: [product], categories: {} } }, version: 1 }),
-      );
-    }, CUSTOM_PRODUCT("c-photo-test-bbbb", "Photo Test", "u:used456", "MS-PHTST"));
-
-    await page.goto("/en/admin/settings/");
-    await expect(page.getByTestId("photos-count")).toContainText("1 unused photo");
-
-    await page.getByTestId("photos-delete").click();
-    await page.getByTestId("confirm-accept").click();
-
-    await expect
-      .poll(() => page.evaluate(() => localStorage.getItem("ms-img:orphan123")))
-      .toBeNull();
-    expect(await page.evaluate(() => localStorage.getItem("ms-img:used456"))).not.toBeNull();
   });
 
   test("the settings page opens without console errors in English and Arabic", async ({ page }) => {

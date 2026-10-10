@@ -1,15 +1,18 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Gateway } from "@/components/payment/gateway";
 import type { GatewayMethod } from "@/components/payment/method-badge";
 import { OrderNotFound } from "@/components/payment/order-not-found";
 import { PaymentSkeleton } from "@/components/payment/payment-skeleton";
 import { useRouter } from "@/i18n/navigation";
+import { clampBagToStock, orderExceedsStock } from "@/lib/capture";
 import { useMounted } from "@/lib/hooks";
 import { mockGateway } from "@/lib/payments/mock";
 import { useCheckout, type Order } from "@/store/checkout";
+import { useUi } from "@/store/ui";
 
 /** Where a settled order lives; decided once at mount (our own attempt must not trigger it). */
 function settledPath(order: Order): string | null {
@@ -21,13 +24,29 @@ function settledPath(order: Order): string | null {
 
 function GatewayGate({ order, method }: { order: Order; method: GatewayMethod }) {
   const router = useRouter();
-  const [redirectTo] = useState(() => settledPath(order));
+  const tc = useTranslations("common");
+  const pushToast = useUi((s) => s.pushToast);
+  // Decided once at mount: a settled order jumps to its result; an order that now exceeds stock
+  // (opened directly, or in a second tab after another sale) is refused before any capture.
+  const [action] = useState<{ type: "redirect"; path: string } | { type: "refuse" } | null>(() => {
+    const settled = settledPath(order);
+    if (settled) return { type: "redirect", path: settled };
+    if (orderExceedsStock(order)) return { type: "refuse" };
+    return null;
+  });
 
   useEffect(() => {
-    if (redirectTo) router.replace(redirectTo);
-  }, [redirectTo, router]);
+    if (!action) return;
+    if (action.type === "redirect") {
+      router.replace(action.path);
+      return;
+    }
+    clampBagToStock();
+    pushToast({ title: tc("stockRefused") });
+    router.replace("/cart");
+  }, [action, router, pushToast, tc]);
 
-  if (redirectTo) return <PaymentSkeleton />;
+  if (action) return <PaymentSkeleton />;
   return <Gateway order={order} method={method} />;
 }
 

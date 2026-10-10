@@ -10,6 +10,7 @@ import { banks } from "@/data/banks";
 import { payments, site } from "@/data/site";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { clampBagToStock, orderExceedsStock } from "@/lib/capture";
 import { cn } from "@/lib/cn";
 import { formatKWD } from "@/lib/money";
 import { demoOtp, newPaymentFields } from "@/lib/order";
@@ -85,9 +86,11 @@ function Note({ children }: { children: React.ReactNode }) {
  */
 export function Gateway({ order, method }: { order: Order; method: GatewayMethod }) {
   const t = useTranslations("payment");
+  const tc = useTranslations("common");
   const locale = useLocale() as Locale;
   const router = useRouter();
   const announce = useUi((s) => s.announce);
+  const pushToast = useUi((s) => s.pushToast);
   const { start, stop } = useTimeout();
 
   const amount = order.totals.totalFils;
@@ -142,6 +145,17 @@ export function Gateway({ order, method }: { order: Order; method: GatewayMethod
   /** Records the outcome and leaves with replace(), so Back never returns to the gateway. */
   const finish = (result: PaymentResult, reason?: "user" | "timeout") => {
     if (finished.current) return;
+    // Re-check stock the instant a payment would be captured: never sell more than is available
+    // (stock lowered meanwhile, or another tab took the last unit). Refuse, clamp the bag, go back.
+    if (result === "CAPTURED" && orderExceedsStock(order)) {
+      finished.current = true;
+      stop();
+      clearPaySession();
+      clampBagToStock();
+      pushToast({ title: tc("stockRefused") });
+      router.replace("/cart");
+      return;
+    }
     finished.current = true;
     stop();
     const now = new Date();

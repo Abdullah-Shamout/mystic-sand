@@ -2,7 +2,10 @@ import type { PaymentMethod } from "@/data/site";
 
 export type { PaymentMethod };
 
-/** KNET result values (plus PENDING when the bank confirms late). */
+/**
+ * KNET result values. "PENDING" is no longer produced (the "confirming" flow was removed); it is
+ * kept in the union only so attempts stored by older builds still type-check and render.
+ */
 export type PaymentResult = "CAPTURED" | "NOT CAPTURED" | "CANCELED" | "PENDING";
 
 /** Mirrors the fields a KNET response carries back to the merchant. */

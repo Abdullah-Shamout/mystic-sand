@@ -88,8 +88,7 @@
     "legend": "Payment result",
     "captured": "Approved — the amount is captured",
     "notCaptured": "Declined by the bank",
-    "canceled": "Cancelled by the shopper",
-    "pending": "Confirmed by the bank a few seconds later"
+    "canceled": "Cancelled by the shopper"
   },
   "fields": {
     "title": "Payment details",
@@ -173,11 +172,6 @@
     "otherMethod": "Choose another payment method",
     "help": "Need a hand? WhatsApp us",
     "helpText": "Hello Mystic Sand, I need help paying for order {id}."
-  },
-  "pending": {
-    "title": "Confirming with your bank…",
-    "text": "Your bank is confirming the payment. This usually takes a few seconds — please keep this page open.",
-    "status": "Waiting for your bank’s confirmation"
   },
   "notFound": {
     "title": "We can’t find this order on this device",
