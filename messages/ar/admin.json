@@ -134,10 +134,8 @@
       "copied": "تم نسخ رقم الطلب.",
       "downloadPdf": "تنزيل الإيصال",
       "printReceipt": "طباعة الإيصال",
-      "whatsapp": "مراسلة العميل على واتساب",
       "noReceipt": "يتوفر الإيصال بعد محاولة الدفع."
     },
-    "whatsapp": "مرحباً {name}، معك Mystic Sand بخصوص طلبك {id} (الإجمالي {total}).",
     "export": {
       "sheets": {
         "orders": "الطلبات",

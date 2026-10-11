@@ -1,8 +1,7 @@
 "use client";
 
 import { Copy } from "lucide-react";
-import { createTranslator, useLocale, useTranslations } from "next-intl";
-import { WhatsAppIcon } from "@/components/brand/brand-icons";
+import { useLocale, useTranslations } from "next-intl";
 import { DeliveryDetails } from "@/components/payment/delivery-details";
 import { OrderSummary } from "@/components/payment/order-summary";
 import { PaymentDetails } from "@/components/payment/payment-details";
@@ -11,28 +10,11 @@ import { Drawer } from "@/components/ui/drawer";
 import type { Locale } from "@/i18n/routing";
 import { statusKind, type AdminOrder } from "@/lib/admin/orders";
 import { formatDateTime } from "@/lib/delivery";
-import { formatKWD } from "@/lib/money";
 import { formatKuwaitPhone } from "@/lib/phone";
 import { useUi } from "@/store/ui";
 import { SampleTag, StatusChip } from "../status-chip";
 import { ReceiptActions } from "./receipt-capture";
 import { useFulfillment } from "./use-fulfillment";
-import arAdmin from "../../../../messages/ar/admin.json";
-import enAdmin from "../../../../messages/en/admin.json";
-
-const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
-
-/** wa.me link with a greeting in the ORDER's language (not the admin UI language). */
-function whatsappHref(order: AdminOrder["order"]): string {
-  const messages = order.locale === "ar" ? arAdmin : enAdmin;
-  const t = createTranslator({ locale: order.locale, messages: { admin: messages }, namespace: "admin" });
-  const text = t("orders.whatsapp", {
-    name: firstName(order.details.name),
-    id: order.id,
-    total: formatKWD(order.totals.totalFils, order.locale),
-  });
-  return `https://wa.me/965${order.details.phone}?text=${encodeURIComponent(text)}`;
-}
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -130,12 +112,6 @@ function Footer({ item }: { item: AdminOrder }) {
           </Button>
         )}
         <ReceiptActions order={order} attempt={item.receiptAttempt} />
-        <Button asChild variant="secondary" size="sm">
-          <a href={whatsappHref(order)} target="_blank" rel="noopener noreferrer">
-            <WhatsAppIcon className="size-4" />
-            {t("orders.drawer.whatsapp")}
-          </a>
-        </Button>
         <Button variant="ghost" size="sm" onClick={copy}>
           <Copy className="size-4" strokeWidth={1.5} aria-hidden />
           {t("orders.drawer.copyNumber")}

@@ -13,6 +13,8 @@ const RELOADED_FOR = "ms-reloaded-for";
  */
 export function UpdateCheck() {
   useEffect(() => {
+    // Inside the admin home-page preview iframe: never reload, or the editor's preview would flicker.
+    if (window.top !== window) return;
     const current = process.env.NEXT_PUBLIC_BUILD_ID;
     if (!current) return;
     let busy = false;

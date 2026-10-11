@@ -1,28 +1,33 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 import { Reveal } from "@/components/ui/reveal";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { site } from "@/data/site";
+import type { Locale } from "@/i18n/routing";
+import { HOME_DEFAULTS, textOr } from "@/lib/home";
+import { useLiveHome } from "@/lib/live";
+import { hasImage } from "@/lib/media";
 
-// Clean renders alternating with the darker lifestyle shots.
-const TILES = [
-  "renders/aura",
-  "lifestyle/candles-duo",
-  "renders/mist",
-  "lifestyle/roses-iii",
-  "lifestyle/trio-basket",
-  "lifestyle/hourglass-candles",
-];
-
-export async function InstagramBand() {
-  const t = await getTranslations("home.instagram");
+// Clean renders alternating with the darker lifestyle shots; six slots, each editable.
+export function InstagramBand() {
+  const t = useTranslations("home.instagram");
+  const locale = useLocale() as Locale;
+  const o = useLiveHome().instagram;
   const handle = `@${site.instagram.handle}`;
 
+  // A custom photo wins only when it still exists; a deleted upload falls back to the original tile.
+  const tiles = HOME_DEFAULTS.instagram.photos.map((original, i) => {
+    const custom = o?.photos?.[i];
+    return custom && hasImage(custom) ? custom : original;
+  });
+
   return (
-    <section aria-labelledby="instagram-title" className="bg-paper">
+    <section aria-labelledby="instagram-title" data-home-section="instagram" className="bg-paper">
       {/* Decorative mosaic: plain photos (not links); the handle below opens Instagram. */}
       <ul aria-hidden className="grid grid-cols-3 md:grid-cols-6">
-        {TILES.map((image) => (
-          <li key={image} className="relative aspect-square overflow-hidden bg-tile">
+        {tiles.map((image, i) => (
+          <li key={i} className="relative aspect-square overflow-hidden bg-tile">
             <ResponsiveImage image={image} alt="" sizes="(min-width: 768px) 17vw, 34vw" />
           </li>
         ))}
@@ -39,7 +44,7 @@ export async function InstagramBand() {
             <span className="sr-only"> ({t("newTab")})</span>
           </a>
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted">{t("subtitle")}</p>
+        <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted">{textOr(o?.subtitle, locale, t("subtitle"))}</p>
       </Reveal>
     </section>
   );

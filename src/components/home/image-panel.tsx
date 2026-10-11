@@ -21,6 +21,10 @@ type Props = {
   className?: string;
   /** e.g. "object-[22%_50%]" to keep the subject in a portrait crop. */
   imageClassName?: string;
+  /** Anchor id for the admin home-page preview scroll. */
+  homeSection?: string;
+  /** Forwarded to the images; the home story uses `false` so packshots don't blend to black. */
+  blend?: boolean;
 };
 
 /** Amouage-style full-bleed panel: one headline bottom-centre in cream and one light button. */
@@ -36,16 +40,21 @@ export function ImagePanel({
   priority = false,
   className,
   imageClassName,
+  homeSection,
+  blend,
 }: Props) {
   return (
-    <section className={cn("relative isolate overflow-hidden bg-ink text-cream [&_:focus-visible]:outline-cream", className)}>
+    <section
+      data-home-section={homeSection}
+      className={cn("relative isolate overflow-hidden bg-ink text-cream [&_:focus-visible]:outline-cream", className)}
+    >
       {mobile ? (
         <>
           <div className="absolute inset-0 md:hidden">
-            <ResponsiveImage image={mobile} alt={mobileAlt ?? alt} sizes="100vw" className={imageClassName} />
+            <ResponsiveImage image={mobile} alt={mobileAlt ?? alt} sizes="100vw" className={imageClassName} blend={blend} />
           </div>
           <div className="absolute inset-0 hidden md:block">
-            <ResponsiveImage image={image} alt={alt} sizes="100vw" />
+            <ResponsiveImage image={image} alt={alt} sizes="100vw" blend={blend} />
           </div>
         </>
       ) : (
@@ -56,6 +65,7 @@ export function ImagePanel({
             sizes="100vw"
             priority={priority}
             className={cn(imageClassName, "md:object-center")}
+            blend={blend}
           />
         </div>
       )}

@@ -32,7 +32,7 @@ A built-in, browser-only back office for running the demo store. Open it with **
 
 **What each tab does**
 
-- **Orders** — every order, with KPIs (revenue from completed orders, completed and pending counts, average order), filters (date, status, payment method, delivery, source) and search by customer name or order number (Latin or Arabic digits). Open an order to see all its details, **mark it done** (paid orders only), **download a PDF receipt** or print it, or message the customer on WhatsApp. **Export to Excel** downloads the filtered orders.
+- **Orders** — every order, with KPIs (revenue from completed orders, completed and pending counts, average order), filters (date, status, payment method, delivery, source) and search by customer name or order number (Latin or Arabic digits). Open an order to see all its details, **mark it done** (paid orders only), or **download a PDF receipt** or print it. **Export to Excel** downloads the filtered orders.
 - **Products** — add a product or edit any existing one: names and descriptions in English and Arabic, sizes/prices (KWD) and stock, **photos** (from the site library or uploaded), the **collections** it appears in, a "New" badge and visibility. Move a product between collections, **hide/show** it, reset an edited base product to the original, or **delete** a custom product. The four collection names and descriptions are editable too.
 - **Stock** — the stock of every size of every product (hidden and custom products included), grouped by product and filterable by collection or stock level (All · Low · Out of stock), searchable by name or SKU. Each size shows the **stock set**, the **units sold since it was set** and the **available** figure customers can still buy; adjust it with − / + or type an exact value and **Save**. Summary tiles count products in stock, sizes out, sizes low and total units available. **Export** the table to Excel.
 - **Product analysis** — units ordered per product, grouped by collection and searchable, with revenue (before order discounts), order counts, current price and available stock. **Export** a single collection, or **Export all collections** at once, to Excel.
@@ -92,7 +92,7 @@ src/app/[locale]/(checkout)/  checkout, payment simulation, result
 src/app/[locale]/(admin)/     admin area: orders, products, stock, product analysis, settings
 src/components/               ui kit, layout, product, cart, checkout, payment, home, content, admin
 src/data/                     catalog, categories, Kuwait areas, banks, store settings
-src/lib/                      money, pricing, phone, delivery, search, payments; admin-auth and lib/admin (receipt, Excel, analytics, samples, backup)
+src/lib/                      money, pricing, phone, delivery, search, payments; admin-auth and lib/admin (receipt, Excel, analytics, samples)
 src/store/                    bag, checkout, catalog, settings, stock and admin stores (saved in the browser)
 messages/{en,ar}/             all interface text (includes the admin namespace)
 scripts/                      media pipeline and screenshot tool

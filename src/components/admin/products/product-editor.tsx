@@ -339,8 +339,8 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
     const stockStore = useStockStore.getState();
     for (const v of variants) stockStore.resetSold(v.sku);
 
-    // Uploaded photos stay in the reusable library on save: they are only ever removed from the
-    // library dialog or Settings → Data → "Delete unused photos".
+    // Uploaded photos stay in the reusable photo library on save; they can be deleted there (from
+    // the library dialog) when no longer needed.
 
     reset(values);
     pushToast({ title: t("editor.saved", { name: product.name }) });

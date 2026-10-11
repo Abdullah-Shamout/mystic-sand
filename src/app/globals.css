@@ -144,6 +144,16 @@
     -webkit-appearance: none;
   }
 
+  /* Edge draws its own reveal/clear eye in password and text fields; our password fields already
+     have a show/hide toggle, so hide Edge's. Two separate rules — a browser that doesn't know one
+     selector would drop the whole rule if they shared one. */
+  input::-ms-reveal {
+    display: none;
+  }
+  input::-ms-clear {
+    display: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

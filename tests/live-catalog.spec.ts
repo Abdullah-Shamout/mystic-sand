@@ -10,8 +10,11 @@ type Edits = {
   categories?: Record<string, unknown>;
 };
 
-/** Seed the catalog and/or settings stores exactly as zustand persist writes them. */
-async function seed(page: Page, data: { catalog?: Edits; settings?: Record<string, unknown> }) {
+/** Seed the catalog, settings and/or home stores exactly as zustand persist writes them. */
+async function seed(
+  page: Page,
+  data: { catalog?: Edits; settings?: Record<string, unknown>; home?: Record<string, unknown> },
+) {
   await page.addInitScript((d) => {
     if (d.catalog) {
       const edits = { patches: {}, added: [], categories: {}, ...d.catalog };
@@ -19,6 +22,9 @@ async function seed(page: Page, data: { catalog?: Edits; settings?: Record<strin
     }
     if (d.settings) {
       localStorage.setItem("ms-settings", JSON.stringify({ state: { overrides: d.settings }, version: 1 }));
+    }
+    if (d.home) {
+      localStorage.setItem("ms-home", JSON.stringify({ state: { overrides: d.home }, version: 1 }));
     }
   }, data);
 }
@@ -193,11 +199,55 @@ test.describe("robustness with everything (and garbage) saved", () => {
         phone: "22223333",
         ticker: { en: ["Hello test"], ar: ["مرحبا"] },
       },
+      // Deliberately broken home overrides: wrong types, blocked links, unknown products, a deleted
+      // upload and a text with braces/apostrophes. cleanHome must drop all of it to the defaults.
+      home: {
+        hero: { title: 123, cta: { en: 456 }, href: "javascript:alert(1)" },
+        trilogy: { products: "not-an-array" },
+        story: { image: "u:missing", mobileImage: "https://evil.example/x.jpg" },
+        duo: { items: "nope" },
+        feature: { product: "totally-unknown-product", image: "u:missing" },
+        film: { href: "https://evil.example", eyebrow: { en: "has { and ' chars" } },
+        homeGrid: { products: [123, {}] },
+        services: { items: [{ text: { en: "cost {fee} and {bogus}" } }], whatsappText: { en: 5 } },
+        instagram: { photos: ["u:missing", "https://evil.example", 42], subtitle: 999 },
+        bogusSection: { foo: "bar" },
+      },
     });
   });
 
   for (const path of PAGES) {
     test(`${path} loads cleanly with edits saved`, async ({ page }) => {
+      const errors: string[] = [];
+      page.on("pageerror", (e) => errors.push(e.message));
+      page.on("console", (m) => {
+        if (m.type() === "error") errors.push(m.text());
+      });
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(200);
+      await expect(page.locator("h1").first()).toBeVisible();
+      await page.waitForTimeout(400);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  test("garbage home overrides fall back to the defaults and hide an unknown featured product", async ({ page }) => {
+    await page.goto("/en/");
+    // The built-in hero text and link are shown despite the garbage overrides.
+    await expect(page.locator("#hero-title")).toHaveText("Timeless scents that capture the moment");
+    await expect(page.locator('[data-home-section="hero"]').getByRole("link")).toHaveAttribute("href", /\/en\/shop\/perfumes\/$/);
+    // The featured product was unknown → the panel is hidden entirely.
+    await expect(page.locator("#aura-title")).toHaveCount(0);
+    await expect(page.locator('[data-home-section="feature"]')).toHaveCount(0);
+  });
+});
+
+test.describe("ms-home with unreadable JSON", () => {
+  test.skip(({ isMobile }) => isMobile, "Runs on the desktop project");
+
+  for (const path of ["/en/", "/ar/"]) {
+    test(`${path} ignores an invalid ms-home value and shows the defaults`, async ({ page }) => {
+      await page.addInitScript(() => localStorage.setItem("ms-home", "{not valid json"));
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
       page.on("console", (m) => {

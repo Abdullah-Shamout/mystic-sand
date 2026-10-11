@@ -1,11 +1,14 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
 import { asset } from "@/lib/asset";
+import { HOME_DEFAULTS, liveHref, textOr } from "@/lib/home";
 import { useMediaQuery, useMounted, useReducedMotion } from "@/lib/hooks";
+import { useLiveCatalog, useLiveHome } from "@/lib/live";
 
 const DESKTOP = { src: "/videos/hero-desktop.mp4", poster: "/videos/hero-desktop-poster.webp" };
 const MOBILE = { src: "/videos/hero-mobile.mp4", poster: "/videos/hero-mobile-poster.webp" };
@@ -19,11 +22,16 @@ const MOBILE = { src: "/videos/hero-mobile.mp4", poster: "/videos/hero-mobile-po
  */
 export function VideoHero() {
   const t = useTranslations("home.hero");
+  const locale = useLocale() as Locale;
+  const o = useLiveHome().hero;
+  const catalog = useLiveCatalog();
   const mounted = useMounted();
   const desktop = useMediaQuery("(min-width: 768px)");
   const reduced = useReducedMotion();
   const source = mounted && !reduced ? (desktop ? DESKTOP : MOBILE) : null;
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const href = liveHref(o?.href, catalog, HOME_DEFAULTS.hero.href);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -41,6 +49,7 @@ export function VideoHero() {
   return (
     <section
       aria-labelledby="hero-title"
+      data-home-section="hero"
       className="relative isolate h-[calc(100svh-105px)] min-h-[520px] overflow-hidden bg-ink text-cream lg:h-[calc(100svh-129px)] [&_:focus-visible]:outline-cream"
     >
       <picture>
@@ -77,15 +86,15 @@ export function VideoHero() {
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-ink/70 via-ink/25 to-transparent" />
 
       <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-6 pb-12 text-center md:pb-14">
-        <p className="caps text-[12px] text-cream/85 md:text-[13px]">{t("eyebrow")}</p>
+        <p className="caps text-[12px] text-cream/85 md:text-[13px]">{textOr(o?.eyebrow, locale, t("eyebrow"))}</p>
         <h1
           id="hero-title"
           className="caps mt-3 max-w-4xl font-serif text-[30px] leading-[1.08] font-medium text-balance md:text-[40px] lg:text-[46px]"
         >
-          {t("title")}
+          {textOr(o?.title, locale, t("title"))}
         </h1>
         <Button asChild variant="light" className="mt-6 min-w-44 md:mt-7">
-          <Link href="/shop/perfumes">{t("cta")}</Link>
+          <Link href={href}>{textOr(o?.cta, locale, t("cta"))}</Link>
         </Button>
       </div>
     </section>

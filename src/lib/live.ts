@@ -1,8 +1,10 @@
 import type { Product } from "@/data/types";
 import { baseCatalog, buildCatalog, type Catalog, type CatalogEdits } from "@/lib/catalog";
+import { EMPTY_HOME, type HomeOverrides } from "@/lib/home";
 import { useMounted } from "@/lib/hooks";
 import { defaultSettings, resolveSettings, type StoreSettings } from "@/lib/settings";
 import { useCatalogStore } from "@/store/catalog";
+import { useHomeStore } from "@/store/home";
 import { useSettingsStore } from "@/store/settings";
 
 /**
@@ -67,4 +69,14 @@ export function useLiveSettings(): StoreSettings {
   const overrides = useSettingsStore((s) => s.overrides);
   const mounted = useMounted();
   return mounted ? settingsFor(overrides) : defaultSettings;
+}
+
+/**
+ * Render-safe home-override hook: no overrides until mounted, then the admin's edits. The store
+ * keeps `overrides` sanitised and stable, so the static HTML is unchanged while nothing is edited.
+ */
+export function useLiveHome(): HomeOverrides {
+  const overrides = useHomeStore((s) => s.overrides);
+  const mounted = useMounted();
+  return mounted ? overrides : EMPTY_HOME;
 }

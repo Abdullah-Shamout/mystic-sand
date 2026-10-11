@@ -7,6 +7,7 @@ import { clearUploadCache } from "@/lib/uploads";
 import { useBag } from "@/store/bag";
 import { useCatalogStore } from "@/store/catalog";
 import { useCheckout } from "@/store/checkout";
+import { useHomeStore } from "@/store/home";
 import { useSettingsStore } from "@/store/settings";
 import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
@@ -17,6 +18,7 @@ const PERSISTED = {
   "ms-bag": useBag,
   "ms-checkout": useCheckout,
   "ms-catalog": useCatalogStore,
+  "ms-home": useHomeStore,
   "ms-settings": useSettingsStore,
   "ms-stock": useStockStore,
 } as const;

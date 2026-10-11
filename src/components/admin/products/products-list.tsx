@@ -103,8 +103,7 @@ export function ProductsList() {
 
   const doDelete = (product: Product) => {
     // Uploaded photos are a reusable library now: deleting a product leaves its uploads in place,
-    // so they can still be chosen for other products. They are only removed from the library dialog
-    // or Settings → Data → "Delete unused photos".
+    // so they can still be chosen for other products. They can be deleted from the photo library.
     deleteProduct(product.slug);
     pushToast({ title: t("products.toast.deleted", { name: product.name }) });
   };

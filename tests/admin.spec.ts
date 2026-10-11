@@ -32,6 +32,25 @@ test.describe("admin header entry", () => {
   });
 });
 
+test.describe("password field styling", () => {
+  test("the built CSS hides Edge's reveal eye on password fields", async ({ page }) => {
+    await page.goto("/en/");
+    const hrefs = await page
+      .locator('link[rel="stylesheet"]')
+      .evaluateAll((els) => els.map((el) => (el as HTMLLinkElement).href));
+    expect(hrefs.length).toBeGreaterThan(0);
+
+    let css = "";
+    for (const href of hrefs) {
+      const res = await page.request.get(href);
+      css += await res.text();
+    }
+    // Both separate rules, each setting display:none (minified or not).
+    expect(css).toMatch(/::-ms-reveal\s*\{\s*display\s*:\s*none/);
+    expect(css).toMatch(/::-ms-clear\s*\{\s*display\s*:\s*none/);
+  });
+});
+
 test.describe("admin sign-in", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
 
@@ -287,6 +306,19 @@ test.describe("admin orders dashboard", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(sample.id).first()).toBeVisible();
     await expect(dialog.getByText(sample.details.name).first()).toBeVisible();
+  });
+
+  test("the order drawer no longer offers a WhatsApp link", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/en/admin/");
+    await expect.poll(() => resultCount(page)).toBe(31);
+    const admin = await readAdmin(page);
+
+    await page.goto(`/en/admin/?order=${admin.samples[0].id}`);
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(/whatsapp/i)).toHaveCount(0);
+    await expect(dialog.locator('a[href*="wa.me"]')).toHaveCount(0);
   });
 
   test("Excel export downloads a filtered .xlsx that unzips to an order id", async ({ page }) => {

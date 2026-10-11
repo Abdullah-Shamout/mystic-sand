@@ -12,6 +12,7 @@ export function SplitPanel({
   imageSide = "start",
   className,
   labelledBy,
+  homeSection,
   children,
 }: {
   image: string;
@@ -20,10 +21,12 @@ export function SplitPanel({
   /** Background and text colour of the panel. */
   className?: string;
   labelledBy?: string;
+  /** Anchor id for the admin home-page preview scroll. */
+  homeSection?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section aria-labelledby={labelledBy} className={cn("grid md:grid-cols-2", className)}>
+    <section aria-labelledby={labelledBy} data-home-section={homeSection} className={cn("grid md:grid-cols-2", className)}>
       <div
         className={cn(
           "relative aspect-square overflow-hidden md:aspect-auto md:min-h-[600px] lg:min-h-[calc(100svh-129px)]",

@@ -134,10 +134,8 @@
       "copied": "Order number copied.",
       "downloadPdf": "Download receipt",
       "printReceipt": "Print receipt",
-      "whatsapp": "WhatsApp customer",
       "noReceipt": "A receipt is available once a payment has been attempted."
     },
-    "whatsapp": "Hello {name}, this is Mystic Sand about your order {id} (total {total}).",
     "export": {
       "sheets": {
         "orders": "Orders",
