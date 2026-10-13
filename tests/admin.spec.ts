@@ -79,6 +79,7 @@ test.describe("admin sign-in", () => {
     // Lands in the admin area with the nav tabs.
     await page.waitForURL(/\/en\/admin\/$/);
     await expect(page.getByRole("link", { name: "Orders", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Home page", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Product analysis", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings", exact: true })).toBeVisible();
 
@@ -1113,32 +1114,7 @@ test.describe("admin store settings", () => {
     await expect(page.getByText("+965 2222 3333").first()).toBeVisible();
   });
 
-  test("custom ticker messages show per language, and the built-in option restores defaults", async ({ page }) => {
-    await signIn(page);
-    await page.goto("/en/admin/settings/");
-    await page.getByTestId("ticker-en-add").click();
-    await page.getByTestId("ticker-en-input-0").fill("Hello test");
-    await page.getByTestId("ticker-ar-add").click();
-    await page.getByTestId("ticker-ar-input-0").fill("مرحبا");
-    await page.getByTestId("ticker-save").click();
-    await expect(page.getByText("Saved.").first()).toBeVisible();
-
-    await page.goto("/en/");
-    const enTicker = page.getByRole("region", { name: "Announcements" });
-    await expect(enTicker).toContainText("Hello test");
-    await expect(enTicker).not.toContainText("Pay securely with KNET");
-
-    await page.goto("/ar/");
-    await expect(page.getByRole("region", { name: "الإعلانات" })).toContainText("مرحبا");
-
-    // "Use the built-in messages" clears both lists.
-    await page.goto("/en/admin/settings/");
-    await page.getByTestId("ticker-built-in").click();
-    await page.goto("/en/");
-    await expect(page.getByRole("region", { name: "Announcements" })).toContainText(
-      "Pay securely with KNET, Apple Pay or card",
-    );
-  });
+  // The top-banner (ticker) editor moved to the Home page editor — see home-editor.spec.ts.
 
   test("the default login works with MysticSand@2026 and the old password fails", async ({ page }) => {
     await page.goto("/en/");

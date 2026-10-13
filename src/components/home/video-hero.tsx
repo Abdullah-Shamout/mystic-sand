@@ -86,10 +86,10 @@ export function VideoHero() {
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-ink/70 via-ink/25 to-transparent" />
 
       <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-6 pb-12 text-center md:pb-14">
-        <p className="caps text-[12px] text-cream/85 md:text-[13px]">{textOr(o?.eyebrow, locale, t("eyebrow"))}</p>
+        <p className="caps text-[12px] text-cream/85 [overflow-wrap:anywhere] md:text-[13px]">{textOr(o?.eyebrow, locale, t("eyebrow"))}</p>
         <h1
           id="hero-title"
-          className="caps mt-3 max-w-4xl font-serif text-[30px] leading-[1.08] font-medium text-balance md:text-[40px] lg:text-[46px]"
+          className="caps mt-3 max-w-4xl font-serif text-[30px] leading-[1.08] font-medium text-balance [overflow-wrap:anywhere] md:text-[40px] lg:text-[46px]"
         >
           {textOr(o?.title, locale, t("title"))}
         </h1>

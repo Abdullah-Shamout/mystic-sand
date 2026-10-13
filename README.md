@@ -11,7 +11,7 @@ A clickable, frontend-only prototype of the **Mystic Sand** perfume store
 - Easy shopping: quick add from any product grid, bag drawer with the delivery fee shown upfront, one-page guest checkout
 - Kuwait checkout: area search that fills the governorate, block/street/avenue/house fields, +965 mobile validation, prices in KWD (3 decimals)
 - Payments: **KNET** (default), Apple Pay and Visa/Mastercard — **simulated**, see below
-- Built-in **admin area** (orders dashboard, product & collection editing, product analysis, store settings) — English/Arabic, opened with **Enter** in the header (see below)
+- Built-in **admin area** (orders dashboard, product & collection editing, home-page content, product analysis, store settings) — English/Arabic, opened with **Enter** in the header (see below)
 
 > This is a prototype for review. Prices, the delivery fee, contact details and policy texts are placeholders marked `TODO(client)` in `src/data/`.
 
@@ -35,8 +35,9 @@ A built-in, browser-only back office for running the demo store. Open it with **
 - **Orders** — every order, with KPIs (revenue from completed orders, completed and pending counts, average order), filters (date, status, payment method, delivery, source) and search by customer name or order number (Latin or Arabic digits). Open an order to see all its details, **mark it done** (paid orders only), or **download a PDF receipt** or print it. **Export to Excel** downloads the filtered orders.
 - **Products** — add a product or edit any existing one: names and descriptions in English and Arabic, sizes/prices (KWD) and stock, **photos** (from the site library or uploaded), the **collections** it appears in, a "New" badge and visibility. Move a product between collections, **hide/show** it, reset an edited base product to the original, or **delete** a custom product. The four collection names and descriptions are editable too.
 - **Stock** — the stock of every size of every product (hidden and custom products included), grouped by product and filterable by collection or stock level (All · Low · Out of stock), searchable by name or SKU. Each size shows the **stock set**, the **units sold since it was set** and the **available** figure customers can still buy; adjust it with − / + or type an exact value and **Save**. Summary tiles count products in stock, sizes out, sizes low and total units available. **Export** the table to Excel.
+- **Home page** — edit the home page **section by section**: the **top banner**, the **top video** texts, the two product rows (the Trilogy and "For the home"), the **story panel** photos, the **two products** block, the **featured product** panel, the **brand film** texts, the **service promises** and the six **Instagram** photos. For each section you can change the English and Arabic texts, swap photos (from the site library or uploaded), choose which products appear and set the button links, then **Save**, **Discard** or **Reset** that section back to the original. A **live preview** sits beside the editor on computers (phones get a "View home page" link). The two videos stay fixed; everything is saved in this browser only.
 - **Product analysis** — units ordered per product, grouped by collection and searchable, with revenue (before order discounts), order counts, current price and available stock. **Export** a single collection, or **Export all collections** at once, to Excel.
-- **Settings** — the delivery fee, the WhatsApp and phone numbers, the **top-banner** messages (per language), and the **admin account** (separate username and password cards). Everything is saved in this browser only; there is no backup/restore — the data cannot move to another device.
+- **Settings** — the delivery fee, the WhatsApp and phone numbers, and the **admin account** (separate username and password cards). The **top-banner** messages moved to the **Home page** tab. Everything is saved in this browser only; there is no backup/restore — the data cannot move to another device.
 
 The dashboard is seeded with about 30 realistic sample orders (tagged **Sample**) so it looks alive; any real order placed in this browser appears alongside them.
 
@@ -89,7 +90,7 @@ The workflow sets `NEXT_PUBLIC_BASE_PATH` to the repository path, so the site wo
 ```
 src/app/[locale]/(shop)/      home, collections, product, bag, orders, contact, FAQ, policies
 src/app/[locale]/(checkout)/  checkout, payment simulation, result
-src/app/[locale]/(admin)/     admin area: orders, products, stock, product analysis, settings
+src/app/[locale]/(admin)/     admin area: orders, products, stock, home page, product analysis, settings
 src/components/               ui kit, layout, product, cart, checkout, payment, home, content, admin
 src/data/                     catalog, categories, Kuwait areas, banks, store settings
 src/lib/                      money, pricing, phone, delivery, search, payments; admin-auth and lib/admin (receipt, Excel, analytics, samples)

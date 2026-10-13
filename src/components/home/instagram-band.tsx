@@ -44,7 +44,7 @@ export function InstagramBand() {
             <span className="sr-only"> ({t("newTab")})</span>
           </a>
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted">{textOr(o?.subtitle, locale, t("subtitle"))}</p>
+        <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted [overflow-wrap:anywhere]">{textOr(o?.subtitle, locale, t("subtitle"))}</p>
       </Reveal>
     </section>
   );

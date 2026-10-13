@@ -8,17 +8,20 @@ import { Modal } from "@/components/ui/modal";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import media from "@/data/media.generated.json";
 import { cn } from "@/lib/cn";
+import { homeImageKeys } from "@/lib/home";
 import { useLiveCatalog } from "@/lib/live";
 import { deleteUpload, listUploadIds, UPLOAD_PREFIX, uploadIdFromKey } from "@/lib/uploads";
+import { useHomeStore } from "@/store/home";
 import { ConfirmDialog } from "../confirm-dialog";
 
 const LIBRARY_KEYS = Object.keys(media as Record<string, unknown>).sort();
 
 /**
- * Picks one or more photos to add to a product's gallery — from the site's built-in photos AND
- * every photo uploaded to any product (a reusable library). Uploaded photos can be deleted from
- * here (with a confirm, warning when a product still uses one). Photos already in the gallery, or
- * beyond the remaining slots, can't be chosen.
+ * Picks photos from the site's built-in photos AND every uploaded photo (a reusable library).
+ * In the default (multi) mode it adds to a product's gallery, respecting the remaining slots. In
+ * `single` mode a pick replaces the selection (one photo for a home slot) and the current photo
+ * shows an "In use" badge but stays pickable. Uploaded photos can be deleted here, with a confirm
+ * that warns when a product or the home page still uses one.
  */
 export function ImageLibraryDialog({
   open,
@@ -26,19 +29,23 @@ export function ImageLibraryDialog({
   existing,
   remaining,
   onAdd,
+  single = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existing: string[];
   remaining: number;
   onAdd: (keys: string[]) => void;
+  single?: boolean;
 }) {
   const t = useTranslations("admin");
   const catalog = useLiveCatalog();
+  const homeOverrides = useHomeStore((s) => s.overrides);
   const [selected, setSelected] = useState<string[]>([]);
   const [tick, setTick] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const inGallery = new Set(existing);
+  const homeKeys = useMemo(() => new Set(homeImageKeys(homeOverrides)), [homeOverrides]);
 
   // Read the uploads each time the dialog is opened (and after a delete), so a photo uploaded to
   // another product shows up here.
@@ -57,6 +64,10 @@ export function ImageLibraryDialog({
   };
 
   const toggle = (key: string) => {
+    if (single) {
+      setSelected((prev) => (prev[0] === key ? [] : [key]));
+      return;
+    }
     setSelected((prev) => {
       if (prev.includes(key)) return prev.filter((k) => k !== key);
       if (prev.length >= remaining) return prev;
@@ -82,7 +93,8 @@ export function ImageLibraryDialog({
   const renderThumb = (imgKey: string, deletable: boolean) => {
     const added = inGallery.has(imgKey);
     const isSelected = selected.includes(imgKey);
-    const disabled = added || (!isSelected && selected.length >= remaining);
+    // Single mode never disables for a cap; the current photo stays pickable (with an "In use" badge).
+    const disabled = single ? false : added || (!isSelected && selected.length >= remaining);
     return (
       <li key={imgKey} className="relative">
         <button
@@ -90,12 +102,13 @@ export function ImageLibraryDialog({
           disabled={disabled}
           aria-pressed={isSelected}
           onClick={() => toggle(imgKey)}
+          data-key={imgKey}
           data-testid={deletable ? "library-upload-item" : "library-item"}
           className={cn(
             "group relative block aspect-square w-full overflow-hidden border bg-tile transition-colors",
             isSelected ? "border-racing" : "border-line hover:border-ink",
             disabled && !added && "cursor-not-allowed opacity-40",
-            added && "cursor-not-allowed opacity-50",
+            !single && added && "cursor-not-allowed opacity-50",
           )}
         >
           <ResponsiveImage image={imgKey} alt="" sizes="160px" />
@@ -104,9 +117,9 @@ export function ImageLibraryDialog({
               <Check className="size-6 text-cream" strokeWidth={2} aria-hidden />
             </span>
           )}
-          {added && (
+          {added && !isSelected && (
             <span className="caps absolute inset-x-0 bottom-0 bg-ink/70 py-0.5 text-center text-[10px] text-cream">
-              {t("editor.library.added")}
+              {single ? t("editor.library.inUse") : t("editor.library.added")}
             </span>
           )}
         </button>
@@ -125,11 +138,28 @@ export function ImageLibraryDialog({
     );
   };
 
+  const usedInHome = pendingDelete !== null && homeKeys.has(pendingDelete);
+  const usedInProducts = pendingDelete !== null && usageCount(pendingDelete) > 0;
+  const deleteMessage = [
+    t("editor.library.deleteConfirmMessage"),
+    usedInProducts ? t("editor.library.deleteConfirmInUse", { count: usageCount(pendingDelete!) }) : "",
+    usedInHome ? t("editor.library.deleteConfirmHome") : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <>
-      <Modal open={open} onOpenChange={close} title={t("editor.library.title")} className="sm:max-w-2xl">
+      <Modal
+        open={open}
+        onOpenChange={close}
+        title={single ? t("editor.library.chooseTitle") : t("editor.library.title")}
+        className="sm:max-w-2xl"
+      >
         <div className="px-6 pt-3 pb-4">
-          <p className="text-[13px] leading-snug text-muted">{t("editor.library.intro", { remaining })}</p>
+          <p className="text-[13px] leading-snug text-muted">
+            {single ? t("editor.library.chooseIntro") : t("editor.library.intro", { remaining })}
+          </p>
         </div>
         <div className="max-h-[60vh] space-y-6 overflow-y-auto px-6">
           <section>
@@ -154,7 +184,7 @@ export function ImageLibraryDialog({
             {t("editor.cancel")}
           </Button>
           <Button size="sm" onClick={commit} disabled={selected.length === 0} data-testid="library-add">
-            {t("editor.library.add", { count: selected.length })}
+            {single ? t("editor.library.choose") : t("editor.library.add", { count: selected.length })}
           </Button>
         </div>
       </Modal>
@@ -163,11 +193,7 @@ export function ImageLibraryDialog({
         open={pendingDelete !== null}
         onOpenChange={(next) => !next && setPendingDelete(null)}
         title={t("editor.library.deleteConfirmTitle")}
-        message={
-          pendingDelete && usageCount(pendingDelete) > 0
-            ? `${t("editor.library.deleteConfirmMessage")} ${t("editor.library.deleteConfirmInUse", { count: usageCount(pendingDelete) })}`
-            : t("editor.library.deleteConfirmMessage")
-        }
+        message={deleteMessage}
         confirmLabel={t("editor.library.deleteConfirm")}
         danger
         onConfirm={confirmDelete}

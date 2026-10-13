@@ -14,8 +14,8 @@ export function SectionTitle({
 }) {
   return (
     <div className={cn("mx-auto max-w-3xl px-6 pt-20 pb-12 text-center md:pt-24 md:pb-14", className)}>
-      <Tag className="caps font-serif text-title-sm font-medium md:text-title">{title}</Tag>
-      {subtitle && <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted">{subtitle}</p>}
+      <Tag className="caps font-serif text-title-sm font-medium [overflow-wrap:anywhere] md:text-title">{title}</Tag>
+      {subtitle && <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted [overflow-wrap:anywhere]">{subtitle}</p>}
     </div>
   );
 }

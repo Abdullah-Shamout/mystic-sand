@@ -59,6 +59,8 @@ export const useStockStore = create<StockState>()(
       version: 1,
       storage: safeJSONStorage,
       partialize: (s) => ({ sold: s.sold }),
+      // Coerce a state saved by any version so a version bump never logs "couldn't be migrated".
+      migrate: (persisted) => ({ sold: coerceSold((persisted as { sold?: unknown })?.sold) }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as { sold?: unknown };
         return { ...current, sold: coerceSold(p.sold) };

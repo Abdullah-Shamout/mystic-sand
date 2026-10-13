@@ -165,6 +165,8 @@ export const useCatalogStore = create<CatalogState>()(
       version: 1,
       storage: safeJSONStorage,
       partialize: (s) => ({ edits: s.edits }),
+      // Coerce a state saved by any version so a version bump never logs "couldn't be migrated".
+      migrate: (persisted) => ({ edits: coerceEdits((persisted as { edits?: unknown })?.edits) }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as { edits?: unknown };
         return { ...current, edits: coerceEdits(p.edits) };

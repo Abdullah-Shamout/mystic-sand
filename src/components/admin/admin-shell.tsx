@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,7 @@ const TABS = [
   { href: "/admin", key: "orders" },
   { href: "/admin/products", key: "products" },
   { href: "/admin/stock", key: "stock" },
+  { href: "/admin/home", key: "home" },
   { href: "/admin/analysis", key: "analysis" },
   { href: "/admin/settings", key: "settings" },
 ] as const;
@@ -34,6 +35,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const pushToast = useUi((s) => s.pushToast);
+  const activeTabRef = useRef<HTMLAnchorElement>(null);
+  const clean = pathname.replace(/\/+$/, "") || "/";
 
   // Seed the demo orders once, after sign-in (no-op if already seeded or cleared). "now" is read
   // inside the effect, never during render.
@@ -41,6 +44,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (!session) return;
     useAdminStore.getState().seedSamples(new Date().toISOString());
   }, [session]);
+
+  // On phones the tab bar scrolls horizontally; keep the active tab in view once the signed-in shell
+  // (not the skeleton) is mounted, and again after fonts load (Arabic measures a few px wider).
+  useEffect(() => {
+    if (!mounted || !session) return;
+    const scroll = () => activeTabRef.current?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    scroll();
+    document.fonts?.ready.then(scroll).catch(() => {});
+  }, [clean, mounted, session]);
 
   if (!mounted) return <AdminSkeleton />;
 
@@ -56,7 +68,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const clean = pathname.replace(/\/+$/, "") || "/";
   const isActive = (href: string) => clean === href || (href !== "/admin" && clean.startsWith(`${href}/`));
 
   const logout = () => {
@@ -97,6 +108,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               return (
                 <li key={tab.href}>
                   <Link
+                    ref={active ? activeTabRef : undefined}
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
@@ -139,7 +151,9 @@ function AdminSkeleton() {
         <div className="mx-auto flex max-w-[1400px] gap-2 px-4 pb-3 lg:px-6">
           <Skeleton className="h-6 w-20" />
           <Skeleton className="h-6 w-20" />
+          <Skeleton className="h-6 w-16" />
           <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-6 w-28" />
           <Skeleton className="h-6 w-20" />
         </div>
       </div>

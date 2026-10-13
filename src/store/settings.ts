@@ -13,6 +13,10 @@ type SettingsState = {
   resetAll: () => void;
 };
 
+/** A persisted overrides value is only kept when it is a plain object; resolveSettings validates fields. */
+const coerceOverrides = (value: unknown): Partial<StoreSettings> =>
+  value && typeof value === "object" && !Array.isArray(value) ? (value as Partial<StoreSettings>) : {};
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
@@ -33,13 +37,11 @@ export const useSettingsStore = create<SettingsState>()(
       version: 1,
       storage: safeJSONStorage,
       partialize: (s) => ({ overrides: s.overrides }),
+      // Coerce a state saved by any version so a version bump never logs "couldn't be migrated".
+      migrate: (persisted) => ({ overrides: coerceOverrides((persisted as { overrides?: unknown })?.overrides) }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as { overrides?: unknown };
-        const overrides =
-          p.overrides && typeof p.overrides === "object" && !Array.isArray(p.overrides)
-            ? (p.overrides as Partial<StoreSettings>)
-            : {};
-        return { ...current, overrides };
+        return { ...current, overrides: coerceOverrides(p.overrides) };
       },
     },
   ),

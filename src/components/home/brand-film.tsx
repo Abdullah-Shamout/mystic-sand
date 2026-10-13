@@ -66,11 +66,11 @@ export function BrandFilm({ id = "brand-film" }: { id?: string }) {
         </div>
 
         <Reveal className="px-6 py-14 text-center md:px-0 md:py-0 md:text-start">
-          <p className="caps text-[12px] text-cream/70 md:text-[13px]">{textOr(o?.eyebrow, locale, t("eyebrow"))}</p>
-          <h2 id={id} className="caps mt-3 font-serif text-title-sm font-medium md:text-title">
+          <p className="caps text-[12px] text-cream/70 [overflow-wrap:anywhere] md:text-[13px]">{textOr(o?.eyebrow, locale, t("eyebrow"))}</p>
+          <h2 id={id} className="caps mt-3 font-serif text-title-sm font-medium [overflow-wrap:anywhere] md:text-title">
             {textOr(o?.title, locale, t("title"))}
           </h2>
-          <p className="mx-auto mt-5 max-w-md text-[16px] leading-[1.8] text-cream/80 md:mx-0">{textOr(o?.body, locale, t("body"))}</p>
+          <p className="mx-auto mt-5 max-w-md text-[16px] leading-[1.8] text-cream/80 [overflow-wrap:anywhere] md:mx-0">{textOr(o?.body, locale, t("body"))}</p>
           <Button asChild variant="outline-light" className="mt-8">
             <Link href={href}>{textOr(o?.cta, locale, t("cta"))}</Link>
           </Button>

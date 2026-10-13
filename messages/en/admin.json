@@ -3,6 +3,7 @@
     "orders": "Orders",
     "products": "Products",
     "stock": "Stock",
+    "home": "Home page",
     "analysis": "Product analysis",
     "settings": "Settings"
   },
@@ -388,15 +389,20 @@
     "library": {
       "title": "Photos",
       "intro": "Pick photos to add ({remaining} slots left). Uploaded photos stay here for reuse on any product.",
+      "chooseTitle": "Choose a photo",
+      "chooseIntro": "Pick one photo. Uploaded photos stay here for reuse on products and the home page.",
+      "choose": "Use this photo",
+      "inUse": "In use",
       "added": "Added",
       "add": "{count, plural, =0 {Add photos} one {Add # photo} other {Add # photos}}",
       "siteGroup": "Site photos",
       "uploadsGroup": "Your uploads",
-      "uploadsEmpty": "Photos you upload to any product appear here.",
+      "uploadsEmpty": "Photos you upload — for a product or the home page — appear here.",
       "delete": "Delete this uploaded photo",
       "deleteConfirmTitle": "Delete this photo?",
       "deleteConfirmMessage": "Permanently delete this uploaded photo from the library. This can’t be undone.",
       "deleteConfirmInUse": "This photo is still used by {count, plural, one {# product} other {# products}}. Deleting it removes it there too.",
+      "deleteConfirmHome": "This photo is also used on the home page. Deleting it removes it there too.",
       "deleteConfirm": "Delete photo"
     },
     "options": {
@@ -491,7 +497,8 @@
   "settings": {
     "title": "Store settings",
     "meta": "Store settings · Mystic Sand admin",
-    "intro": "Change the delivery fees, contact numbers and top banner your shoppers see. Everything is saved in this browser only.",
+    "intro": "Change the delivery fee and contact numbers your shoppers see. Everything is saved in this browser only.",
+    "tickerMoved": "The top banner is now edited in <link>Home page</link>.",
     "browserNote": "Changes apply to the store in this browser.",
     "save": "Save",
     "saved": "Saved.",
@@ -516,21 +523,6 @@
       "shownAs": "Shown as:",
       "testWhatsapp": "Test WhatsApp link",
       "testMessage": "Hello Mystic Sand"
-    },
-    "ticker": {
-      "title": "Top banner",
-      "intro": "The rotating messages above the header. Up to 4 per language; leave a language empty to use the built-in messages.",
-      "en": "English messages",
-      "ar": "Arabic messages",
-      "add": "Add message",
-      "remove": "Remove message",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "counter": "{count}/{max}",
-      "placeholder": "Banner message",
-      "useBuiltIn": "Use the built-in messages",
-      "preview": "Preview",
-      "builtInNote": "Using the built-in messages."
     },
     "account": {
       "note": "This is a browser-only demo gate, not real security. Anyone with this device can sign in.",
@@ -565,6 +557,184 @@
         "password": "Choose a password that meets all the rules.",
         "confirm": "The two passwords do not match."
       }
+    }
+  },
+  "homePage": {
+    "meta": "Home page · Mystic Sand admin",
+    "title": "Home page",
+    "intro": "Change what shows on your home page — text, photos, products and links, in English and Arabic. Everything is saved in this browser only.",
+    "viewStore": "View home page",
+    "save": "Save",
+    "saved": "Saved — live on the home page in this browser.",
+    "discard": "Discard changes",
+    "reset": "Reset section",
+    "resetTitle": "Reset this section?",
+    "resetMessage": "Bring back the original content for this section? Your changes here will be lost.",
+    "resetConfirm": "Reset section",
+    "resetDone": "Section reset to the original.",
+    "resetAll": "Restore the original home page",
+    "resetAllTitle": "Restore the original home page?",
+    "resetAllMessage": "Remove all your home-page changes and bring back the original. This can’t be undone.",
+    "resetAllConfirm": "Restore the original",
+    "resetAllDone": "The home page was restored to the original.",
+    "unsaved": "Unsaved changes",
+    "edited": "Edited",
+    "useOriginal": "Use original",
+    "counter": "{n}/{max}",
+    "browserNote": "Changes apply in this browser only.",
+    "emptyHint": "A field left empty shows the original text.",
+    "sections": {
+      "ticker": {
+        "title": "Top banner",
+        "hint": "The rotating messages above the header. Up to 4 per language; leave a language empty to use the built-in messages."
+      },
+      "hero": {
+        "title": "Top video",
+        "hint": "The large video at the top of the page. The video stays as it is — you can change the text and the button."
+      },
+      "trilogy": {
+        "title": "The Trilogy band",
+        "hint": "The first titled row of products near the top of the page."
+      },
+      "story": {
+        "title": "Story panel",
+        "hint": "The large photo-and-text panel."
+      },
+      "duo": {
+        "title": "Two products",
+        "hint": "Two featured products side by side."
+      },
+      "feature": {
+        "title": "Featured product",
+        "hint": "The large product panel (AURA by default)."
+      },
+      "film": {
+        "title": "Brand film",
+        "hint": "The film beside its text. The film stays as it is — you can change the text and the button."
+      },
+      "homeGrid": {
+        "title": "“For the home” band",
+        "hint": "The second titled row of products."
+      },
+      "services": {
+        "title": "Service promises",
+        "hint": "The three info boxes (delivery, returns, payment) and the WhatsApp help line."
+      },
+      "instagram": {
+        "title": "Instagram",
+        "hint": "The six photos and the caption under them."
+      }
+    },
+    "fields": {
+      "eyebrow": "Small heading",
+      "heroTitle": "Headline",
+      "sectionTitle": "Title",
+      "subtitle": "Subtitle",
+      "button": "Button text",
+      "link": "Button link",
+      "body": "Text",
+      "product": "Product",
+      "photo": "Photo",
+      "storyImage": "Computer photo",
+      "storyMobile": "Phone photo",
+      "serviceTitle": "Title",
+      "serviceText": "Text",
+      "products": "Products",
+      "whatsappText": "Text beside the button",
+      "whatsappMessage": "Pre-filled WhatsApp message"
+    },
+    "products": {
+      "add": "Add a product…",
+      "empty": "No products chosen yet.",
+      "hidden": "Hidden",
+      "missing": "Not in catalog",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "remove": "Remove {name}",
+      "hint36": "Looks best with 3 or 6 products.",
+      "hint48": "Looks best with 4 or 8 products."
+    },
+    "photo": {
+      "choose": "Choose photo",
+      "upload": "Upload photo",
+      "uploading": "Processing…",
+      "useOriginal": "Use the original photo",
+      "useAutomatic": "Use the automatic photo",
+      "original": "Original photo",
+      "automatic": "Automatic photo",
+      "yours": "Your photo",
+      "sameAsComputer": "Same as computer photo",
+      "deleted": "This photo was deleted — showing the original.",
+      "shapeWide": "Looks best wide (landscape).",
+      "shapeTall": "Looks best tall (portrait).",
+      "shapeSquare": "Looks best square."
+    },
+    "links": {
+      "collections": "Collections",
+      "products": "Products",
+      "pages": "Pages",
+      "allProducts": "All products",
+      "contact": "Contact",
+      "faq": "FAQ",
+      "delivery": "Delivery",
+      "refundPolicy": "Returns policy",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "orders": "Track order",
+      "unknown": "Current link (no longer available)",
+      "warning": "This link points to something that’s no longer available. Please pick a new one."
+    },
+    "preview": {
+      "frameTitle": "Home page preview",
+      "desktop": "Computer",
+      "phone": "Phone",
+      "english": "English",
+      "arabic": "العربية",
+      "reload": "Reload",
+      "open": "Open in a new tab",
+      "note": "Updates when you save."
+    },
+    "ticker": {
+      "en": "English messages",
+      "ar": "Arabic messages",
+      "add": "Add message",
+      "remove": "Remove message",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "counter": "{count}/{max}",
+      "placeholder": "Banner message",
+      "useBuiltIn": "Use the built-in messages",
+      "preview": "Preview",
+      "builtInNote": "Using the built-in messages."
+    },
+    "duo": {
+      "slot1": "First product",
+      "slot2": "Second product",
+      "note": "Name, type, size, price and tagline come from the product — edit them in Products."
+    },
+    "feature": {
+      "signatureLabel": "Arabic line under the product name (shown on both sites)",
+      "lineLabel": "English line (shown on the English site only)",
+      "auraCallout": "These texts were written for AURA — update them for {name}.",
+      "hidden": "This product is hidden or not in the catalog, so the panel won’t show on the home page."
+    },
+    "services": {
+      "tokenHint": "'{fee}' shows the current delivery fee, '{when}' the arrival day, '{window}' the return period.",
+      "showsAs": "Shows as:",
+      "whatsappTitle": "WhatsApp help",
+      "block": {
+        "delivery": "Delivery",
+        "returns": "Returns",
+        "payment": "Payment"
+      }
+    },
+    "instagram": {
+      "photoLabel": "Photo {n}"
+    },
+    "errors": {
+      "productsRequired": "Add at least one product.",
+      "duoSame": "Choose two different products.",
+      "tooLong": "Some text is too long. Please shorten it."
     }
   }
 }

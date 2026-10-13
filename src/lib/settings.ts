@@ -25,8 +25,13 @@ export const defaultSettings: StoreSettings = {
 
 const FEE_MIN = 0;
 const FEE_MAX = 50000;
-const TICKER_MAX = 4;
-const TICKER_CHARS = 90;
+/** Top-banner limits, shared by the resolver and the admin editor. */
+export const TICKER_MAX = 4;
+export const TICKER_CHARS = 90;
+
+/** Trims a ticker list to the within-limit, non-empty messages (max 4). Always returns an array. */
+export const cleanTickerList = (list: string[]): string[] =>
+  list.map((m) => m.trim()).filter((m) => m.length > 0 && m.length <= TICKER_CHARS).slice(0, TICKER_MAX);
 
 const isFee = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= FEE_MIN && value <= FEE_MAX;
@@ -40,12 +45,7 @@ const isPhone = (value: unknown): value is string =>
 
 const cleanTicker = (value: unknown): string[] | null => {
   if (!Array.isArray(value)) return null;
-  const messages = value
-    .filter((m): m is string => typeof m === "string")
-    .map((m) => m.trim())
-    .filter((m) => m.length > 0 && m.length <= TICKER_CHARS)
-    .slice(0, TICKER_MAX);
-  return messages;
+  return cleanTickerList(value.filter((m): m is string => typeof m === "string"));
 };
 
 /**
@@ -67,9 +67,18 @@ export function resolveSettings(overrides: Partial<StoreSettings> | undefined | 
   };
 }
 
-/** wa.me link — identical output to the old whatsappLink in src/data/site.ts. */
-export const whatsappHref = (settings: StoreSettings, text: string) =>
-  `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(text)}`;
+/** wa.me link — identical output to the old whatsappLink in src/data/site.ts. Defensive against a
+ * malformed (lone-surrogate) text, which would otherwise throw in encodeURIComponent. */
+export const whatsappHref = (settings: StoreSettings, text: string) => {
+  const safe = typeof (text as { toWellFormed?: () => string }).toWellFormed === "function"
+    ? (text as unknown as { toWellFormed: () => string }).toWellFormed()
+    : text;
+  try {
+    return `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(safe)}`;
+  } catch {
+    return `https://wa.me/${settings.whatsapp}`;
+  }
+};
 
 /** "tel:+965…" — identical to the old telHref in src/components/content/values.ts. */
 export const telHref = (settings: StoreSettings) => `tel:+965${settings.phone}`;

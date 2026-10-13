@@ -29,13 +29,13 @@ export function SplitPanel({
     <section aria-labelledby={labelledBy} data-home-section={homeSection} className={cn("grid md:grid-cols-2", className)}>
       <div
         className={cn(
-          "relative aspect-square overflow-hidden md:aspect-auto md:min-h-[600px] lg:min-h-[calc(100svh-129px)]",
+          "relative aspect-square min-w-0 overflow-hidden md:aspect-auto md:min-h-[600px] lg:min-h-[calc(100svh-129px)]",
           imageSide === "end" && "md:order-last",
         )}
       >
         <ResponsiveImage image={image} alt={alt} sizes="(min-width: 768px) 50vw, 100vw" className="absolute inset-0" />
       </div>
-      <Reveal className="flex flex-col items-center justify-center px-6 py-16 text-center md:px-10 md:py-20 lg:px-16">
+      <Reveal className="flex min-w-0 flex-col items-center justify-center px-6 py-16 text-center md:px-10 md:py-20 lg:px-16">
         {children}
       </Reveal>
     </section>

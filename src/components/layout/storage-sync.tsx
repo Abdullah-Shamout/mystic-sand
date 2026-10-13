@@ -42,6 +42,10 @@ export function StorageSync() {
       }
       if (e.key.startsWith("ms-img:")) {
         clearUploadCache();
+        // A deleted/added upload changes what images resolve to; nudge the image-bearing stores so
+        // their consumers (the home preview, product cards) re-render and a deleted photo falls back.
+        void useHomeStore.persist.rehydrate();
+        void useCatalogStore.persist.rehydrate();
         return;
       }
       if (e.key === "ms-admin") {

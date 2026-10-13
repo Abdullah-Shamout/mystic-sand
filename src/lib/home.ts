@@ -169,7 +169,16 @@ export function sceneImage(product: Product): string {
 const isObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 
-/** Keeps each language that is a non-empty, within-limit string; drops the text when none survive. */
+// A lone/unpaired UTF-16 surrogate: an unpaired high surrogate, or a low surrogate with no high
+// before it. Such a string throws "URI malformed" in encodeURIComponent (e.g. the WhatsApp link),
+// so a stored value that isn't well-formed is dropped (the built-in text then shows).
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+const isWellFormed = (value: string): boolean =>
+  typeof (value as { isWellFormed?: () => boolean }).isWellFormed === "function"
+    ? (value as unknown as { isWellFormed: () => boolean }).isWellFormed()
+    : !LONE_SURROGATE.test(value);
+
+/** Keeps each language that is a non-empty, within-limit, well-formed string; else drops it. */
 function cleanText(raw: unknown, limit: number): HomeText | undefined {
   if (!isObject(raw)) return undefined;
   const out: HomeText = {};
@@ -177,16 +186,16 @@ function cleanText(raw: unknown, limit: number): HomeText | undefined {
     const value = raw[lang];
     if (typeof value !== "string") continue;
     const trimmed = value.trim();
-    if (trimmed.length >= 1 && trimmed.length <= limit) out[lang] = trimmed;
+    if (trimmed.length >= 1 && trimmed.length <= limit && isWellFormed(trimmed)) out[lang] = trimmed;
   }
   return out.en === undefined && out.ar === undefined ? undefined : out;
 }
 
-/** A single trimmed, within-limit string (signature / line), else undefined. */
+/** A single trimmed, within-limit, well-formed string (signature / line), else undefined. */
 function cleanPlain(raw: unknown, limit: number): string | undefined {
   if (typeof raw !== "string") return undefined;
   const trimmed = raw.trim();
-  return trimmed.length >= 1 && trimmed.length <= limit ? trimmed : undefined;
+  return trimmed.length >= 1 && trimmed.length <= limit && isWellFormed(trimmed) ? trimmed : undefined;
 }
 
 const cleanSlug = (raw: unknown): string | undefined => (typeof raw === "string" && SLUG.test(raw) ? raw : undefined);

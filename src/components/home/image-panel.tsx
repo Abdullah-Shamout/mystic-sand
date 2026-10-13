@@ -70,9 +70,9 @@ export function ImagePanel({
         </div>
       )}
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-ink/70 via-ink/25 to-transparent" />
-      <Reveal className="absolute inset-x-0 bottom-0 flex flex-col items-center px-6 pb-12 text-center md:pb-16">
-        {eyebrow && <p className="caps mb-3 text-[12px] text-cream/85 md:text-[13px]">{eyebrow}</p>}
-        <Title className="caps max-w-3xl font-serif text-[30px] leading-[1.1] font-medium text-balance md:text-[42px]">
+      <Reveal className="absolute inset-x-0 bottom-0 flex w-full flex-col items-center px-6 pb-12 text-center md:pb-16">
+        {eyebrow && <p className="caps mb-3 text-[12px] text-cream/85 [overflow-wrap:anywhere] md:text-[13px]">{eyebrow}</p>}
+        <Title className="caps max-w-3xl font-serif text-[30px] leading-[1.1] font-medium text-balance [overflow-wrap:anywhere] md:text-[42px]">
           {title}
         </Title>
         {cta && (

@@ -51,13 +51,13 @@ export function SignatureDuo() {
           {/* Deeper scrim: the stone faces in these renders are light, so cream type needs the extra contrast. */}
           <span aria-hidden className="absolute inset-x-0 bottom-0 h-[62%] bg-linear-to-t from-ink/80 via-ink/40 to-transparent" />
           <Reveal index={i} className="absolute inset-x-0 bottom-0 flex flex-col items-center px-6 pb-10 text-center md:pb-12 lg:pb-14">
-            <p className="text-[13px] text-cream/85">
+            <p className="text-[13px] text-cream/85 [overflow-wrap:anywhere]">
               {product.type[locale]} · <bdi className="whitespace-nowrap">{product.variants[0].size[locale]}</bdi>
             </p>
-            <h2 className="caps mt-1 font-serif text-[34px] leading-none font-medium md:text-[42px]">
+            <h2 className="caps mt-1 font-serif text-[34px] leading-none font-medium [overflow-wrap:anywhere] md:text-[42px]">
               <bdi lang="en">{product.name}</bdi>
             </h2>
-            <p className="mt-3 max-w-xs text-[15px] leading-snug text-cream/90">{product.tagline[locale]}</p>
+            <p className="mt-3 max-w-xs text-[15px] leading-snug text-cream/90 [overflow-wrap:anywhere]">{product.tagline[locale]}</p>
             <Button asChild variant="light" size="sm" className="mt-5 min-w-36 group-hover:border-ink group-hover:bg-ink group-hover:text-paper">
               <span>{textOr(o?.cta, locale, t("cta"))}</span>
             </Button>

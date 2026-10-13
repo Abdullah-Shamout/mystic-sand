@@ -35,6 +35,8 @@ export const useHomeStore = create<HomeState>()(
       version: 1,
       storage: safeJSONStorage,
       partialize: (s) => ({ overrides: s.overrides }),
+      // Sanitise a state saved by any version so a version bump never logs "couldn't be migrated".
+      migrate: (persisted) => ({ overrides: cleanHome((persisted as { overrides?: unknown })?.overrides) }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as { overrides?: unknown };
         return { ...current, overrides: cleanHome(p?.overrides) };
