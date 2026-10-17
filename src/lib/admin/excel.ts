@@ -184,7 +184,6 @@ export function buildOrdersExport(input: {
     [label(t("filters.rangeLabel")), label(rangeLabel)],
     [label(t("filters.fulfillmentLabel")), label(t(`filters.fulfillment.${filters.fulfillment}`))],
     [label(t("filters.methodLabel")), label(t(`filters.method.${filters.method}`))],
-    [label(t("filters.sourceLabel")), label(t(`filters.source.${filters.source}`))],
     [label(t("filters.searchLabel")), text(filters.query)],
     [label(t("orders.export.summary.generated")), dateCell(now.toISOString())],
     [label(t("orders.export.summary.rows")), count(rows.length)],

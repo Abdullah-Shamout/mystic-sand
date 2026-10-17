@@ -10,7 +10,6 @@ import {
   type FulfillmentFilter,
   type MethodFilter,
   type RangeFilter,
-  type SourceFilter,
 } from "@/lib/admin/orders";
 
 function Chips<T extends string>({
@@ -92,10 +91,6 @@ export function OrdersFilters({ value, onChange }: { value: Filters; onChange: (
     value: v,
     label: t(`filters.fulfillment.${v}`),
   }));
-  const sourceOpts = (["all", "site", "sample"] as SourceFilter[]).map((v) => ({
-    value: v,
-    label: t(`filters.source.${v}`),
-  }));
 
   return (
     <div className="space-y-5">
@@ -163,13 +158,6 @@ export function OrdersFilters({ value, onChange }: { value: Filters; onChange: (
           </div>
         </div>
       )}
-
-      <Chips
-        label={t("filters.sourceLabel")}
-        value={value.source}
-        options={sourceOpts}
-        onChange={(v) => set({ source: v })}
-      />
 
       <button
         type="button"

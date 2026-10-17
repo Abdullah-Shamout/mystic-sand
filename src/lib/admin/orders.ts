@@ -35,7 +35,6 @@ export function statusKind(item: AdminOrder): StatusKind {
 export type FulfillmentFilter = "all" | "pending" | "done";
 export type RangeFilter = "today" | "7d" | "30d" | "month" | "all" | "custom";
 export type MethodFilter = "all" | "knet" | "applepay" | "card";
-export type SourceFilter = "all" | "site" | "sample";
 
 export type Filters = {
   query: string;
@@ -44,7 +43,6 @@ export type Filters = {
   from?: string;
   to?: string;
   method: MethodFilter;
-  source: SourceFilter;
 };
 
 export const defaultFilters: Filters = {
@@ -52,7 +50,6 @@ export const defaultFilters: Filters = {
   fulfillment: "all",
   range: "all",
   method: "all",
-  source: "all",
 };
 
 function receiptAttemptFor(order: Order): PaymentRecord | null {
@@ -162,7 +159,6 @@ export function applyFilters(list: AdminOrder[], filters: Filters, now: Date): A
   return list.filter((item) => {
     // Only paid (and still-confirming) orders are ever listed; abandoned checkouts never appear.
     if (!item.paid) return false;
-    if (filters.source !== "all" && item.source !== filters.source) return false;
     if (filters.fulfillment === "pending" && item.fulfillment !== "pending") return false;
     if (filters.fulfillment === "done" && item.fulfillment !== "done") return false;
     if (filters.method !== "all" && item.order.method !== filters.method) return false;

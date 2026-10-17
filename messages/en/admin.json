@@ -215,7 +215,6 @@
     "rangeLabel": "Period",
     "fulfillmentLabel": "Status",
     "methodLabel": "Payment",
-    "sourceLabel": "Source",
     "from": "From",
     "to": "To",
     "reset": "Reset",
@@ -238,11 +237,6 @@
       "knet": "KNET",
       "applepay": "Apple Pay",
       "card": "Card"
-    },
-    "source": {
-      "all": "All",
-      "site": "Website",
-      "sample": "Sample"
     }
   },
   "products": {

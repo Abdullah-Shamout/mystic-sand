@@ -215,7 +215,6 @@
     "rangeLabel": "الفترة",
     "fulfillmentLabel": "الحالة",
     "methodLabel": "الدفع",
-    "sourceLabel": "المصدر",
     "from": "من",
     "to": "إلى",
     "reset": "إعادة تعيين",
@@ -238,11 +237,6 @@
       "knet": "كي نت",
       "applepay": "Apple Pay",
       "card": "بطاقة"
-    },
-    "source": {
-      "all": "الكل",
-      "site": "الموقع",
-      "sample": "تجريبي"
     }
   },
   "products": {

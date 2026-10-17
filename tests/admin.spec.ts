@@ -241,7 +241,8 @@ test.describe("admin orders dashboard", () => {
     await expect.poll(() => resultCount(page)).toBe(knet);
     await page.getByLabel("Payment").selectOption("all");
 
-    await page.getByRole("button", { name: "Website", exact: true }).click();
+    // A search that matches nothing shows the empty state (the Source filter was removed).
+    await page.getByTestId("orders-search").fill("no-such-order-xyz");
     await expect.poll(() => resultCount(page)).toBe(0);
     await expect(page.getByText("No orders match these filters.")).toBeVisible();
   });
@@ -260,6 +261,21 @@ test.describe("admin orders dashboard", () => {
     await expect(table.getByText("Confirming", { exact: true })).toHaveCount(0);
     await expect(table.getByText("Unpaid", { exact: true })).toHaveCount(0);
     await expect(table.getByText(/^(Pending|Done)$/).first()).toBeVisible();
+  });
+
+  test("the Orders filters have no Source group (English and Arabic)", async ({ page }) => {
+    await signIn(page);
+
+    await page.goto("/en/admin/");
+    await expect(page.getByTestId("order-row").first()).toBeVisible();
+    // The Source filter chips were removed — every paid order is always listed.
+    await expect(page.getByRole("group", { name: "Source" })).toHaveCount(0);
+    // Built-in sample orders still carry their "Sample" tag.
+    await expect(page.getByTestId("order-row").first().getByText("Sample")).toBeVisible();
+
+    await page.goto("/ar/admin/");
+    await expect(page.getByTestId("order-row").first()).toBeVisible();
+    await expect(page.getByRole("group", { name: "المصدر" })).toHaveCount(0);
   });
 
   test("marking a paid order done updates KPIs, survives reload and undoes", async ({ page }) => {
@@ -423,10 +439,13 @@ test.describe("admin orders dashboard", () => {
     // 31 built-in samples + the 1 real website order.
     await expect.poll(() => resultCount(page)).toBe(32);
 
-    await page.getByRole("button", { name: "Website", exact: true }).click();
+    // Narrow to the real order by number; it is listed and carries no "Sample" tag
+    // (only the built-in samples are tagged).
+    await page.getByTestId("orders-search").fill("MS-50001");
     await expect.poll(() => resultCount(page)).toBe(1);
-    await expect(page.getByTestId("order-row").filter({ hasText: "MS-50001" })).toHaveCount(1);
-    await expect(page.getByTestId("order-row").first().getByText("Sample")).toHaveCount(0);
+    const realRow = page.getByTestId("order-row").filter({ hasText: "MS-50001" });
+    await expect(realRow).toHaveCount(1);
+    await expect(realRow.getByText("Sample")).toHaveCount(0);
   });
 
   test("the built-in 67095252 order is searchable and its receipt downloads", async ({ page }) => {
