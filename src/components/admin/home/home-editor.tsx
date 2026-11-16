@@ -14,12 +14,13 @@ import {
   type HomeDrafts,
   type SectionId,
 } from "@/lib/admin/home-drafts";
+import { useRouter } from "@/i18n/navigation";
 import { useMediaQuery, useMounted } from "@/lib/hooks";
-import { useLiveCatalog } from "@/lib/live";
-import { cleanTickerList, resolveSettings, TICKER_CHARS } from "@/lib/settings";
+import { useLiveCatalog, useLiveSettings } from "@/lib/live";
+import { cleanTickerList, TICKER_CHARS } from "@/lib/settings";
 import { STORAGE_FULL_EVENT } from "@/lib/storage";
+import { saveSettings } from "@/server/actions/settings";
 import { useHomeStore } from "@/store/home";
-import { useSettingsStore } from "@/store/settings";
 import { useUi } from "@/store/ui";
 
 /** sessionStorage key holding the drafts of unsaved sections (so a tab click / language switch keeps them). */
@@ -86,18 +87,20 @@ export function HomeEditor() {
 function HomeEditorLoaded() {
   const t = useTranslations("admin");
   const locale = useLocale() as Locale;
+  const router = useRouter();
   const catalog = useLiveCatalog();
   const pushToast = useUi((s) => s.pushToast);
 
-  // Subscribed store values drive the baseline (and recompute after a save or a cross-tab change).
+  // The home sections still live in the local home store (Phase 3b migrates them); the ticker is a
+  // settings field, read from the DB (live settings) and saved via saveSettings — the ms-settings
+  // store is gone.
   const storeOverrides = useHomeStore((s) => s.overrides);
-  const settingsOverrides = useSettingsStore((s) => s.overrides);
-  const ticker = useMemo(() => resolveSettings(settingsOverrides).ticker, [settingsOverrides]);
+  const ticker = useLiveSettings().ticker;
   const baseline = useMemo(() => toDrafts(storeOverrides, ticker), [storeOverrides, ticker]);
 
   // The editable drafts live here (lazy-initialised from the store, with any unsaved drafts restored).
   const [drafts, setDrafts] = useState<HomeDrafts>(() => {
-    const base = toDrafts(useHomeStore.getState().overrides, resolveSettings(useSettingsStore.getState().overrides).ticker);
+    const base = toDrafts(useHomeStore.getState().overrides, ticker);
     try {
       const raw = sessionStorage.getItem(DRAFTS_KEY);
       if (raw) {
@@ -173,7 +176,7 @@ function HomeEditorLoaded() {
   const updateDraft = <K extends SectionId>(id: K, patch: Partial<HomeDrafts[K]>) =>
     setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
 
-  const save = (id: SectionId) => {
+  const save = async (id: SectionId) => {
     if (id === "ticker") {
       // A message over the limit is blocked rather than silently dropped on save.
       const tooLong = [...drafts.ticker.en, ...drafts.ticker.ar].some((m) => m.trim().length > TICKER_CHARS);
@@ -183,12 +186,15 @@ function HomeEditorLoaded() {
       }
       setErrors((e) => ({ ...e, ticker: [] }));
       const cleaned = { en: cleanTickerList(drafts.ticker.en), ar: cleanTickerList(drafts.ticker.ar) };
-      const full = runDetectingFull(() => useSettingsStore.getState().setOverrides({ ticker: cleaned }));
-      if (full) {
-        void useSettingsStore.persist.rehydrate(); // revert in-memory to what was actually stored
+      // The ticker is a settings field: save it to the DB and refresh so the live context updates.
+      try {
+        await saveSettings({ ticker: cleaned });
+      } catch {
+        pushToast({ title: t("settings.saveError") });
         return;
       }
       setDrafts((prev) => ({ ...prev, ticker: cleaned }));
+      router.refresh();
     } else {
       const errs = validateDraft(id, drafts[id]);
       if (errs.length > 0) {
@@ -217,7 +223,7 @@ function HomeEditorLoaded() {
 
   const resetSection = (id: SectionId) => {
     if (id === "ticker") {
-      useSettingsStore.getState().setOverrides({ ticker: { en: [], ar: [] } });
+      void saveSettings({ ticker: { en: [], ar: [] } }).then(() => router.refresh()).catch(() => {});
       setDrafts((prev) => ({ ...prev, ticker: { en: [], ar: [] } }));
     } else {
       useHomeStore.getState().resetSection(id);
@@ -231,7 +237,7 @@ function HomeEditorLoaded() {
 
   const resetAll = () => {
     useHomeStore.getState().resetAll();
-    useSettingsStore.getState().setOverrides({ ticker: { en: [], ar: [] } });
+    void saveSettings({ ticker: { en: [], ar: [] } }).then(() => router.refresh()).catch(() => {});
     setDrafts(toDrafts({}, { en: [], ar: [] }));
     setErrors({});
     pushToast({ title: t("homePage.resetAllDone") });

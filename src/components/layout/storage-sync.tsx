@@ -3,23 +3,22 @@
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { STORAGE_FULL_EVENT } from "@/lib/storage";
-import { clearUploadCache } from "@/lib/uploads";
 import { useBag } from "@/store/bag";
 import { useCatalogStore } from "@/store/catalog";
 import { useCheckout } from "@/store/checkout";
 import { useHomeStore } from "@/store/home";
-import { useSettingsStore } from "@/store/settings";
 import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
 
 // Keeps this tab in step with edits made in another tab (the admin saving while the store is
 // open elsewhere), and turns a full-storage event into a toast. Mounted once, in Providers.
+// Settings live in the DB now (saved via saveSettings), so there is no ms-settings store to sync,
+// and uploaded images are served from the server, so there is no ms-img cache to drop.
 const PERSISTED = {
   "ms-bag": useBag,
   "ms-checkout": useCheckout,
   "ms-catalog": useCatalogStore,
   "ms-home": useHomeStore,
-  "ms-settings": useSettingsStore,
   "ms-stock": useStockStore,
 } as const;
 
@@ -34,18 +33,9 @@ export function StorageSync() {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === null) {
-        // Whole store cleared: rehydrate everything and drop the upload cache.
+        // Whole store cleared: rehydrate everything.
         Object.values(PERSISTED).forEach((store) => void store.persist.rehydrate());
         rehydrateAdmin();
-        clearUploadCache();
-        return;
-      }
-      if (e.key.startsWith("ms-img:")) {
-        clearUploadCache();
-        // A deleted/added upload changes what images resolve to; nudge the image-bearing stores so
-        // their consumers (the home preview, product cards) re-render and a deleted photo falls back.
-        void useHomeStore.persist.rehydrate();
-        void useCatalogStore.persist.rehydrate();
         return;
       }
       if (e.key === "ms-admin") {

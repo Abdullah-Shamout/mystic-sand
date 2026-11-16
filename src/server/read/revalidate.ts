@@ -1,10 +1,14 @@
-// Time-based revalidation window (seconds) for the tag-cached storefront reads.
+// Time-based revalidation windows (seconds) for the tag-cached storefront reads.
 //
-// Phase 2b has no write path that calls revalidateTag yet, so the ONLY thing that refreshes the
-// storefront after a DB change is this time-based window. It is deliberately short so a fresh page
-// load reflects a DB change (invariant 2) without any invalidation trigger. The tags
-// (catalog/settings/home) are already in place; Phase 3 wires revalidateTag onto the admin write
-// actions and should lengthen this (minutes, or `false` to cache until revalidateTag).
+// CATALOG + HOME still have no revalidateTag write path in 3a (Phase 3b/3c add it), so this short
+// window is the ONLY thing that refreshes them after a DB change — e.g. live-db.spec changes a price
+// with raw SQL and expects a fresh load to reflect it within ~1s. Keep it short until those phases
+// wire revalidateTag, then it can lengthen.
 //
 // Must be `false` or a positive number — unstable_cache throws on `revalidate: 0`.
 export const STOREFRONT_REVALIDATE = 1;
+
+// SETTINGS now has a write path that calls updateTag("settings") (saveSettings) — immediate expiry —
+// so freshness comes from the tag, not this window; this is only a backstop against a missed
+// invalidation. 300s per the Phase 3a plan.
+export const SETTINGS_REVALIDATE = 300;

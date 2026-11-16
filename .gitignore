@@ -20,6 +20,9 @@
 # production
 /build
 
+# uploaded images (local object-storage volume; see UPLOADS_DIR)
+/uploads
+
 # misc
 .DS_Store
 *.pem

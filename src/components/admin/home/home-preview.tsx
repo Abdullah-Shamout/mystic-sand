@@ -19,9 +19,10 @@ type Device = keyof typeof DEVICES;
 const NOTE_RESERVE = 44;
 
 /**
- * A live, scaled iframe of the storefront home page beside the editor. Saves reach it through the
- * storage event (its own StorageSync rehydrates ms-home / ms-settings), so it never reloads. It
+ * A live, scaled iframe of the storefront home page beside the editor. Home-section saves reach it
+ * through the storage event (its own StorageSync rehydrates ms-home), so it never reloads. It
  * scrolls to the open section, blocks clicks/links inside, and fits itself to the visible area.
+ * (The ticker now saves to the DB; its preview refresh is a Phase 3b concern.)
  */
 export function HomePreview({ open, saveTick }: { open: SectionId; saveTick: number }) {
   const t = useTranslations("admin");

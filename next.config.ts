@@ -4,6 +4,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 const nextConfig: NextConfig = {
   // Keep trailing slashes on every URL: the e2e suite and the locale redirect assume them.
   trailingSlash: true,
+  // sharp is a native module (used by the image-upload route to re-encode); keep it external so it
+  // is loaded from node_modules at runtime instead of being bundled.
+  serverExternalPackages: ["sharp"],
   // TODO(phase later): enable next/image optimization. The storefront serves pre-generated
   // responsive images through asset(), so the optimizer stays off for now.
   images: { unoptimized: true },

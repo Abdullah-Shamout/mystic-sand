@@ -4,45 +4,58 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/form";
+import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { toLatinDigits } from "@/lib/digits";
 import { formatKWD } from "@/lib/money";
-import { resolveSettings } from "@/lib/settings";
-import { useSettingsStore } from "@/store/settings";
+import { defaultSettings } from "@/lib/settings";
+import { useLiveSettings } from "@/lib/live";
+import { saveSettings } from "@/server/actions/settings";
 import { useUi } from "@/store/ui";
 import { AffixInput, feeToInput, parseFeeFils, ResetLink, SettingsCard } from "./settings-ui";
 
-/** The single delivery fee, in KWD, stored as integer fils. */
+/** The single delivery fee, in KWD, stored as integer fils in the DB (settings singleton). */
 export function DeliverySection() {
   const t = useTranslations("admin");
   const locale = useLocale() as Locale;
-  const overrides = useSettingsStore((s) => s.overrides);
-  const setOverrides = useSettingsStore((s) => s.setOverrides);
-  const resetField = useSettingsStore((s) => s.resetField);
+  const router = useRouter();
+  const current = useLiveSettings();
   const pushToast = useUi((s) => s.pushToast);
-  const current = resolveSettings(overrides);
 
   const [fee, setFee] = useState(() => feeToInput(current.standardFeeFils));
   const [invalid, setInvalid] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Persists the fee to the DB (saveSettings), then refreshes so the live settings context — and
+  // the "in use" line below — reflect the new value.
+  const commit = async (standardFeeFils: number) => {
+    setSaving(true);
+    try {
+      await saveSettings({ standardFeeFils });
+      setFee(feeToInput(standardFeeFils));
+      router.refresh();
+      pushToast({ title: t("settings.saved") });
+    } catch {
+      pushToast({ title: t("settings.saveError") });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const save = () => {
     const standardFeeFils = parseFeeFils(fee);
     setInvalid(standardFeeFils === null);
     if (standardFeeFils === null) return;
-    setOverrides({ standardFeeFils });
-    setFee(feeToInput(standardFeeFils));
-    pushToast({ title: t("settings.saved") });
+    void commit(standardFeeFils);
   };
 
   const reset = () => {
-    resetField("standardFeeFils");
-    setFee(feeToInput(resolveSettings({ ...overrides, standardFeeFils: undefined }).standardFeeFils));
     setInvalid(false);
-    pushToast({ title: t("settings.saved") });
+    void commit(defaultSettings.standardFeeFils);
   };
 
   return (
-    <SettingsCard title={t("settings.delivery.title")} intro={t("settings.delivery.intro")}>
+    <SettingsCard title={t("settings.delivery.title")} intro={t("settings.delivery.intro")} note={t("settings.storeNote")}>
       <div className="max-w-xs">
         <Field
           label={t("settings.delivery.fee")}
@@ -70,7 +83,7 @@ export function DeliverySection() {
           <ResetLink onClick={reset} testId="settings-standard-reset" />
         </div>
       </div>
-      <Button type="button" size="sm" onClick={save} data-testid="settings-fee-save">
+      <Button type="button" size="sm" busy={saving} onClick={save} data-testid="settings-fee-save">
         {t("settings.save")}
       </Button>
     </SettingsCard>

@@ -5,13 +5,12 @@ import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import type { Locale } from "@/i18n/routing";
-import { ImageError, savePhotoUpload } from "@/lib/admin/image";
+import { ImageError, savePhotoUpload, type UploadKind } from "@/lib/admin/image";
 import type { DraftText } from "@/lib/admin/home-drafts";
 import { CATEGORY_SLUGS, productHref, type Catalog } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { PAGE_LINKS } from "@/lib/home";
 import { hasImage } from "@/lib/media";
-import { StorageFullError, type UploadKind } from "@/lib/uploads";
 import { TextArea, TextInput, SelectInput } from "@/components/ui/form";
 import { useUi } from "@/store/ui";
 import { ImageLibraryDialog } from "../products/image-library-dialog";
@@ -470,8 +469,7 @@ export function ImageField({
       const key = await savePhotoUpload(file, kind, uploadOpts);
       onChange(key);
     } catch (error) {
-      if (error instanceof StorageFullError) pushToast({ title: t("editor.photos.storageFull") });
-      else if (error instanceof ImageError) pushToast({ title: t(`editor.photos.err.${error.key}`) });
+      if (error instanceof ImageError) pushToast({ title: t(`editor.photos.err.${error.key}`) });
       else pushToast({ title: t("editor.photos.uploadError") });
     } finally {
       setUploading(false);

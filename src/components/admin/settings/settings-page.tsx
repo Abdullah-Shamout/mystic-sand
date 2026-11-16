@@ -9,9 +9,10 @@ import { ContactSection } from "./contact-section";
 import { DeliverySection } from "./delivery-section";
 
 /**
- * Store settings: delivery fees, contact numbers and the admin account. Everything is saved in this
- * browser only, so the page shows a skeleton until mounted and reads the live stores. The top banner
- * moved to the Home page editor.
+ * Store settings: delivery fee and contact numbers (saved to the DB via saveSettings) and the admin
+ * account (still browser-local until Phase 4). The page shows a skeleton until mounted because the
+ * account card and the live-settings hooks run on the client. The top banner moved to the Home page
+ * editor.
  */
 export function SettingsPage() {
   const t = useTranslations("admin");

@@ -6,57 +6,70 @@ import { useState } from "react";
 import { PhoneInput } from "@/components/checkout/form-helpers";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/form";
+import { useRouter } from "@/i18n/navigation";
 import { toLatinDigits } from "@/lib/digits";
+import { useLiveSettings } from "@/lib/live";
 import { normalizeKuwaitPhone, phoneStatus } from "@/lib/phone";
-import { phoneDisplay, resolveSettings, whatsappDisplay, whatsappHref } from "@/lib/settings";
-import { useSettingsStore } from "@/store/settings";
+import { defaultSettings, phoneDisplay, whatsappDisplay, whatsappHref } from "@/lib/settings";
+import { saveSettings, type SettingsPatch } from "@/server/actions/settings";
 import { useUi } from "@/store/ui";
 import { ResetLink, SettingsCard } from "./settings-ui";
 
 const localPart = (whatsapp: string) => whatsapp.replace(/^965/, "");
 
-/** WhatsApp (Kuwaiti mobile) and the contact phone (mobile or landline). */
+/** WhatsApp (Kuwaiti mobile) and the contact phone (mobile or landline) — saved to the DB. */
 export function ContactSection() {
   const t = useTranslations("admin");
-  const overrides = useSettingsStore((s) => s.overrides);
-  const setOverrides = useSettingsStore((s) => s.setOverrides);
-  const resetField = useSettingsStore((s) => s.resetField);
+  const router = useRouter();
+  const current = useLiveSettings();
   const pushToast = useUi((s) => s.pushToast);
-  const current = resolveSettings(overrides);
 
   const [whatsapp, setWhatsapp] = useState(() => localPart(current.whatsapp));
   const [phone, setPhone] = useState(() => current.phone);
   const [errors, setErrors] = useState<{ whatsapp?: boolean; phone?: boolean }>({});
+  const [saving, setSaving] = useState(false);
 
   const whatsappValid = phoneStatus(whatsapp) === "valid";
   const phoneStatusNow = phoneStatus(phone);
   const phoneValid = phoneStatusNow === "valid" || phoneStatusNow === "landline";
 
+  // Persists a patch to the DB (saveSettings), then refreshes so the live settings context — and the
+  // "shown as" lines below — reflect the new values.
+  const commit = async (patch: SettingsPatch) => {
+    setSaving(true);
+    try {
+      await saveSettings(patch);
+      router.refresh();
+      pushToast({ title: t("settings.saved") });
+    } catch {
+      pushToast({ title: t("settings.saveError") });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const save = () => {
     setErrors({ whatsapp: !whatsappValid, phone: !phoneValid });
     if (!whatsappValid || !phoneValid) return;
-    setOverrides({
+    void commit({
       whatsapp: `965${normalizeKuwaitPhone(whatsapp)}`,
       phone: normalizeKuwaitPhone(phone),
     });
-    pushToast({ title: t("settings.saved") });
   };
 
   const resetWhatsapp = () => {
-    resetField("whatsapp");
-    setWhatsapp(localPart(resolveSettings({ ...overrides, whatsapp: undefined }).whatsapp));
+    setWhatsapp(localPart(defaultSettings.whatsapp));
     setErrors((e) => ({ ...e, whatsapp: false }));
-    pushToast({ title: t("settings.saved") });
+    void commit({ whatsapp: defaultSettings.whatsapp });
   };
   const resetPhone = () => {
-    resetField("phone");
-    setPhone(resolveSettings({ ...overrides, phone: undefined }).phone);
+    setPhone(defaultSettings.phone);
     setErrors((e) => ({ ...e, phone: false }));
-    pushToast({ title: t("settings.saved") });
+    void commit({ phone: defaultSettings.phone });
   };
 
   return (
-    <SettingsCard title={t("settings.contact.title")} intro={t("settings.contact.intro")}>
+    <SettingsCard title={t("settings.contact.title")} intro={t("settings.contact.intro")} note={t("settings.storeNote")}>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <Field
@@ -124,7 +137,7 @@ export function ContactSection() {
           </div>
         </div>
       </div>
-      <Button type="button" size="sm" onClick={save} data-testid="settings-contact-save">
+      <Button type="button" size="sm" busy={saving} onClick={save} data-testid="settings-contact-save">
         {t("settings.save")}
       </Button>
     </SettingsCard>

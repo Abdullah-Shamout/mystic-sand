@@ -30,7 +30,8 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120_000,
     // DATABASE_URL is inherited from the Playwright process env; APP_ENV marks the sandbox-safe env.
-    env: { APP_ENV: "test" },
+    // Uploaded test images go to a throwaway dir under test-results (gitignored), not the repo root.
+    env: { APP_ENV: "test", UPLOADS_DIR: "test-results/uploads" },
   },
   projects: [
     { name: "desktop", use: { viewport: { width: 1440, height: 900 } } },

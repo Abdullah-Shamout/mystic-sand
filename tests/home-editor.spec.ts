@@ -1,8 +1,10 @@
 import { expect, test, type Frame, type Page } from "@playwright/test";
 
-// The admin "Home page" editor writes ms-home (and the top banner into ms-settings), with a live
-// preview beside it. These flows inject the admin session, drive the editor, and check the store
-// and the storefront reflect the edits. Run `npm run build` first — they hit the static export.
+import { seedImageRow } from "./db";
+
+// The admin "Home page" editor writes ms-home (and the top banner to the DB settings via
+// saveSettings), with a live preview beside it. These flows inject the admin session, drive the
+// editor, and check the store and the storefront reflect the edits.
 
 const FAR_FUTURE = 4102444800000; // ~ year 2100 (ms)
 
@@ -20,7 +22,6 @@ type Seed = {
   home?: Record<string, unknown>;
   catalog?: { patches?: Record<string, unknown>; added?: unknown[]; categories?: Record<string, unknown> };
   settings?: Record<string, unknown>;
-  uploads?: Record<string, unknown>;
 };
 
 async function seed(page: Page, data: Seed) {
@@ -30,8 +31,8 @@ async function seed(page: Page, data: Seed) {
       const edits = { patches: {}, added: [], categories: {}, ...d.catalog };
       localStorage.setItem("ms-catalog", JSON.stringify({ state: { edits }, version: 1 }));
     }
+    // Skipped Phase-8 tests still pass `settings`; harmless (nothing reads ms-settings anymore).
     if (d.settings) localStorage.setItem("ms-settings", JSON.stringify({ state: { overrides: d.settings }, version: 1 }));
-    for (const [id, upload] of Object.entries(d.uploads ?? {})) localStorage.setItem(`ms-img:${id}`, JSON.stringify(upload));
   }, data);
 }
 
@@ -69,14 +70,6 @@ const CUSTOM_PRODUCT = {
   related: [],
   aliases: [],
   todo: [],
-};
-
-// A valid upload record (8×8 webp-ish data URL is fine; the storefront reads w/h/kind/data).
-const TINY_UPLOAD = {
-  w: 8,
-  h: 8,
-  kind: "photo",
-  data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVQImWM4UaGBFTEMLQkAUtVaAUH78mEAAAAASUVORK5CYII=",
 };
 
 const TINY_PNG = Buffer.from(
@@ -407,14 +400,14 @@ test.describe("admin home-page editor", () => {
 
   test("the library delete warning mentions the home page when a photo is used there", async ({ page }) => {
     await signIn(page);
-    await seed(page, {
-      home: { instagram: { photos: ["u:testupload1", "", "", "", "", ""] } },
-      uploads: { testupload1: TINY_UPLOAD },
-    });
+    // The library lists from the DB images table now; seed a row and reference it on the home page.
+    await seedImageRow("testupload1");
+    await seed(page, { home: { instagram: { photos: ["u:testupload1", "", "", "", "", ""] } } });
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-instagram-toggle").click();
     await page.getByTestId("home-instagram-photo-0-choose").click();
-    await page.getByTestId("library-upload-delete").first().click();
+    // Delete the seeded upload from the library; the confirm warns it's used on the home page.
+    await page.locator('li:has([data-key="u:testupload1"]) [data-testid="library-upload-delete"]').click();
     await expect(page.getByText(/also used on the home page/i)).toBeVisible();
   });
 

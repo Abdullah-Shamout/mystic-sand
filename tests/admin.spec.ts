@@ -553,48 +553,50 @@ test.describe("admin products", () => {
     await expect(page.getByRole("dialog").getByText("KWD 10.500")).toBeVisible(); // 9.500 + 1.000 delivery
   });
 
-  test("uploads a photo that appears in the gallery and the preview", async ({ page }) => {
+  test("uploads a photo that posts to the server, renders, and serves from /api/images", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/products/edit/?p=new");
 
-    await page.getByTestId("editor-upload-input").setInputFiles({
-      name: "shot.png",
-      mimeType: "image/png",
-      buffer: TINY_PNG,
-    });
+    // The upload POSTs the file to the server, which re-encodes + stores it and returns a u:<id> key.
+    const [upload] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/api/admin/images/") && r.request().method() === "POST"),
+      page
+        .getByTestId("editor-upload-input")
+        .setInputFiles({ name: "shot.png", mimeType: "image/png", buffer: TINY_PNG }),
+    ]);
+    expect(upload.status()).toBe(200);
+    const body = (await upload.json()) as { key: string; url: string };
+    expect(body.key).toMatch(/^u:/);
 
+    // It shows in the editor gallery and the live preview.
     await expect(page.getByTestId("editor-photos").locator("li")).toHaveCount(1);
     await expect(page.getByTestId("editor-preview").locator("img")).toHaveCount(1);
-    await expect
-      .poll(() => page.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith("ms-img:"))))
-      .toBe(true);
 
-    // The stored upload record is a sane compressed image.
-    const upload = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find((k) => k.startsWith("ms-img:"))!;
-      return JSON.parse(localStorage.getItem(key)!) as { w: number; h: number; kind: string; data: string };
-    });
-    expect(upload.w).toBeGreaterThan(0);
-    expect(upload.h).toBeGreaterThan(0);
-    expect(["packshot", "photo"]).toContain(upload.kind);
-    expect(upload.data.startsWith("data:image/")).toBe(true);
+    // The gallery <img> points at the serving route, and that returns the stored (webp) image.
+    const src = await page.getByTestId("editor-photos").locator("img").first().getAttribute("src");
+    expect(src).toContain("/api/images/");
+    const served = await page.request.get(src!);
+    expect(served.status()).toBe(200);
+    expect(served.headers()["content-type"]).toContain("image/webp");
   });
 
   test("an uploaded photo joins the reusable library and shows for another product after reload", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/products/edit/?p=new");
 
-    await page.getByTestId("editor-upload-input").setInputFiles({
-      name: "shot.png",
-      mimeType: "image/png",
-      buffer: TINY_PNG,
-    });
+    const [upload] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/api/admin/images/") && r.request().method() === "POST"),
+      page
+        .getByTestId("editor-upload-input")
+        .setInputFiles({ name: "shot.png", mimeType: "image/png", buffer: TINY_PNG }),
+    ]);
+    const { key } = (await upload.json()) as { key: string };
     await expect(page.getByTestId("editor-photos").locator("li")).toHaveCount(1);
 
-    // Reload into a fresh product; the upload persists and shows under "Your uploads" in the library.
+    // Reload into a fresh product; the upload persists server-side and shows under "Your uploads".
     await page.reload();
     await page.getByTestId("editor-add-library").click();
-    await expect(page.getByTestId("library-uploads").getByTestId("library-upload-item")).toHaveCount(1);
+    await expect(page.getByTestId("library-uploads").locator(`[data-key="${key}"]`)).toBeVisible();
   });
 
   test("the editor's related search finds a custom product", async ({ page }) => {
@@ -1060,12 +1062,6 @@ const CUSTOM_PRODUCT = (slug: string, name: string, imageKey: string, sku: strin
   todo: [],
 });
 
-const readOverrides = async (page: Page) =>
-  page.evaluate(() => {
-    const raw = JSON.parse(localStorage.getItem("ms-settings") || "{}");
-    return (raw.state?.overrides ?? {}) as Record<string, unknown>;
-  });
-
 test.describe("admin store settings", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
 
@@ -1078,47 +1074,70 @@ test.describe("admin store settings", () => {
   });
 
   test("a delivery fee of 1.500 flows to the bag and FAQ, then resets to 1.000", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await signIn(page);
-    await page.goto("/en/admin/settings/");
-    const standard = page.getByTestId("settings-standard-fee");
-    await expect(standard).toHaveValue("1.000");
-    await standard.fill("1.500");
-    await page.getByTestId("settings-fee-save").click();
-    await expect(page.getByText("Saved.").first()).toBeVisible();
+    try {
+      await page.goto("/en/admin/settings/");
+      const standard = page.getByTestId("settings-standard-fee");
+      await expect(standard).toHaveValue("1.000");
+      await standard.fill("1.500");
+      await page.getByTestId("settings-fee-save").click();
+      await expect(page.getByText("Saved.").first()).toBeVisible();
 
-    // The bag's delivery line uses the live fee.
-    await page.goto("/en/product/i/");
-    await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
-    const bag = page.getByRole("dialog");
-    await expect(bag.getByText("KWD 1.500")).toBeVisible();
+      // Read-your-own-writes: the admin's own "In use" line updates via router.refresh() with no
+      // navigation and no polling — proving revalidateTag purged the settings read immediately
+      // (not stale-while-revalidate, which this assertion would fail).
+      await expect(page.getByText("KWD 1.500").first()).toBeVisible();
 
-    // The FAQ copy reads the same live fee (the answer sits in a collapsed accordion).
-    await page.goto("/en/faq/");
-    await page.getByRole("button", { name: "How much does delivery cost?" }).click();
-    await expect(page.getByText("KWD 1.500").first()).toBeVisible();
+      // The FAQ copy reads the live (DB) fee. saveSettings calls revalidateTag("settings"); reload
+      // until the storefront read reflects it (idempotent, so safe to repeat).
+      await expect(async () => {
+        await page.goto("/en/faq/");
+        await page.getByRole("button", { name: "How much does delivery cost?" }).click();
+        await expect(page.getByText("KWD 1.500").first()).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 20000 });
 
-    // Reset to default restores KWD 1.000 everywhere.
-    await page.goto("/en/admin/settings/");
-    await page.getByTestId("settings-standard-reset").click();
-    await expect(page.getByTestId("settings-standard-fee")).toHaveValue("1.000");
-    await page.goto("/en/faq/");
-    await page.getByRole("button", { name: "How much does delivery cost?" }).click();
-    await expect(page.getByText("KWD 1.000").first()).toBeVisible();
+      // The bag's delivery line uses the same live fee.
+      await page.goto("/en/product/i/");
+      await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
+      await expect(page.getByRole("dialog").getByText("KWD 1.500")).toBeVisible();
+    } finally {
+      // Reset to default through the admin (saveSettings → revalidateTag), leaving the shared DB clean.
+      await page.goto("/en/admin/settings/");
+      await page.getByTestId("settings-standard-reset").click();
+      await expect(page.getByTestId("settings-standard-fee")).toHaveValue("1.000");
+    }
+    await expect(async () => {
+      await page.goto("/en/faq/");
+      await page.getByRole("button", { name: "How much does delivery cost?" }).click();
+      await expect(page.getByText("KWD 1.000").first()).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 20000 });
   });
 
   test("a new WhatsApp number flows to the footer link", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await signIn(page);
-    await page.goto("/en/admin/settings/");
-    await page.getByTestId("settings-whatsapp").fill("91234567");
-    await page.getByTestId("settings-contact-save").click();
-    await expect(page.getByText("Saved.").first()).toBeVisible();
+    try {
+      await page.goto("/en/admin/settings/");
+      await page.getByTestId("settings-whatsapp").fill("91234567");
+      await page.getByTestId("settings-contact-save").click();
+      await expect(page.getByText("Saved.").first()).toBeVisible();
 
-    await page.goto("/en/");
-    const link = page.locator('footer a[href*="wa.me"]');
-    await expect(link).toHaveAttribute("href", /wa\.me\/96591234567/);
-    await expect(page.locator("footer").getByText("+965 9123 4567")).toBeVisible();
+      // Read-your-own-writes: the admin's own "Shown as" line reflects the new number without
+      // navigating — proving the settings read was purged immediately, not served stale.
+      await expect(page.getByText("+965 9123 4567")).toBeVisible();
+
+      // The footer link reads the live (DB) WhatsApp number; reload until it reflects the save.
+      await expect(async () => {
+        await page.goto("/en/");
+        await expect(page.locator('footer a[href*="wa.me"]')).toHaveAttribute("href", /wa\.me\/96591234567/, {
+          timeout: 2000,
+        });
+      }).toPass({ timeout: 20000 });
+      await expect(page.locator("footer").getByText("+965 9123 4567")).toBeVisible();
+    } finally {
+      await page.goto("/en/admin/settings/");
+      await page.getByTestId("settings-whatsapp-reset").click();
+      await expect(page.getByText("Saved.").first()).toBeVisible();
+    }
   });
 
   test("an invalid WhatsApp number shows an error and saves nothing", async ({ page }) => {
@@ -1127,21 +1146,32 @@ test.describe("admin store settings", () => {
     await page.getByTestId("settings-whatsapp").fill("22223333"); // a landline, not a mobile
     await page.getByTestId("settings-contact-save").click();
     await expect(page.getByText("Enter a valid Kuwaiti mobile number.")).toBeVisible();
-    expect((await readOverrides(page)).whatsapp).toBeUndefined();
+
+    // The client blocks the save (no server call), so the storefront keeps the default numbers
+    // (the default WhatsApp and phone both render as +965 9000 0000, hence .first()).
+    await page.goto("/en/");
+    await expect(page.locator("footer").getByText("+965 9000 0000").first()).toBeVisible();
   });
 
   test("a new phone number flows to the footer and the contact page", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await signIn(page);
-    await page.goto("/en/admin/settings/");
-    await page.getByTestId("settings-phone").fill("22223333");
-    await page.getByTestId("settings-contact-save").click();
-    await expect(page.getByText("Saved.").first()).toBeVisible();
+    try {
+      await page.goto("/en/admin/settings/");
+      await page.getByTestId("settings-phone").fill("22223333");
+      await page.getByTestId("settings-contact-save").click();
+      await expect(page.getByText("Saved.").first()).toBeVisible();
 
-    await page.goto("/en/");
-    await expect(page.locator("footer").getByText("+965 2222 3333")).toBeVisible();
-    await page.goto("/en/contact/");
-    await expect(page.getByText("+965 2222 3333").first()).toBeVisible();
+      await expect(async () => {
+        await page.goto("/en/");
+        await expect(page.locator("footer").getByText("+965 2222 3333")).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+      await page.goto("/en/contact/");
+      await expect(page.getByText("+965 2222 3333").first()).toBeVisible();
+    } finally {
+      await page.goto("/en/admin/settings/");
+      await page.getByTestId("settings-phone-reset").click();
+      await expect(page.getByText("Saved.").first()).toBeVisible();
+    }
   });
 
   // The top-banner (ticker) editor moved to the Home page editor — see home-editor.spec.ts.

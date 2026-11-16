@@ -2,7 +2,7 @@
 
 import { Check, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
@@ -10,7 +10,7 @@ import media from "@/data/media.generated.json";
 import { cn } from "@/lib/cn";
 import { homeImageKeys } from "@/lib/home";
 import { useLiveCatalog } from "@/lib/live";
-import { deleteUpload, listUploadIds, UPLOAD_PREFIX, uploadIdFromKey } from "@/lib/uploads";
+import { deleteImage, listImages } from "@/server/actions/images";
 import { useHomeStore } from "@/store/home";
 import { ConfirmDialog } from "../confirm-dialog";
 
@@ -47,12 +47,18 @@ export function ImageLibraryDialog({
   const inGallery = new Set(existing);
   const homeKeys = useMemo(() => new Set(homeImageKeys(homeOverrides)), [homeOverrides]);
 
-  // Read the uploads each time the dialog is opened (and after a delete), so a photo uploaded to
-  // another product shows up here.
-  const uploadKeys = useMemo(() => {
-    void tick;
-    if (!open) return [];
-    return listUploadIds().map((id) => `${UPLOAD_PREFIX}${id}`);
+  // Load the uploaded-image library from the DB (images table) each time the dialog opens, and after
+  // a delete, so a photo uploaded to another product shows up here.
+  const [uploadKeys, setUploadKeys] = useState<string[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    listImages()
+      .then((rows) => active && setUploadKeys(rows.map((r) => r.key)))
+      .catch(() => active && setUploadKeys([]));
+    return () => {
+      active = false;
+    };
   }, [open, tick]);
 
   const usageCount = (key: string) =>
@@ -84,10 +90,11 @@ export function ImageLibraryDialog({
 
   const confirmDelete = () => {
     if (!pendingDelete) return;
-    deleteUpload(uploadIdFromKey(pendingDelete));
-    setSelected((prev) => prev.filter((k) => k !== pendingDelete));
+    const key = pendingDelete;
+    setSelected((prev) => prev.filter((k) => k !== key));
     setPendingDelete(null);
-    setTick((n) => n + 1);
+    // Remove on the server, then re-list so the deleted photo drops out of the grid.
+    void deleteImage(key).finally(() => setTick((n) => n + 1));
   };
 
   const renderThumb = (imgKey: string, deletable: boolean) => {

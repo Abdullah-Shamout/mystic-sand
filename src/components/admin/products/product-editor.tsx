@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2, Upload } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FormProvider,
   useFieldArray,
@@ -22,22 +22,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { CategorySlug, Product } from "@/data/types";
 import { Link, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { ImageError, compressImage } from "@/lib/admin/image";
+import { ImageError, savePhotoUpload } from "@/lib/admin/image";
 import { baseCatalog, CATEGORY_SLUGS, productHref } from "@/lib/catalog";
 import { toLatinDigits } from "@/lib/digits";
 import { useMounted } from "@/lib/hooks";
 import { getLiveCatalog, useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
 import { availableFromStock } from "@/lib/stock";
-import { storageUsage } from "@/lib/storage";
-import { saveUpload, StorageFullError, UPLOAD_PREFIX } from "@/lib/uploads";
 import { useCatalogStore } from "@/store/catalog";
 import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { ImageLibraryDialog } from "./image-library-dialog";
 
 const MAX_PHOTOS = 6;
-const STORAGE_BUDGET = 4_500_000;
 
 const TYPE_PRESETS: Array<{ en: string; ar: string }> = [
   { en: "Eau de Parfum", ar: "ماء عطر" },
@@ -706,14 +703,7 @@ function PhotosSection() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [studio, setStudio] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [storageTick, setStorageTick] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const meter = useMemo(() => {
-    void storageTick; // recompute after each upload / removal
-    const { totalChars } = storageUsage();
-    return Math.min(100, Math.round((totalChars / STORAGE_BUDGET) * 100));
-  }, [storageTick]);
 
   const atLimit = fa.fields.length >= MAX_PHOTOS;
 
@@ -748,14 +738,10 @@ function PhotosSection() {
     }
     setUploading(true);
     try {
-      const upload = await compressImage(file, studio ? "packshot" : "photo");
-      const id = (crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)).replace(/-/g, "");
-      saveUpload(id, upload);
-      appendPhoto(`${UPLOAD_PREFIX}${id}`);
-      setStorageTick((n) => n + 1);
+      const key = await savePhotoUpload(file, studio ? "packshot" : "photo");
+      appendPhoto(key);
     } catch (error) {
-      if (error instanceof StorageFullError) pushToast({ title: t("editor.photos.storageFull") });
-      else if (error instanceof ImageError) pushToast({ title: t(`editor.photos.err.${error.key}`) });
+      if (error instanceof ImageError) pushToast({ title: t(`editor.photos.err.${error.key}`) });
       else pushToast({ title: t("editor.photos.uploadError") });
     } finally {
       setUploading(false);
@@ -879,13 +865,6 @@ function PhotosSection() {
       </label>
 
       <p className="text-[12px] text-muted">{t("editor.photos.count", { count: fa.fields.length, max: MAX_PHOTOS })}</p>
-
-      <div>
-        <div className="h-1.5 w-full max-w-xs overflow-hidden bg-tile">
-          <div className="h-full bg-racing" style={{ width: `${meter}%` }} />
-        </div>
-        <p className="mt-1 text-[12px] text-muted">{t("editor.photos.storage", { percent: meter })}</p>
-      </div>
 
       <ImageLibraryDialog
         open={libraryOpen}

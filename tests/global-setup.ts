@@ -1,5 +1,7 @@
 import { execSync } from "node:child_process";
 
+import { clearImages } from "./db";
+
 // Playwright globalSetup: ensure the test DB is migrated + seeded before the run.
 //
 // Postgres itself is provided by the environment (CI service container, or the local dev DB — see
@@ -13,7 +15,7 @@ import { execSync } from "node:child_process";
 // Note: Playwright starts the webServer BEFORE globalSetup, so the webServer readiness URL ("/") is
 // a DB-free locale redirect (proxy.ts). The specs themselves run after this setup, against a
 // migrated + seeded DB.
-export default function globalSetup() {
+export default async function globalSetup() {
   if (!process.env.DATABASE_URL) {
     throw new Error(
       "DATABASE_URL must be set for the Playwright run (used by migrate + seed and by `next start`).",
@@ -22,4 +24,7 @@ export default function globalSetup() {
   const opts = { stdio: "inherit" as const, env: process.env };
   execSync("npm run db:migrate", opts);
   execSync("npm run db:seed", opts);
+  // Seed doesn't touch the images table; clear leftover uploads from a previous run so the image
+  // library starts empty (specs assert on their own uploaded keys, not a global count).
+  await clearImages();
 }

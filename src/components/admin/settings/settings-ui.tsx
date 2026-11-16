@@ -8,18 +8,23 @@ import { cn } from "@/lib/cn";
 import { toLatinDigits } from "@/lib/digits";
 
 // Shared building blocks for the store-settings sections. Each section is its own card with a
-// heading, a Save action and the standing note that everything is saved in this browser only.
+// heading, a Save action and a standing note: the server-backed cards (delivery, contact) pass the
+// store-wide note; the account card keeps the default browser-only note until Phase 4.
 
 export function SettingsCard({
   title,
   intro,
   children,
   testId,
+  note,
 }: {
   title: string;
   intro?: string;
   children: React.ReactNode;
   testId?: string;
+  /** Standing note under the card. Defaults to the browser-only note (used by the account card,
+   * still client-gated until Phase 4); the server-backed cards pass the store-wide note. */
+  note?: string;
 }) {
   const t = useTranslations("admin");
   return (
@@ -28,7 +33,7 @@ export function SettingsCard({
       {intro && <p className="mt-1.5 max-w-prose text-[14px] leading-relaxed text-muted">{intro}</p>}
       <div className="mt-5 space-y-5">{children}</div>
       <p className="mt-6 border-t border-line pt-3 text-[12px] leading-snug text-muted">
-        {t("settings.browserNote")}
+        {note ?? t("settings.browserNote")}
       </p>
     </section>
   );

@@ -491,11 +491,13 @@
   "settings": {
     "title": "Store settings",
     "meta": "Store settings · Mystic Sand admin",
-    "intro": "Change the delivery fee and contact numbers your shoppers see. Everything is saved in this browser only.",
+    "intro": "Change the delivery fee and contact numbers your shoppers see. These apply across the whole store.",
     "tickerMoved": "The top banner is now edited in <link>Home page</link>.",
     "browserNote": "Changes apply to the store in this browser.",
+    "storeNote": "Changes apply across the whole store.",
     "save": "Save",
     "saved": "Saved.",
+    "saveError": "Could not save. Please try again.",
     "resetToDefault": "Reset to default",
     "inUse": "In use now:",
     "delivery": {

@@ -1,5 +1,5 @@
 import media from "@/data/media.generated.json";
-import { isUploadKey, readUpload, uploadIdFromKey } from "./uploads";
+import { isUploadKey, parseUploadId, uploadIdFromKey } from "./upload-key";
 import { asset } from "./asset";
 
 type MediaEntry = { w: number; h: number; widths: number[]; kind: "packshot" | "render" | "photo" };
@@ -31,20 +31,28 @@ export function imageSource(key: string): ImageSource {
   };
 }
 
+// Fallback size/kind for an upload id that is not self-describing (e.g. seeded test ids). The real
+// dimensions and kind are normally baked into the id (src/lib/upload-key.ts); the <img> fills its
+// sized container regardless, so a square default only affects the intrinsic ratio hint.
+const UPLOAD_FALLBACK = { width: 1000, height: 1000, kind: "photo" as const };
+
 /**
  * Resolves an image key to a usable source: a manifest image, an admin upload ("u:<id>"),
- * or null when it is unknown (a deleted upload, a bad key). Never throws, so a missing image
- * degrades to an empty tile instead of breaking the page.
+ * or null when it is unknown (a bad manifest key). PURE and SYNCHRONOUS on the server AND the
+ * client — an upload maps to its serving URL (/api/images/<id>/) with the size/kind read straight
+ * out of the id, never a DB or localStorage read. Never throws, so a missing image degrades to an
+ * empty tile instead of breaking the page.
  */
 export function resolveImage(key: string): ImageSource | null {
   if (isUploadKey(key)) {
-    const upload = readUpload(uploadIdFromKey(key));
-    if (!upload) return null;
-    return { src: upload.data, srcSet: undefined, width: upload.w, height: upload.h, kind: upload.kind };
+    const id = uploadIdFromKey(key);
+    const meta = parseUploadId(id) ?? UPLOAD_FALLBACK;
+    return { src: asset(`/api/images/${id}/`), srcSet: undefined, ...meta };
   }
   if (key in table) return imageSource(key);
   return null;
 }
 
-export const hasImage = (key: string): boolean =>
-  key in table || (isUploadKey(key) && readUpload(uploadIdFromKey(key)) !== null);
+// An upload key is assumed resolvable (its file is served on demand; a deleted one 404s to an empty
+// tile). Only a manifest key can be definitively known.
+export const hasImage = (key: string): boolean => key in table || isUploadKey(key);
