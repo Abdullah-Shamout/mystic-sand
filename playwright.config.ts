@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-// End-to-end tests run against the static export (`npm run build` first).
+// End-to-end tests run against the production server: `npm run build`, then `next start`.
 // Uses the locally installed Google Chrome, so no browser download is needed.
 export default defineConfig({
   testDir: "tests",
@@ -15,7 +15,9 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "npx serve out -l 4319 --no-clipboard",
+    // `next start` serves the `.next` production build, so `npm run build` must run first
+    // (there is no `out/` anymore). reuseExistingServer lets a server started by hand be reused.
+    command: "npx next start -p 4319",
     url: "http://localhost:4319/en/",
     reuseExistingServer: true,
     timeout: 60_000,

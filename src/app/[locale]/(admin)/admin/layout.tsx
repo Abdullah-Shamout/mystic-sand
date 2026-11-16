@@ -5,8 +5,8 @@ import { AdminShell } from "@/components/admin/admin-shell";
 type Props = { children: React.ReactNode; params: Promise<{ locale: string }> };
 
 /**
- * The admin area has its own chrome (no storefront header/footer and no UpdateCheck). The
- * nested AdminIntl adds the `admin` namespace that the root provider leaves out.
+ * The admin area has its own chrome (no storefront header or footer). The nested AdminIntl
+ * adds the `admin` namespace that the root provider leaves out.
  */
 export default async function AdminLayout({ children, params }: Props) {
   const { locale } = await params;
