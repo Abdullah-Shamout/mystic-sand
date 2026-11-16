@@ -41,22 +41,3 @@ const guardedStorage: StateStorage = {
 
 /** Drop-in replacement for createJSONStorage(() => localStorage) that never throws. */
 export const safeJSONStorage = createJSONStorage(() => guardedStorage);
-
-/** Character counts of all of localStorage and of just this app's ms- keys (client only). */
-export function storageUsage(): { totalChars: number; msChars: number } {
-  let totalChars = 0;
-  let msChars = 0;
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key === null) continue;
-      const value = localStorage.getItem(key) ?? "";
-      const size = key.length + value.length;
-      totalChars += size;
-      if (key.startsWith("ms-")) msChars += size;
-    }
-  } catch {
-    // storage blocked
-  }
-  return { totalChars, msChars };
-}

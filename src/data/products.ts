@@ -300,5 +300,5 @@ export const products: Product[] = [
   },
 ];
 
-// Lookups now live in src/lib/catalog.ts (buildCatalog → baseCatalog), so the storefront
-// can read an admin-edited catalog at runtime. This module only holds the base data.
+// Lookups now live in src/lib/catalog.ts (indexCatalog → baseCatalog), and the storefront reads the
+// admin-edited catalog from Postgres at runtime. This module only holds the base (seed) data.

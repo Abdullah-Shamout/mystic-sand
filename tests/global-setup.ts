@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 
-import { clearHome, clearImages } from "./db";
+import { clearCustomProducts, clearHome, clearImages } from "./db";
 
 // Playwright globalSetup: ensure the test DB is migrated + seeded before the run.
 //
@@ -27,6 +27,9 @@ export default async function globalSetup() {
   // Seed doesn't touch the images table; clear leftover uploads from a previous run so the image
   // library starts empty (specs assert on their own uploaded keys, not a global count).
   await clearImages();
+  // db:seed only UPSERTs base rows, so a custom product left by a crashed catalog spec would survive
+  // and skew "N products" assertions. Remove them (cold cache here, so raw SQL is safe).
+  await clearCustomProducts();
   // Start every run with the built-in home defaults (no overrides row), so the default-home specs
   // and the storefront see the built-ins. Home-mutating specs reset through the editor in a finally.
   await clearHome();

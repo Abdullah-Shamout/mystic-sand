@@ -29,7 +29,7 @@ import { useMounted } from "@/lib/hooks";
 import { getLiveCatalog, useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
 import { availableFromStock } from "@/lib/stock";
-import { useCatalogStore } from "@/store/catalog";
+import { createProduct, saveProduct } from "@/server/actions/catalog";
 import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { ImageLibraryDialog } from "./image-library-dialog";
@@ -265,7 +265,7 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
-  const onValid = (values: EditorForm) => {
+  const onValid = async (values: EditorForm) => {
     const liveCatalog = getLiveCatalog();
     const used = new Set(liveCatalog.bySku.keys());
 
@@ -327,12 +327,16 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
       todo: [] as Product["todo"],
     } as Product;
 
-    const store = useCatalogStore.getState();
-    if (isNew) store.createProduct(product);
-    else store.saveProduct(slug, product);
+    try {
+      if (isNew) await createProduct(product);
+      else await saveProduct(slug, product);
+    } catch {
+      pushToast({ title: t("settings.saveError") });
+      return;
+    }
 
     // The stock field held AVAILABLE and is now the catalog's set value: zero "sold since set" for
-    // every saved variant so available equals exactly what was typed.
+    // every saved variant so available equals exactly what was typed. (ms-stock stays until Phase 5.)
     const stockStore = useStockStore.getState();
     for (const v of variants) stockStore.resetSold(v.sku);
 
@@ -341,7 +345,10 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
 
     reset(values);
     pushToast({ title: t("editor.saved", { name: product.name }) });
+    // Navigate to the list, then refresh so its server-fed live catalog reflects the write (the
+    // shared [locale] layout — which provides the catalog — is otherwise reused from the client cache).
     router.push("/admin/products");
+    router.refresh();
   };
 
   const title = isNew ? t("editor.newTitle") : t("editor.editTitle", { name: existing?.name ?? "" });

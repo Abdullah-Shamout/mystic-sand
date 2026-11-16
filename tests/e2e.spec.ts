@@ -237,7 +237,7 @@ test.describe("navigation and media", () => {
   });
 
   test("the product page shows How to use and the tagline, with no notes or delivery boxes", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now (localStorage ms-catalog seeding no longer reaches the storefront).");
     // Seed a custom tagline through the live catalog (ms-catalog) and see it on the page.
     await page.addInitScript(() => {
       localStorage.setItem(

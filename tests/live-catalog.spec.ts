@@ -53,10 +53,13 @@ async function addToBagFromPdp(page: Page) {
 test.describe("live catalog & settings", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
   // These seed catalog/settings edits into localStorage and expect the storefront to reflect them.
-  // That premise moved to the DB: the storefront now reads catalog/settings from Postgres, and admin
-  // writes land in Phase 3. Restore (rewritten to edit via the DB/admin actions) then.
+  // That premise moved to the DB (Phase 3c): the storefront reads catalog/settings from Postgres and
+  // the admin writes them via Server Actions. The catalog cases here (price edit → card/PDP/bag,
+  // hide, move, add custom) are now covered editor-driven in admin.spec.ts ("admin products"); the
+  // settings case is covered in admin.spec.ts ("admin store settings"). These localStorage-seeded
+  // variants stay skipped for the Phase 8 E2E rewrite.
   test.beforeEach(() => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite: covered editor-driven in admin.spec.ts now (data is server-fed from the DB).");
   });
 
   test("price edit flows to the card, the product page and the bag total", async ({ page }) => {
@@ -220,4 +223,5 @@ test.describe("storefront pages load cleanly", () => {
 
 // The old "ms-home with unreadable JSON" describe was deleted in Phase 3b: the storefront reads home
 // from a jsonb column (which cannot hold a non-JSON string), so that browser-storage scenario can no
-// longer occur. cleanHome's resilience is unit-tested.
+// longer occur. cleanHome sanitises the blob server-side on every read; dedicated coverage of its
+// resilience lands with the Phase 8 DB-resilience specs (there is no unit-test harness yet).

@@ -4,20 +4,18 @@ import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { STORAGE_FULL_EVENT } from "@/lib/storage";
 import { useBag } from "@/store/bag";
-import { useCatalogStore } from "@/store/catalog";
 import { useCheckout } from "@/store/checkout";
 import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
 
-// Keeps this tab in step with edits made in another tab (the admin saving while the store is
-// open elsewhere), and turns a full-storage event into a toast. Mounted once, in Providers.
-// Settings and the home-page CMS live in the DB now (saved via saveSettings / saveHomeSection), so
-// there is no ms-settings or ms-home store to sync, and uploaded images are served from the server,
-// so there is no ms-img cache to drop.
+// Keeps this tab's browser-persisted stores in step with another tab, and turns a full-storage event
+// into a toast. Mounted once, in Providers. The catalog, settings and the home-page CMS live in the
+// DB now (saved via the catalog / settings / home Server Actions), so there is no ms-catalog,
+// ms-settings or ms-home store to sync, and uploaded images are served from the server, so there is
+// no ms-img cache to drop.
 const PERSISTED = {
   "ms-bag": useBag,
   "ms-checkout": useCheckout,
-  "ms-catalog": useCatalogStore,
   "ms-stock": useStockStore,
 } as const;
 

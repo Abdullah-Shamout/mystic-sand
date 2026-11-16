@@ -32,6 +32,21 @@ export async function clearImages(): Promise<void> {
 }
 
 /**
+ * Deletes every custom (c-…) product (its variants cascade) left behind by a crashed catalog spec.
+ * db:seed only UPSERTs base rows, so a leftover custom product would survive and break "N products"
+ * assertions. Safe to call at globalSetup (cold cache) before the first page load of the run.
+ */
+export async function clearCustomProducts(): Promise<void> {
+  await dbQuery("DELETE FROM products WHERE slug LIKE 'c-%'");
+}
+
+/** The authoritative variants.stock for a sku (what the admin set-stock action writes), or -1 if none. */
+export async function readVariantStock(sku: string): Promise<number> {
+  const rows = await dbQueryRows<{ stock: number }>("SELECT stock FROM variants WHERE sku = $1", [sku]);
+  return rows[0]?.stock ?? -1;
+}
+
+/**
  * Inserts a bare image row so the library lists `u:<id>` without an actual upload. No file is
  * written, so the served thumbnail 404s — fine for tests that only check the row is listed/deleted.
  */

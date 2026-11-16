@@ -130,7 +130,3 @@ export function parseFeeFils(input: string): number | null {
 
 /** Fils → the KWD string shown in a fee input, e.g. 1500 → "1.500". */
 export const feeToInput = (fils: number): string => (fils / 1000).toFixed(3);
-
-/** Groups a character count with thousands separators (Latin digits, for both locales). */
-export const groupNumber = (n: number): string =>
-  String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");

@@ -7,6 +7,7 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { SelectInput, TextInput } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CategorySlug, Product, Variant } from "@/data/types";
+import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { isCustomSlug } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
@@ -15,7 +16,7 @@ import { useMounted, useNow } from "@/lib/hooks";
 import { useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
 import { availableFromStock, LOW_STOCK } from "@/lib/stock";
-import { useCatalogStore } from "@/store/catalog";
+import { setVariantStock } from "@/server/actions/catalog";
 import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { KpiTile } from "../kpi-tile";
@@ -64,9 +65,9 @@ export function StockPage() {
   const now = useNow();
   const pushToast = useUi((s) => s.pushToast);
 
+  const router = useRouter();
   const catalog = useLiveCatalog();
   const sold = useStockStore((s) => s.sold);
-  const setVariantStock = useCatalogStore((s) => s.setVariantStock);
   const resetSold = useStockStore((s) => s.resetSold);
 
   const [query, setQuery] = useState("");
@@ -77,10 +78,18 @@ export function StockPage() {
   const catName = (slug: CategorySlug): string =>
     catalog.categories.find((c) => c.slug === slug)?.name[locale] ?? slug;
 
-  /** Set a SKU's stock to an exact value and clear its "sold since set" counter. */
-  const applyStock = (sku: string, value: number, name: string) => {
-    setVariantStock(sku, Math.max(0, value));
+  /** Set a SKU's stock to an exact value (writes variants.stock) and clear its "sold since set" counter. */
+  const applyStock = async (sku: string, value: number, name: string) => {
+    try {
+      await setVariantStock(sku, Math.max(0, value));
+    } catch {
+      pushToast({ title: t("settings.saveError") });
+      return;
+    }
+    // Clear the local "sold since set" counter only after the DB write succeeds. ms-stock stays until
+    // Phase 5 swaps the client purchase-decrement for a server-side one.
     resetSold(sku);
+    router.refresh();
     pushToast({ title: t("stock.saved", { name }) });
   };
 
@@ -327,8 +336,28 @@ function StockRow({
   const t = useTranslations("admin");
   const locale = useLocale() as Locale;
   const available = availableFromStock(variant.stock, sold);
-  const state = statusOf(available);
+  // Optimistic accumulator for the +/- stepper. Each click targets an absolute value, but `available`
+  // (catalog-derived) lags until router.refresh lands, so a burst of clicks would otherwise all
+  // compute from the same stale value and collapse to one write. `shown` reflects the in-flight
+  // target and drives the display, stepping and input key; it clears when the new DB stock lands (the
+  // `variant.stock` prop changes) — not on the awaited action, because router.refresh is fire-and-
+  // forget. The clear is done during render (React's "adjust state on a prop change" pattern) rather
+  // than in an effect.
+  const [pending, setPending] = useState<number | null>(null);
+  const [lastStock, setLastStock] = useState(variant.stock);
+  if (variant.stock !== lastStock) {
+    setLastStock(variant.stock);
+    setPending(null);
+  }
+  const shown = pending ?? available;
+  const state = statusOf(shown);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const step = (delta: number) => {
+    const next = Math.max(0, shown + delta);
+    setPending(next);
+    onApply(variant.sku, next, name);
+  };
 
   const save = () => {
     const parsed = parseStockValue(inputRef.current?.value ?? "");
@@ -340,7 +369,7 @@ function StockRow({
     <li
       data-testid="stock-row"
       data-sku={variant.sku}
-      data-available={available}
+      data-available={shown}
       data-set={variant.stock}
       data-sold={sold}
       className="flex flex-wrap items-center gap-x-6 gap-y-3 py-4"
@@ -375,7 +404,7 @@ function StockRow({
         <p className="caps text-[11px] text-muted">{t("stock.col.available")}</p>
         <div className="mt-0.5 flex items-center gap-2">
           <span className="figures text-[22px] leading-none font-medium" data-testid="stock-available-value">
-            <Num value={available} />
+            <Num value={shown} />
           </span>
           {state === "out" && (
             <span className="caps inline-flex items-center border border-danger/40 bg-danger/10 px-1.5 py-0.5 text-[10px] text-danger">
@@ -393,8 +422,8 @@ function StockRow({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => onApply(variant.sku, Math.max(0, available - 1), name)}
-          disabled={available <= 0}
+          onClick={() => step(-1)}
+          disabled={shown <= 0}
           aria-label={t("stock.decrease", { size: variant.size[locale] })}
           data-testid="stock-dec"
           className="inline-flex size-10 items-center justify-center border border-line bg-paper transition-colors hover:border-ink disabled:opacity-35"
@@ -403,7 +432,7 @@ function StockRow({
         </button>
         <button
           type="button"
-          onClick={() => onApply(variant.sku, available + 1, name)}
+          onClick={() => step(1)}
           aria-label={t("stock.increase", { size: variant.size[locale] })}
           data-testid="stock-inc"
           className="inline-flex size-10 items-center justify-center border border-line bg-paper transition-colors hover:border-ink"
@@ -411,11 +440,11 @@ function StockRow({
           <Plus className="size-4" strokeWidth={1.5} aria-hidden />
         </button>
         <TextInput
-          key={available}
+          key={shown}
           ref={inputRef}
           dir="ltr"
           inputMode="numeric"
-          defaultValue={String(available)}
+          defaultValue={String(shown)}
           aria-label={t("stock.setExact", { size: variant.size[locale] })}
           className="h-10 w-16 text-center"
           data-testid="stock-input"

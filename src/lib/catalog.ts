@@ -2,66 +2,41 @@ import { categories as baseCategories, type Category } from "@/data/categories";
 import { products as baseProducts } from "@/data/products";
 import type { CategorySlug, Localized, Notes, Product, Variant } from "@/data/types";
 
-// Pure catalog layer (no React, no zustand, safe on the server and the client). It turns
-// the base data plus a set of admin edits into a ready-to-read catalog, repairing bad data
-// so a broken edit can never take the store down.
+// Pure catalog layer (no React, no zustand, safe on the server and the client). It indexes the
+// catalog (base data, or the DB rows the storefront reads) into ready-to-read lookups, and provides
+// the field validators that sanitise an admin edit before it is written to a row (so a broken edit
+// can never corrupt the catalog). The old base-vs-patch machinery is gone: each product is one DB
+// row now (Phase 3c), edited in place via the Server Actions in src/server/actions/catalog.ts.
 
 export const CATEGORY_SLUGS = ["perfumes", "oud", "body", "home"] as const;
 
-/** A whole-field replacement of the editable product fields. */
-export type ProductPatch = Partial<
-  Pick<
-    Product,
-    | "name"
-    | "category"
-    | "alsoIn"
-    | "type"
-    | "family"
-    | "tagline"
-    | "description"
-    | "howTo"
-    | "notes"
-    | "variants"
-    | "images"
-    | "badge"
-    | "aliases"
-    | "related"
-    | "hidden"
-  >
->;
-
-export type CategoryPatch = Partial<Pick<Category, "name" | "description">>;
-
-export type CatalogEdits = {
-  patches: Record<string, ProductPatch>;
-  added: Product[];
-  categories: Partial<Record<CategorySlug, CategoryPatch>>;
-};
-
-export const EMPTY_EDITS: CatalogEdits = { patches: {}, added: [], categories: {} };
-
 export type Catalog = {
-  /** Base order, then added products in creation order. Includes hidden products. */
+  /** Catalog order (DB `sort`): base products, then custom products. Includes hidden products. */
   products: Product[];
   /** Products that are not hidden, in the same order. */
   visible: Product[];
   bySlug: ReadonlyMap<string, Product>;
   bySku: ReadonlyMap<string, { product: Product; variant: Variant }>;
-  /** Base categories with any name/description patches applied. */
   categories: Category[];
-  /** Base-product slugs that carry a patch. */
-  edited: ReadonlySet<string>;
 };
 
 // --- validation helpers ---------------------------------------------------------------
+// These are the injection boundary for an admin edit: the Server Actions run a candidate product
+// through normalizeAdded (and the field cleaners) before writing a row, so a bad value is repaired
+// or rejected rather than persisted.
 
 const isString = (v: unknown): v is string => typeof v === "string";
 const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const isCategory = (v: unknown): v is CategorySlug =>
   typeof v === "string" && (CATEGORY_SLUGS as readonly string[]).includes(v);
 
-const isLocalized = (v: unknown): v is Localized =>
+export const isLocalized = (v: unknown): v is Localized =>
   !!v && typeof v === "object" && isString((v as Localized).en) && isString((v as Localized).ar);
+
+/** A Localized value whose en AND ar are non-blank — for fields shown as a label/heading (category
+ * name/description, a product's type/description) where an empty string would render as a blank. */
+export const isNonEmptyLocalized = (v: unknown): v is Localized =>
+  isLocalized(v) && v.en.trim().length > 0 && v.ar.trim().length > 0;
 
 const isLocalizedList = (v: unknown): v is Localized[] => Array.isArray(v) && v.every(isLocalized);
 
@@ -87,7 +62,8 @@ const isVariant = (v: unknown): v is Variant => {
   );
 };
 
-const isVariants = (v: unknown): v is Variant[] => Array.isArray(v) && v.length >= 1 && v.every(isVariant);
+export const isVariants = (v: unknown): v is Variant[] =>
+  Array.isArray(v) && v.length >= 1 && v.every(isVariant);
 
 type Images = Product["images"];
 
@@ -108,61 +84,28 @@ const cleanStringList = (v: unknown): string[] | null =>
   Array.isArray(v) ? v.filter(isNonEmptyString) : null;
 
 /** alsoIn kept to valid slugs that are not the product's own (final) category. */
-const cleanAlsoIn = (v: unknown, category: CategorySlug): CategorySlug[] => {
+export const cleanAlsoIn = (v: unknown, category: CategorySlug): CategorySlug[] => {
   if (!Array.isArray(v)) return [];
   const seen = new Set<CategorySlug>();
   for (const slug of v) if (isCategory(slug) && slug !== category) seen.add(slug);
   return [...seen];
 };
 
-// --- building -------------------------------------------------------------------------
+// --- sanitising -----------------------------------------------------------------------
 
-/** Applies a patch to a base product, falling back to the base field whenever a value is bad. */
-function applyPatch(base: Product, patch: ProductPatch): Product {
-  const next: Product = { ...base };
-
-  if (isNonEmptyString(patch.name)) next.name = patch.name;
-  if (isCategory(patch.category)) next.category = patch.category;
-  if (isLocalized(patch.type)) next.type = patch.type;
-  if ("family" in patch) next.family = isLocalized(patch.family) ? patch.family : base.family;
-  if (isLocalized(patch.tagline)) next.tagline = patch.tagline;
-  if (isLocalized(patch.description)) next.description = patch.description;
-  if (isLocalized(patch.howTo)) next.howTo = patch.howTo;
-  if ("notes" in patch) next.notes = isNotes(patch.notes) ? patch.notes : base.notes;
-  if (isVariants(patch.variants)) next.variants = patch.variants;
-
-  if ("images" in patch) {
-    const images = cleanImages(patch.images);
-    if (images) next.images = images;
-  }
-
-  if ("badge" in patch) next.badge = patch.badge === "new" ? "new" : undefined;
-  if ("aliases" in patch) {
-    const aliases = cleanStringList(patch.aliases);
-    if (aliases) next.aliases = aliases;
-  }
-  if ("related" in patch) {
-    const related = cleanStringList(patch.related);
-    if (related) next.related = related;
-  }
-  if (typeof patch.hidden === "boolean") next.hidden = patch.hidden;
-
-  if ("alsoIn" in patch) next.alsoIn = cleanAlsoIn(patch.alsoIn, next.category);
-  else if (base.alsoIn) next.alsoIn = base.alsoIn.filter((c) => c !== next.category);
-
-  return next;
-}
-
-/** Turns a stored "added" product into a safe Product, or null when it is unusable. */
-function normalizeAdded(input: Product): Product | null {
+/** Turns an admin-submitted product into a safe Product, or null when it is unusable. */
+export function normalizeAdded(input: Product): Product | null {
   if (!input || typeof input !== "object") return null;
   if (!isNonEmptyString(input.slug) || !isNonEmptyString(input.name)) return null;
   if (!isCategory(input.category)) return null;
   if (!isVariants(input.variants)) return null;
   const images = cleanImages(input.images);
   if (!images) return null;
-  if (!isLocalized(input.type) || !isLocalized(input.tagline)) return null;
-  if (!isLocalized(input.description) || !isLocalized(input.howTo)) return null;
+  // type + description are required (the editor enforces non-empty); tagline + howTo are optional in
+  // the editor, so they stay at isLocalized (present, may be blank) — requiring them non-empty would
+  // reject editor-valid products.
+  if (!isNonEmptyLocalized(input.type) || !isLocalized(input.tagline)) return null;
+  if (!isNonEmptyLocalized(input.description) || !isLocalized(input.howTo)) return null;
 
   return {
     slug: input.slug,
@@ -185,20 +128,14 @@ function normalizeAdded(input: Product): Product | null {
   };
 }
 
-const EMPTY_EDITED: ReadonlySet<string> = new Set();
+// --- indexing -------------------------------------------------------------------------
 
 /**
- * The index-building half of the catalog: builds the bySlug/bySku lookups and the visible list
- * over a ready product + category list. Shared by buildCatalog (base data + admin edits) and the
- * server read layer (DB rows → src/server/read/catalog.ts), so both yield an identical Catalog.
- * `edited` (base-product slugs that carry a patch) is only meaningful for the edits path; the DB
- * read path has no patches and leaves it empty.
+ * Builds the bySlug/bySku lookups and the visible list over a ready product + category list. Shared
+ * by the base catalog (below) and the server read layer (DB rows → src/server/read/catalog.ts →
+ * LiveProvider), so both yield an identical Catalog.
  */
-export function indexCatalog(
-  products: Product[],
-  categories: Category[],
-  edited: ReadonlySet<string> = EMPTY_EDITED,
-): Catalog {
+export function indexCatalog(products: Product[], categories: Category[]): Catalog {
   const bySlug = new Map<string, Product>();
   const bySku = new Map<string, { product: Product; variant: Variant }>();
   for (const product of products) {
@@ -214,43 +151,11 @@ export function indexCatalog(
     bySlug,
     bySku,
     categories,
-    edited,
   };
 }
 
-export function buildCatalog(edits: CatalogEdits): Catalog {
-  const patches = edits.patches ?? {};
-  const edited = new Set<string>();
-
-  const products: Product[] = baseProducts.map((base) => {
-    const patch = patches[base.slug];
-    if (patch && typeof patch === "object" && Object.keys(patch).length > 0) {
-      edited.add(base.slug);
-      return applyPatch(base, patch);
-    }
-    return base;
-  });
-
-  for (const added of edits.added ?? []) {
-    const product = normalizeAdded(added);
-    if (product) products.push(product);
-  }
-
-  const catPatches = edits.categories ?? {};
-  const categories: Category[] = baseCategories.map((c) => {
-    const patch = catPatches[c.slug];
-    if (!patch) return c;
-    return {
-      ...c,
-      name: isLocalized(patch.name) ? patch.name : c.name,
-      description: isLocalized(patch.description) ? patch.description : c.description,
-    };
-  });
-
-  return indexCatalog(products, categories, edited);
-}
-
-export const baseCatalog = buildCatalog(EMPTY_EDITS);
+/** The seed catalog from src/data — the default LiveContext and the Reset-to-original source. */
+export const baseCatalog = indexCatalog(baseProducts, baseCategories);
 
 /** Visible products whose main category is `cat` or whose alsoIn includes it, in catalog order. */
 export const productsIn = (catalog: Catalog, cat: CategorySlug): Product[] =>
@@ -272,7 +177,24 @@ export const isCustomSlug = (slug: string): boolean => slug.startsWith("c-");
 export const productHref = (slug: string): string =>
   isCustomSlug(slug) ? `/product?p=${encodeURIComponent(slug)}` : `/product/${slug}`;
 
-const PATCH_FIELDS = [
+// --- "edited" detection (admin) -------------------------------------------------------
+
+/** Canonical JSON: sorts object keys recursively, so jsonb key-reordering never reads as a change. */
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      out[key] = canonical((value as Record<string, unknown>)[key]);
+    }
+    return out;
+  }
+  return value;
+}
+const canon = (v: unknown): string => JSON.stringify(canonical(v)) ?? "null";
+
+/** Editable fields the admin editor writes — the fields that distinguish an edit from the seed. */
+const COMPARE_FIELDS = [
   "name",
   "category",
   "alsoIn",
@@ -290,14 +212,19 @@ const PATCH_FIELDS = [
   "hidden",
 ] as const;
 
-/** The minimal patch that turns `base` into `edited` — only the fields whose JSON differs. */
-export function patchFor(base: Product, edited: Product): ProductPatch {
-  const patch: ProductPatch = {};
-  for (const field of PATCH_FIELDS) {
-    if (JSON.stringify(base[field]) !== JSON.stringify(edited[field])) {
-      // Field keys line up with ProductPatch; the cast keeps the loop generic.
-      (patch as Record<string, unknown>)[field] = edited[field];
-    }
-  }
-  return patch;
+/**
+ * Whether a (DB-read) product differs from its src/data seed — drives the admin "Edited" badge and
+ * the Reset affordance. Compares only the editable fields, key-order-insensitively (Postgres jsonb
+ * reorders object keys on read), treating alsoIn undefined/[] and hidden undefined/false as equal.
+ * Custom (c-…) products have no seed, so they are never "edited" by this measure.
+ */
+export function isProductEdited(product: Product): boolean {
+  const base = baseCatalog.bySlug.get(product.slug);
+  if (!base) return false;
+  const norm = (p: Product, field: (typeof COMPARE_FIELDS)[number]): unknown => {
+    if (field === "alsoIn") return (p.alsoIn ?? []).filter((c) => c !== p.category);
+    if (field === "hidden") return p.hidden ?? false;
+    return p[field];
+  };
+  return COMPARE_FIELDS.some((field) => canon(norm(base, field)) !== canon(norm(product, field)));
 }

@@ -1,52 +1,72 @@
-import { expect, test } from "@playwright/test";
-import { Pool } from "pg";
+import { expect, test, type Page } from "@playwright/test";
 
-// Phase 2b proof: the storefront reads the catalog from Postgres at request time (runtime-dynamic,
-// tag-cached), NOT from a shell baked at build time. With the DB seeded (default), /en/ shows the
-// seeded catalog; then we change a product's price directly in the DB (SQL, no admin, no
-// updateTag) and a fresh page load reflects it within the short revalidate window.
+// Phase 3c proof: the storefront reads the catalog from Postgres at request time (runtime-dynamic,
+// tag-cached), and an admin edit is reflected immediately. The admin product editor saves via the
+// saveProduct Server Action, which calls updateTag("catalog") — read-your-own-writes, no long wait.
+// We change a product's price in the editor and a fresh storefront load reflects it; the list itself
+// (server-fed live catalog) reflects it straight after the save redirect, no reload.
 //
-// Target SKU is MS-DUNE-250 ("Dune"), whose price no default-catalog spec asserts, and it is
-// restored afterwards so the shared test DB is left at the seed value.
+// Target is "Dune" (MS-DUNE-250), whose price no default-catalog spec asserts, reset through the
+// list's Reset in a finally so the shared test DB is left at the seed value.
 
-const SKU = "MS-DUNE-250";
+const FAR_FUTURE = 4102444800000; // ~ year 2100 (ms), so the admin opens without a real sign-in
+
+async function signIn(page: Page) {
+  await page.addInitScript((exp) => {
+    try {
+      sessionStorage.setItem("ms-admin-session", JSON.stringify({ u: "admin", exp }));
+    } catch {
+      // storage blocked
+    }
+  }, FAR_FUTURE);
+}
+
 const SLUG = "dune";
-const SEED_PRICE_FILS = 7500; // "KWD 7.500"
+const NAME = "Dune";
 const SEED_PRICE = "KWD 7.500";
-const NEW_PRICE_FILS = 33300; // "KWD 33.300" — a value no other product uses
-const NEW_PRICE = "KWD 33.300";
+const NEW_PRICE = "KWD 33.300"; // a value no other product uses
 
-test.describe("live DB reads (Phase 2b)", () => {
-  // One deliberate DB mutation; run it once on the desktop project.
+test.describe("live DB reads via the admin editor (Phase 3c)", () => {
   test.skip(({ isMobile }) => isMobile, "Runs on the desktop project");
 
-  test("a direct DB price change is reflected on a fresh page load", async ({ page }) => {
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  test("an editor price change is reflected on the list and the storefront, then reset", async ({ page }) => {
+    await signIn(page);
     try {
-      // The DB is seeded (default): /en/ renders and the product page shows the seeded price.
-      const home = await page.goto("/en/");
-      expect(home?.status()).toBe(200);
-      await expect(page.locator("h1").first()).toBeVisible();
-
+      // The seeded product page shows the seed price.
       await page.goto(`/en/product/${SLUG}/`);
       await expect(page.getByText(SEED_PRICE).first()).toBeVisible();
 
-      // Change the price directly in Postgres — no admin action, no updateTag.
-      await pool.query("UPDATE variants SET price_fils = $1 WHERE sku = $2", [NEW_PRICE_FILS, SKU]);
+      // Edit the price in the admin editor and save (→ saveProduct → updateTag("catalog")).
+      await page.goto(`/en/admin/products/edit/?p=${SLUG}`);
+      const price = page.getByTestId("editor-variant-price-0");
+      await expect(price).toHaveValue("7.500");
+      await price.fill("33.300");
+      await page.getByTestId("editor-save").click();
+      await page.waitForURL(/\/admin\/products\/$/);
 
-      // A fresh page load reflects it (runtime-dynamic read; cached for ~1s then revalidated, so we
-      // reload until it appears rather than assuming the very first reload is fresh).
-      // NEW_PRICE is a value no other product uses, so its appearance proves the page re-read the
-      // live DB (not a shell baked from build-time seed data). Reload until it appears: the read is
-      // cached for ~1s then revalidated, so the very first reload may still be the stale value.
+      // The products list (server-fed live catalog) reflects it straight away — no reload. This proves
+      // the post-save router.refresh() re-read the DB through the shared layout.
+      const row = page.locator(`[data-testid="product-row"][data-slug="${SLUG}"]`);
+      await expect(row.getByText(NEW_PRICE)).toBeVisible();
+
+      // A fresh storefront load reflects it. updateTag makes this read-your-own-writes; reload-until-
+      // pass to stay robust to any cache timing (mirrors the home / settings specs).
       await expect(async () => {
-        await page.reload();
-        await expect(page.getByText(NEW_PRICE).first()).toBeVisible({ timeout: 2_000 });
-      }).toPass({ timeout: 20_000 });
+        await page.goto(`/en/product/${SLUG}/`);
+        await expect(page.getByText(NEW_PRICE).first()).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 20000 });
     } finally {
-      // Restore the seed value so the shared DB is left clean for the other specs / the next run.
-      await pool.query("UPDATE variants SET price_fils = $1 WHERE sku = $2", [SEED_PRICE_FILS, SKU]);
-      await pool.end();
+      // Restore the seed via the list's Reset so the shared DB is left clean for the other specs.
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
+      const resetBtn = page
+        .locator(`[data-testid="product-row"][data-slug="${SLUG}"]`)
+        .getByRole("button", { name: `Reset ${NAME}`, exact: true });
+      if (await resetBtn.count()) {
+        await resetBtn.click();
+        await page.getByTestId("confirm-accept").click();
+        await expect(resetBtn).toHaveCount(0);
+      }
     }
   });
 });

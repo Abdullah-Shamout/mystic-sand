@@ -8,14 +8,14 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { SelectInput, TextInput } from "@/components/ui/form";
 import { categories as baseCategories } from "@/data/categories";
 import type { CategorySlug, Localized, Product } from "@/data/types";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { CATEGORY_SLUGS, isCustomSlug, productHref } from "@/lib/catalog";
+import { CATEGORY_SLUGS, isCustomSlug, isProductEdited, productHref } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
 import { availableFromStock } from "@/lib/stock";
-import { useCatalogStore } from "@/store/catalog";
+import { deleteProduct, resetProduct, saveCategory, setCategory, setHidden } from "@/server/actions/catalog";
 import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { ConfirmDialog } from "../confirm-dialog";
@@ -41,14 +41,10 @@ function matches(product: Product, query: string, locale: Locale): boolean {
 export function ProductsList() {
   const t = useTranslations("admin");
   const locale = useLocale() as Locale;
+  const router = useRouter();
   const catalog = useLiveCatalog();
   const sold = useStockStore((s) => s.sold);
   const pushToast = useUi((s) => s.pushToast);
-
-  const setCategory = useCatalogStore((s) => s.setCategory);
-  const setHidden = useCatalogStore((s) => s.setHidden);
-  const resetProduct = useCatalogStore((s) => s.resetProduct);
-  const deleteProduct = useCatalogStore((s) => s.deleteProduct);
 
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<CatFilter>("all");
@@ -69,42 +65,55 @@ export function ProductsList() {
     });
   }, [catalog.products, showHidden, cat, query, locale]);
 
-  const onMove = (product: Product, next: CategorySlug) => {
+  // Run a catalog Server Action, then router.refresh() so the live catalog (and these admin reads)
+  // pick up the write. Returns true on success; on failure shows the save-error toast and stops.
+  const run = async (action: () => Promise<unknown>): Promise<boolean> => {
+    try {
+      await action();
+    } catch {
+      pushToast({ title: t("settings.saveError") });
+      return false;
+    }
+    router.refresh();
+    return true;
+  };
+
+  const onMove = async (product: Product, next: CategorySlug) => {
     if (next === product.category) return;
     const prevCategory = product.category;
     const prevAlsoIn = product.alsoIn ? [...product.alsoIn] : [];
-    setCategory(product.slug, next);
+    if (!(await run(() => setCategory(product.slug, next)))) return;
     pushToast({
       title: t("products.toast.moved", { name: product.name, category: catName(next) }),
       actions: [
         {
           label: t("products.undo"),
-          onClick: () => setCategory(product.slug, prevCategory, prevAlsoIn),
+          onClick: () => void run(() => setCategory(product.slug, prevCategory, prevAlsoIn)),
         },
       ],
     });
   };
 
-  const onToggleHidden = (product: Product) => {
+  const onToggleHidden = async (product: Product) => {
     const next = !product.hidden;
-    setHidden(product.slug, next);
+    if (!(await run(() => setHidden(product.slug, next)))) return;
     pushToast({
       title: next
         ? t("products.toast.hidden", { name: product.name })
         : t("products.toast.shown", { name: product.name }),
-      actions: [{ label: t("products.undo"), onClick: () => setHidden(product.slug, !next) }],
+      actions: [{ label: t("products.undo"), onClick: () => void run(() => setHidden(product.slug, !next)) }],
     });
   };
 
-  const doReset = (slug: string, name: string) => {
-    resetProduct(slug);
+  const doReset = async (slug: string, name: string) => {
+    if (!(await run(() => resetProduct(slug)))) return;
     pushToast({ title: t("products.toast.reset", { name }) });
   };
 
-  const doDelete = (product: Product) => {
+  const doDelete = async (product: Product) => {
     // Uploaded photos are a reusable library now: deleting a product leaves its uploads in place,
     // so they can still be chosen for other products. They can be deleted from the photo library.
-    deleteProduct(product.slug);
+    if (!(await run(() => deleteProduct(product.slug)))) return;
     pushToast({ title: t("products.toast.deleted", { name: product.name }) });
   };
 
@@ -181,7 +190,7 @@ export function ProductsList() {
             <Row
               key={product.slug}
               product={product}
-              edited={catalog.edited.has(product.slug)}
+              edited={isProductEdited(product)}
               sold={sold}
               catName={catName}
               onMove={onMove}
@@ -462,23 +471,36 @@ function CollectionEditor({
   description: Localized;
 }) {
   const t = useTranslations("admin");
-  const saveCategory = useCatalogStore((s) => s.saveCategory);
+  const router = useRouter();
   const pushToast = useUi((s) => s.pushToast);
   const base = baseCategories.find((c) => c.slug === slug)!;
 
   const [form, setForm] = useState(() => ({ name: field(name), description: field(description) }));
 
-  const save = () => {
-    saveCategory(slug, {
-      name: { en: form.name.en.trim(), ar: form.name.ar.trim() },
-      description: { en: form.description.en.trim(), ar: form.description.ar.trim() },
-    });
+  const save = async () => {
+    try {
+      await saveCategory(slug, {
+        name: { en: form.name.en.trim(), ar: form.name.ar.trim() },
+        description: { en: form.description.en.trim(), ar: form.description.ar.trim() },
+      });
+    } catch {
+      pushToast({ title: t("settings.saveError") });
+      return;
+    }
+    router.refresh();
     pushToast({ title: t("products.collections.saved", { name: form.name.en.trim() || base.name.en }) });
   };
 
-  const reset = () => {
-    saveCategory(slug, {});
+  const reset = async () => {
+    // Reset writes the src/data seed values back to the row (there is no stored patch to drop now).
+    try {
+      await saveCategory(slug, { name: base.name, description: base.description });
+    } catch {
+      pushToast({ title: t("settings.saveError") });
+      return;
+    }
     setForm({ name: field(base.name), description: field(base.description) });
+    router.refresh();
     pushToast({ title: t("products.collections.resetDone", { name: base.name.en }) });
   };
 

@@ -370,10 +370,8 @@
       "uploading": "Processing…",
       "studio": "Studio photo on a white background",
       "count": "{count} of {max} photos",
-      "storage": "Storage used: {percent}%",
       "maxReached": "You can add up to 6 photos.",
       "uploadError": "That photo could not be added.",
-      "storageFull": "This browser’s storage is full — the photo was not saved.",
       "err": {
         "notImage": "Please choose an image file.",
         "tooLarge": "That image is too large (over 15 MB).",

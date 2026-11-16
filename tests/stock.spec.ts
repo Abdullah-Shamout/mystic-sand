@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { readVariantStock } from "./db";
+
 // The stock system: per-size available stock, the admin Stock page, bag/checkout caps, the
 // once-only decrement on a paid order, and the capture-time guard that never oversells. Run
 // `npm run build` first — these hit the `next start` production server at localhost:4319. Long flows run on desktop.
@@ -322,6 +324,35 @@ test.describe("stock system", () => {
     await expect(page.getByText("You can add up to 1 of this item.")).toBeVisible();
     const lineQty = await page.evaluate(() => JSON.parse(localStorage.getItem("ms-bag") || "{}").state?.lines?.[0]?.qty);
     expect(lineQty).toBe(1);
+  });
+
+  test("the admin set-value writes variants.stock and shows on the row", async ({ page }) => {
+    // Phase 3c's only stock write: the admin set-value calls setVariantStock → variants.stock. (The
+    // once-only purchase decrement stays on the client ms-stock path until Phase 5.)
+    await signIn(page);
+    try {
+      await page.goto("/en/admin/stock/");
+      const row = page.locator('[data-testid="stock-row"][data-sku="MS-DUNE-250"]');
+      await expect(row).toBeVisible();
+      await row.getByTestId("stock-input").fill("7");
+      await row.getByTestId("stock-save").click();
+      await expect(row).toHaveAttribute("data-set", "7");
+      await expect(row).toHaveAttribute("data-available", "7");
+      // The authoritative DB column reflects the write.
+      expect(await readVariantStock("MS-DUNE-250")).toBe(7);
+    } finally {
+      // Restore the seed stock via the products-list Reset (rewrites the variant rows from src/data).
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
+      const reset = page
+        .locator('[data-testid="product-row"][data-slug="dune"]')
+        .getByRole("button", { name: "Reset Dune", exact: true });
+      if (await reset.count()) {
+        await reset.click();
+        await page.getByTestId("confirm-accept").click();
+        await expect(reset).toHaveCount(0);
+      }
+    }
   });
 
   test("the Stock page opens without console errors in English and Arabic", async ({ page }) => {

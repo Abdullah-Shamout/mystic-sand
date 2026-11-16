@@ -505,52 +505,66 @@ test.describe("admin products", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
 
   test("adds a custom product that shows in the list, the store and the bag", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await signIn(page);
-    await page.goto("/en/admin/products/");
-    await page.getByTestId("products-add").click();
-    await page.waitForURL(/\/admin\/products\/edit\//);
+    try {
+      await page.goto("/en/admin/products/");
+      await page.getByTestId("products-add").click();
+      await page.waitForURL(/\/admin\/products\/edit\//);
 
-    await page.getByTestId("editor-name").fill("Amber Nights");
-    await page.getByTestId("editor-category").selectOption("body");
-    await page.getByTestId("editor-type-en").fill("All Over Spray");
-    await page.getByTestId("editor-type-ar").fill("بخاخ معطّر للجسم");
-    await page.getByTestId("editor-description-en").fill("A warm amber veil for skin, hair and clothes.");
-    await page.getByTestId("editor-description-ar").fill("رذاذ عنبري دافئ للبشرة والشعر والملابس.");
-    await page.getByTestId("editor-variant-size-en-0").fill("100 ml");
-    await page.getByTestId("editor-variant-size-ar-0").fill("١٠٠ مل");
-    await page.getByTestId("editor-variant-price-0").fill("9.500");
-    await page.getByTestId("editor-variant-stock-0").fill("5");
+      await page.getByTestId("editor-name").fill("Amber Nights");
+      await page.getByTestId("editor-category").selectOption("body");
+      await page.getByTestId("editor-type-en").fill("All Over Spray");
+      await page.getByTestId("editor-type-ar").fill("بخاخ معطّر للجسم");
+      await page.getByTestId("editor-description-en").fill("A warm amber veil for skin, hair and clothes.");
+      await page.getByTestId("editor-description-ar").fill("رذاذ عنبري دافئ للبشرة والشعر والملابس.");
+      await page.getByTestId("editor-variant-size-en-0").fill("100 ml");
+      await page.getByTestId("editor-variant-size-ar-0").fill("١٠٠ مل");
+      await page.getByTestId("editor-variant-price-0").fill("9.500");
+      await page.getByTestId("editor-variant-stock-0").fill("5");
 
-    // One photo from the built-in site library.
-    await page.getByTestId("editor-add-library").click();
-    await page.getByTestId("library-item").first().click();
-    await page.getByTestId("library-add").click();
-    await expect(page.getByTestId("editor-photos").locator("li")).toHaveCount(1);
+      // One photo from the built-in site library.
+      await page.getByTestId("editor-add-library").click();
+      await page.getByTestId("library-item").first().click();
+      await page.getByTestId("library-add").click();
+      await expect(page.getByTestId("editor-photos").locator("li")).toHaveCount(1);
 
-    await page.getByTestId("editor-save").click();
-    await page.waitForURL(/\/admin\/products\/$/);
+      await page.getByTestId("editor-save").click();
+      await page.waitForURL(/\/admin\/products\/$/);
 
-    const row = page.getByTestId("product-row").filter({ hasText: "Amber Nights" });
-    await expect(row).toHaveCount(1);
-    await expect(row.getByText("Custom", { exact: true })).toBeVisible();
+      const row = page.getByTestId("product-row").filter({ hasText: "Amber Nights" });
+      await expect(row).toHaveCount(1);
+      await expect(row.getByText("Custom", { exact: true })).toBeVisible();
 
-    // The storefront collection, the custom-product link and the product page.
-    await page.goto("/en/shop/body/");
-    await expect(page.getByText("2 products")).toBeVisible();
-    const card = page.locator("article").filter({ hasText: "Amber Nights" });
-    await expect(card).toHaveCount(1);
-    const link = card.locator('a[href*="?p=c-"]').first();
-    await expect(link).toHaveCount(1);
-    const href = (await link.getAttribute("href"))!;
-    expect(href).toMatch(/\/en\/product\/\?p=c-/);
+      // The storefront collection, the custom-product link and the product page.
+      await page.goto("/en/shop/body/");
+      await expect(page.getByText("2 products")).toBeVisible();
+      const card = page.locator("article").filter({ hasText: "Amber Nights" });
+      await expect(card).toHaveCount(1);
+      const link = card.locator('a[href*="?p=c-"]').first();
+      await expect(link).toHaveCount(1);
+      const href = (await link.getAttribute("href"))!;
+      expect(href).toMatch(/\/en\/product\/\?p=c-/);
 
-    await page.goto(href);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Amber Nights");
-    await expect(page.getByText("KWD 9.500").first()).toBeVisible();
+      await page.goto(href);
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("Amber Nights");
+      await expect(page.getByText("KWD 9.500").first()).toBeVisible();
 
-    await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
-    await expect(page.getByRole("dialog").getByText("KWD 10.500")).toBeVisible(); // 9.500 + 1.000 delivery
+      await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
+      await expect(page.getByRole("dialog").getByText("KWD 10.500")).toBeVisible(); // 9.500 + 1.000 delivery
+    } finally {
+      // Delete the custom product (exercises deleteProduct) so the shared DB is left clean.
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
+      const del = page
+        .getByTestId("product-row")
+        .filter({ hasText: "Amber Nights" })
+        .getByRole("button", { name: "Delete Amber Nights", exact: true });
+      if (await del.count()) {
+        await del.click();
+        await page.getByTestId("confirm-accept").click();
+        await expect(page.getByTestId("product-row").filter({ hasText: "Amber Nights" })).toHaveCount(0);
+      }
+    }
   });
 
   test("uploads a photo that posts to the server, renders, and serves from /api/images", async ({ page }) => {
@@ -600,7 +614,7 @@ test.describe("admin products", () => {
   });
 
   test("the editor's related search finds a custom product", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now (localStorage ms-catalog seeding no longer reaches the storefront).");
     await signIn(page);
     await page.addInitScript((product) => {
       localStorage.setItem(
@@ -621,72 +635,140 @@ test.describe("admin products", () => {
   });
 
   test("editing a base product's price flows to the store and resets", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await signIn(page);
-    await page.goto("/en/admin/products/edit/?p=i");
-    const price = page.getByTestId("editor-variant-price-0");
-    await expect(price).toHaveValue("19.000");
-    await price.fill("21.000");
-    await page.getByTestId("editor-save").click();
-    await page.waitForURL(/\/admin\/products\/$/);
+    try {
+      await page.goto("/en/admin/products/edit/?p=i");
+      const price = page.getByTestId("editor-variant-price-0");
+      await expect(price).toHaveValue("19.000");
+      await price.fill("21.000");
+      await page.getByTestId("editor-save").click();
+      await page.waitForURL(/\/admin\/products\/$/);
 
-    // The stored patch is minimal: the price changed, the gallery was left untouched.
-    const patch = await page.evaluate(() => {
-      const raw = JSON.parse(localStorage.getItem("ms-catalog") || "{}");
-      return raw.state?.edits?.patches?.i ?? {};
-    });
-    expect(Object.keys(patch)).toContain("variants");
-    expect(Object.keys(patch)).not.toContain("images");
+      // The list (server-fed live catalog) reflects it straight after the redirect — no reload — and
+      // the product is now flagged Edited with a Reset affordance (isProductEdited vs the seed).
+      const row = page.locator('[data-testid="product-row"][data-slug="i"]');
+      await expect(row.getByText("KWD 21.000")).toBeVisible();
+      await expect(row.getByText("Edited", { exact: true })).toBeVisible();
 
-    await page.goto("/en/product/i/");
-    await expect(page.getByText("KWD 21.000").first()).toBeVisible();
-    await expect(page.getByTestId("gallery-counter")).toHaveText("1 / 5");
+      // The storefront reflects it; the gallery is untouched (photos weren't edited → still 5 images).
+      await expect(async () => {
+        await page.goto("/en/product/i/");
+        await expect(page.getByText("KWD 21.000").first()).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+      await expect(page.getByTestId("gallery-counter")).toHaveText("1 / 5");
 
-    // Reset from the list restores the original price.
-    await page.goto("/en/admin/products/");
-    const row = page.locator('[data-testid="product-row"][data-slug="i"]');
-    await row.getByRole("button", { name: "Reset I", exact: true }).click();
-    await page.getByTestId("confirm-accept").click();
+      // The shop-grid card and the bag total reflect the new price too.
+      await page.goto("/en/shop/perfumes/");
+      await expect(page.locator('article:has(a[href$="/product/i/"])').getByText("KWD 21.000")).toBeVisible();
+      await page.goto("/en/product/i/");
+      await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.getByRole("dialog").getByText("KWD 22.000")).toBeVisible(); // 21.000 + 1.000 delivery
+      await page.keyboard.press("Escape");
 
-    await page.goto("/en/product/i/");
-    await expect(page.getByText("KWD 19.000").first()).toBeVisible();
+      // Reset from the list restores the original price.
+      await page.goto("/en/admin/products/");
+      await page
+        .locator('[data-testid="product-row"][data-slug="i"]')
+        .getByRole("button", { name: "Reset I", exact: true })
+        .click();
+      await page.getByTestId("confirm-accept").click();
+
+      await expect(async () => {
+        await page.goto("/en/product/i/");
+        await expect(page.getByText("KWD 19.000").first()).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+    } finally {
+      // Ensure I is at the seed price even if an assertion above failed mid-way.
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
+      const resetBtn = page
+        .locator('[data-testid="product-row"][data-slug="i"]')
+        .getByRole("button", { name: "Reset I", exact: true });
+      if (await resetBtn.count()) {
+        await resetBtn.click();
+        await page.getByTestId("confirm-accept").click();
+        await expect(resetBtn).toHaveCount(0);
+      }
+    }
   });
 
   test("moving a product to another collection from the list updates both", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await signIn(page);
-    await page.goto("/en/admin/products/");
-    await page.getByLabel("Collection for AURA", { exact: true }).selectOption("home");
+    try {
+      await page.goto("/en/admin/products/");
+      await page.getByLabel("Collection for AURA", { exact: true }).selectOption("home");
+      // Wait for the write to land (the toast shows after the Server Action + refresh resolve).
+      await expect(page.getByText("Moved AURA to Home.")).toBeVisible();
 
-    await page.goto("/en/shop/body/");
-    await expect(page.getByText("Nothing here yet — explore the other collections.")).toBeVisible();
+      await page.goto("/en/shop/body/");
+      await expect(page.getByText("Nothing here yet — explore the other collections.")).toBeVisible();
 
-    await page.goto("/en/shop/home/");
-    await expect(page.getByText("4 products")).toBeVisible();
+      await page.goto("/en/shop/home/");
+      await expect(page.getByText("4 products")).toBeVisible();
+    } finally {
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
+      const resetBtn = page
+        .locator('[data-testid="product-row"][data-slug="aura"]')
+        .getByRole("button", { name: "Reset AURA", exact: true });
+      if (await resetBtn.count()) {
+        await resetBtn.click();
+        await page.getByTestId("confirm-accept").click();
+        await expect(resetBtn).toHaveCount(0);
+      }
+    }
   });
 
   test("hiding a product removes it from the store and shows a Hidden badge", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await signIn(page);
-    await page.goto("/en/admin/products/");
-    const row = page.locator('[data-testid="product-row"][data-slug="mist"]');
-    await row.getByRole("button", { name: "Hide Mist", exact: true }).click();
-    await expect(row.getByText("Hidden", { exact: true })).toBeVisible();
+    try {
+      await page.goto("/en/admin/products/");
+      const row = page.locator('[data-testid="product-row"][data-slug="mist"]');
+      await row.getByRole("button", { name: "Hide Mist", exact: true }).click();
+      await expect(row.getByText("Hidden", { exact: true })).toBeVisible();
 
-    await page.goto("/en/shop/home/");
-    await expect(page.getByText("2 products")).toBeVisible();
-    await expect(page.locator("article").filter({ hasText: "Mist" })).toHaveCount(0);
+      await page.goto("/en/shop/home/");
+      await expect(page.getByText("2 products")).toBeVisible();
+      await expect(page.locator("article").filter({ hasText: "Mist" })).toHaveCount(0);
 
-    // Show restores it.
-    await page.goto("/en/admin/products/");
-    const again = page.locator('[data-testid="product-row"][data-slug="mist"]');
-    await again.getByRole("button", { name: "Show Mist", exact: true }).click();
-    await page.goto("/en/shop/home/");
-    await expect(page.getByText("3 products")).toBeVisible();
+      // Search never surfaces the hidden product (other products list "mist" as a term; Mist is gone).
+      await page.getByRole("button", { name: "Search", exact: true }).first().click();
+      const dialog = page.getByRole("dialog");
+      await page.getByRole("searchbox").fill("mist");
+      await expect(dialog.getByRole("status")).toBeVisible();
+      await expect(dialog.locator('a[href$="/product/mist/"]')).toHaveCount(0);
+      await page.keyboard.press("Escape");
+
+      // Its own product page is gone too.
+      await page.goto("/en/product/mist/");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("No longer available");
+
+      // Show restores it.
+      await page.goto("/en/admin/products/");
+      const again = page.locator('[data-testid="product-row"][data-slug="mist"]');
+      await again.getByRole("button", { name: "Show Mist", exact: true }).click();
+      await expect(again.getByText("Visible", { exact: true })).toBeVisible();
+      await page.goto("/en/shop/home/");
+      await expect(page.getByText("3 products")).toBeVisible();
+    } finally {
+      // Make sure Mist is visible again for the other specs.
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
+      const show = page
+        .locator('[data-testid="product-row"][data-slug="mist"]')
+        .getByRole("button", { name: "Show Mist", exact: true });
+      if (await show.count()) {
+        await show.click();
+        await expect(
+          page.locator('[data-testid="product-row"][data-slug="mist"]').getByText("Visible", { exact: true }),
+        ).toBeVisible();
+      }
+    }
   });
 
   test("deleting a custom product removes it from the list and the store", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now (localStorage ms-catalog seeding no longer reaches the storefront).");
     await signIn(page);
     await page.addInitScript(() => {
       const product = {
@@ -724,20 +806,35 @@ test.describe("admin products", () => {
   });
 
   test("editing a collection name shows across the store and resets", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await signIn(page);
-    await page.goto("/en/admin/products/");
-    await page.getByTestId("collection-home-name-en").fill("Home & Living");
-    await page.getByTestId("collection-home-save").click();
+    try {
+      await page.goto("/en/admin/products/");
+      await page.getByTestId("collection-home-name-en").fill("Home & Living");
+      await page.getByTestId("collection-home-save").click();
+      await expect(page.getByText("Home & Living collection saved.")).toBeVisible();
 
-    await page.goto("/en/shop/home/");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home & Living");
+      await expect(async () => {
+        await page.goto("/en/shop/home/");
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home & Living", { timeout: 2000 });
+      }).toPass({ timeout: 20000 });
 
-    await page.goto("/en/admin/products/");
-    await page.getByTestId("collection-home-reset").click();
+      await page.goto("/en/admin/products/");
+      await page.getByTestId("collection-home-reset").click();
+      await expect(page.getByText("Home collection restored.")).toBeVisible();
 
-    await page.goto("/en/shop/home/");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home");
+      await expect(async () => {
+        await page.goto("/en/shop/home/");
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText("Home", { timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+    } finally {
+      // Ensure the Home collection name is back to the seed even if an assertion failed mid-way.
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
+      if ((await page.getByTestId("collection-home-name-en").inputValue()) !== "Home") {
+        await page.getByTestId("collection-home-reset").click();
+        await expect(page.getByText("Home collection restored.")).toBeVisible();
+      }
+    }
   });
 
   test("saving with no name or price shows field errors without crashing", async ({ page }) => {
@@ -956,7 +1053,7 @@ test.describe("admin product analysis", () => {
   });
 
   test("a store product shows under its collection and an unknown slug goes to Removed", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now (localStorage ms-catalog seeding no longer reaches the storefront).");
     await signIn(page);
     await page.addInitScript(() => {
       const product = {

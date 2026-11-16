@@ -7,12 +7,12 @@ import type { Category } from "@/data/categories";
 import type { Product, Variant } from "@/data/types";
 import { getDb, schema } from "@/server/db";
 
-import { STOREFRONT_REVALIDATE } from "./revalidate";
+import { CATALOG_REVALIDATE } from "./revalidate";
 
 // Server read layer for the storefront catalog. Returns PLAIN, serializable data (arrays/objects,
 // no Maps) so it can cross the server→client boundary to <LiveProvider>, which rebuilds the
-// Catalog via indexCatalog(). The shapes mirror buildCatalog(EMPTY) exactly: a product with no
-// alsoIn/collection/family/notes/badge and not hidden omits those keys, just like src/data.
+// Catalog via indexCatalog(). The shapes mirror the src/data base products exactly: a product with
+// no alsoIn/collection/family/notes/badge and not hidden omits those keys, just like src/data.
 
 export type CatalogData = { products: Product[]; categories: Category[] };
 
@@ -55,12 +55,24 @@ function toCategory(row: CategoryRow): Category {
 }
 
 async function readCatalog(): Promise<CatalogData> {
-  const db = getDb();
-  const [productRows, variantRows, categoryRows] = await Promise.all([
-    db.select().from(schema.products).orderBy(asc(schema.products.sort)),
-    db.select().from(schema.variants).orderBy(asc(schema.variants.sort)),
-    db.select().from(schema.categories).orderBy(asc(schema.categories.sort)),
-  ]);
+  // One read-only REPEATABLE READ transaction so the three selects share a single MVCC snapshot: a
+  // createProduct / deleteProduct / resetAllCatalog committing mid-read can't surface a product with
+  // its variants already (or not yet) written — which the storefront would deref as variants[0] →
+  // 500. This runs at request time (getCatalogData is runtime-dynamic), so the DB-free build is
+  // unaffected.
+  // The three selects run SEQUENTIALLY (not Promise.all): a transaction holds ONE connection, and
+  // node-postgres does not allow concurrent queries on a single client (they race and corrupt the
+  // connection). Sequential is fine for correctness here — a REPEATABLE READ snapshot is fixed at the
+  // first query, so all three see the same snapshot regardless of ordering.
+  const { productRows, variantRows, categoryRows } = await getDb().transaction(
+    async (tx) => {
+      const productRows = await tx.select().from(schema.products).orderBy(asc(schema.products.sort));
+      const variantRows = await tx.select().from(schema.variants).orderBy(asc(schema.variants.sort));
+      const categoryRows = await tx.select().from(schema.categories).orderBy(asc(schema.categories.sort));
+      return { productRows, variantRows, categoryRows };
+    },
+    { isolationLevel: "repeatable read", accessMode: "read only" },
+  );
 
   const variantsByProduct = new Map<string, Variant[]>();
   for (const v of variantRows) {
@@ -69,19 +81,23 @@ async function readCatalog(): Promise<CatalogData> {
     else variantsByProduct.set(v.productId, [toVariant(v)]);
   }
 
-  const products = productRows.map((row) => toProduct(row, variantsByProduct.get(row.id) ?? []));
+  const products = productRows
+    .map((row) => toProduct(row, variantsByProduct.get(row.id) ?? []))
+    // Belt-and-suspenders: every real product has ≥1 variant, so this never drops a legit product —
+    // it just omits a momentarily-torn one instead of crashing the storefront on variants[0].
+    .filter((p) => p.variants.length > 0);
   const categories = categoryRows.map(toCategory);
   return { products, categories };
 }
 
 /**
- * The storefront catalog, read from Postgres and tag-cached under "catalog" for the later
- * updateTag("catalog") write path (Phase 3c admin writes — immediate expiry, like settings/home).
- * Until then STOREFRONT_REVALIDATE is the only refresh. The locale layout marks its render dynamic
- * via connection() so this never runs during the DB-free production build; the first real request
- * reads the live DB.
+ * The storefront catalog, read from Postgres and tag-cached under "catalog". The admin Server
+ * Actions (src/server/actions/catalog.ts) call updateTag("catalog") on every write — immediate,
+ * read-your-own-writes expiry, like settings/home; CATALOG_REVALIDATE is only a time-based backstop.
+ * The locale layout marks its render dynamic via connection() so this never runs during the DB-free
+ * production build; the first real request reads the live DB.
  */
 export const getCatalogData = unstable_cache(readCatalog, ["catalog-data"], {
   tags: ["catalog"],
-  revalidate: STOREFRONT_REVALIDATE,
+  revalidate: CATALOG_REVALIDATE,
 });
