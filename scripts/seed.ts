@@ -6,7 +6,7 @@ import { categories as categoryData } from "@/data/categories";
 import { products as productData } from "@/data/products";
 import { promoCodes as promoData } from "@/data/site";
 import { defaultSettings } from "@/lib/settings";
-import { db, pool } from "@/server/db";
+import { getDb, getPool } from "@/server/db";
 import * as t from "@/server/db/schema";
 
 // Idempotent seed: upserts today's canonical catalog from src/data into the DB. Re-running
@@ -16,6 +16,7 @@ import * as t from "@/server/db/schema";
 // row, every variant one row, with the seed stock. `sort` is the array index (catalog order).
 
 async function main() {
+  const db = getDb();
   await db.transaction(async (tx) => {
     // Categories (menu / footer / shop-chip order).
     for (let i = 0; i < categoryData.length; i++) {
@@ -101,4 +102,4 @@ main()
     console.error("Seed failed:", err);
     process.exitCode = 1;
   })
-  .finally(() => pool.end());
+  .finally(() => getPool().end());

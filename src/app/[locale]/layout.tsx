@@ -2,9 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Providers } from "@/components/layout/providers";
 import { directionOf, routing } from "@/i18n/routing";
 import { omit } from "@/lib/omit";
+import { getCatalogData } from "@/server/read/catalog";
+import { getHomeData } from "@/server/read/home";
+import { getSettingsData } from "@/server/read/settings";
 import { fontStacks } from "../fonts";
 import "../globals.css";
 
@@ -51,6 +55,18 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   // admin layout adds it back there, so storefront pages never ship it to the client.
   const messages = omit(await getMessages(), ["admin"]);
 
+  // Storefront catalog / settings / home are read from Postgres at REQUEST time. connection() defers
+  // this render to a real request, so these reads never run during the DB-free production build
+  // (invariant 1) and the first real request reads the live DB (invariant 2). Each read is
+  // tag-cached (catalog / settings / home) for later revalidateTag. The three reads are plain,
+  // serializable data; <LiveProvider> (in Providers) rebuilds the indexed Catalog on the client.
+  await connection();
+  const [catalog, settings, home] = await Promise.all([
+    getCatalogData(),
+    getSettingsData(),
+    getHomeData(),
+  ]);
+
   return (
     <html
       lang={locale}
@@ -66,7 +82,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
           {t("skipToContent")}
         </a>
         <NextIntlClientProvider messages={messages}>
-          <Providers dir={dir}>{children}</Providers>
+          <Providers dir={dir} live={{ catalog, settings, home }}>
+            {children}
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

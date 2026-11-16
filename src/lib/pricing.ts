@@ -1,7 +1,10 @@
 import type { Product, Variant } from "@/data/types";
 import { visibleBySku, type Catalog } from "@/lib/catalog";
-import { getLiveCatalog, getLiveSettings } from "@/lib/live";
 import { feeFor, type StoreSettings } from "@/lib/settings";
+
+// Pure pricing layer (no React, no zustand, no @/lib/live): safe on the server and the client.
+// The catalog and settings are always passed in, so server code (checkout) reprices from DB data
+// and no "use client" module is ever pulled onto a server pricing path.
 
 export type BagLine = { sku: string; qty: number };
 export type DeliveryMethod = "standard" | "express";
@@ -15,12 +18,12 @@ export type PricedLine = BagLine & {
 
 /**
  * Bag lines store only sku + qty; prices always come from the catalog. Hidden or unknown
- * SKUs are "missing", which the existing unavailable flow handles. Callers that run during
- * render pass the live catalog (useLiveCatalog()); handlers may rely on the default.
+ * SKUs are "missing", which the existing unavailable flow handles. The catalog is always passed in:
+ * render code passes useLiveCatalog(), handlers pass getLiveCatalog(), server code the DB catalog.
  */
 export function priceLines(
   lines: BagLine[],
-  catalog: Catalog = getLiveCatalog(),
+  catalog: Catalog,
 ): { priced: PricedLine[]; missing: BagLine[] } {
   const priced: PricedLine[] = [];
   const missing: BagLine[] = [];
@@ -47,16 +50,16 @@ export function computeTotals(input: {
   lines: BagLine[];
   deliveryMethod?: DeliveryMethod;
   promo?: Promo | null;
-  catalog?: Catalog;
-  settings?: StoreSettings;
+  catalog: Catalog;
+  settings: StoreSettings;
 }): Totals {
-  const { priced } = priceLines(input.lines, input.catalog ?? getLiveCatalog());
+  const { priced } = priceLines(input.lines, input.catalog);
   const itemCount = priced.reduce((n, l) => n + l.qty, 0);
   const subtotalFils = priced.reduce((n, l) => n + l.lineFils, 0);
   const discountFils = input.promo ? Math.round((subtotalFils * input.promo.percent) / 100) : 0;
   const merchandise = subtotalFils - discountFils;
   // There is one delivery type, charged on every non-empty order (no free-delivery threshold).
-  const deliveryFils = itemCount === 0 ? 0 : feeFor(input.settings ?? getLiveSettings());
+  const deliveryFils = itemCount === 0 ? 0 : feeFor(input.settings);
   return {
     itemCount,
     subtotalFils,

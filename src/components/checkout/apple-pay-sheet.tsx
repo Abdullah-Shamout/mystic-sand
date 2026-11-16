@@ -94,7 +94,7 @@ export function ApplePaySheet({
   const confirm = () => {
     if (phase !== "idle") return;
     // Final stock check: if a line sold out or went short, stop and send the shopper to the bag.
-    const { priced, missing } = priceLines(useBag.getState().lines);
+    const { priced, missing } = priceLines(useBag.getState().lines, catalog);
     const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
     if (priced.length === 0 || missing.length > 0 || short) {
       refuse();

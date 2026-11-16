@@ -185,6 +185,39 @@ function normalizeAdded(input: Product): Product | null {
   };
 }
 
+const EMPTY_EDITED: ReadonlySet<string> = new Set();
+
+/**
+ * The index-building half of the catalog: builds the bySlug/bySku lookups and the visible list
+ * over a ready product + category list. Shared by buildCatalog (base data + admin edits) and the
+ * server read layer (DB rows → src/server/read/catalog.ts), so both yield an identical Catalog.
+ * `edited` (base-product slugs that carry a patch) is only meaningful for the edits path; the DB
+ * read path has no patches and leaves it empty.
+ */
+export function indexCatalog(
+  products: Product[],
+  categories: Category[],
+  edited: ReadonlySet<string> = EMPTY_EDITED,
+): Catalog {
+  const bySlug = new Map<string, Product>();
+  const bySku = new Map<string, { product: Product; variant: Variant }>();
+  for (const product of products) {
+    if (!bySlug.has(product.slug)) bySlug.set(product.slug, product);
+    for (const variant of product.variants) {
+      if (!bySku.has(variant.sku)) bySku.set(variant.sku, { product, variant });
+    }
+  }
+
+  return {
+    products,
+    visible: products.filter((p) => !p.hidden),
+    bySlug,
+    bySku,
+    categories,
+    edited,
+  };
+}
+
 export function buildCatalog(edits: CatalogEdits): Catalog {
   const patches = edits.patches ?? {};
   const edited = new Set<string>();
@@ -203,15 +236,6 @@ export function buildCatalog(edits: CatalogEdits): Catalog {
     if (product) products.push(product);
   }
 
-  const bySlug = new Map<string, Product>();
-  const bySku = new Map<string, { product: Product; variant: Variant }>();
-  for (const product of products) {
-    if (!bySlug.has(product.slug)) bySlug.set(product.slug, product);
-    for (const variant of product.variants) {
-      if (!bySku.has(variant.sku)) bySku.set(variant.sku, { product, variant });
-    }
-  }
-
   const catPatches = edits.categories ?? {};
   const categories: Category[] = baseCategories.map((c) => {
     const patch = catPatches[c.slug];
@@ -223,14 +247,7 @@ export function buildCatalog(edits: CatalogEdits): Catalog {
     };
   });
 
-  return {
-    products,
-    visible: products.filter((p) => !p.hidden),
-    bySlug,
-    bySku,
-    categories,
-    edited,
-  };
+  return indexCatalog(products, categories, edited);
 }
 
 export const baseCatalog = buildCatalog(EMPTY_EDITS);

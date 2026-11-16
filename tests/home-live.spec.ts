@@ -44,6 +44,7 @@ test.describe("live home page edits", () => {
   test.skip(({ isMobile }) => isMobile, "Runs on the desktop project");
 
   test("hero title, button and link follow the edits in English and Arabic", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, {
       home: {
         hero: {
@@ -66,6 +67,7 @@ test.describe("live home page edits", () => {
   });
 
   test("trilogy products are reordered, include a custom product and skip a hidden one", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, {
       home: { trilogy: { products: ["c-amber-nights-test", "ii", "iii"] } },
       catalog: { added: [CUSTOM_PRODUCT], patches: { ii: { hidden: true } } },
@@ -78,6 +80,7 @@ test.describe("live home page edits", () => {
   });
 
   test("the story photo is used on desktop, and phones follow it when no phone photo is set", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, { home: { story: { image: "renders/oasis" } } });
 
     await page.goto("/en/");
@@ -89,6 +92,7 @@ test.describe("live home page edits", () => {
   });
 
   test("a duo slot can be changed to another product", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, { home: { duo: { items: [{}, { product: "mist" }] } } });
 
     await page.goto("/en/");
@@ -97,6 +101,7 @@ test.describe("live home page edits", () => {
   });
 
   test("the featured product can be changed to CAFÉ", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, { home: { feature: { product: "cafe" } } });
 
     await page.goto("/en/");
@@ -106,6 +111,7 @@ test.describe("live home page edits", () => {
   });
 
   test("the featured panel disappears when its product is hidden", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, {
       home: { feature: { product: "cafe" } },
       catalog: { patches: { cafe: { hidden: true } } },
@@ -118,6 +124,7 @@ test.describe("live home page edits", () => {
   });
 
   test("the film title follows the edit", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, { home: { film: { title: { en: "A seeded film title", ar: "عنوان فيلم تجريبي" } } } });
 
     await page.goto("/en/");
@@ -125,6 +132,7 @@ test.describe("live home page edits", () => {
   });
 
   test("a service text keeps its tokens, filled with the live fee and lead time", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, {
       home: { services: { items: [{ text: { en: "Only {fee} — arrives {when}.", ar: "فقط {fee} — يصل {when}." } }] } },
       settings: { standardFeeFils: 1500 },
@@ -136,6 +144,7 @@ test.describe("live home page edits", () => {
   });
 
   test("an Instagram tile and the caption follow the edits", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await seed(page, {
       home: { instagram: { photos: ["", "renders/dune", "", "", "", ""], subtitle: { en: "A seeded caption", ar: "تعليق تجريبي" } } },
     });

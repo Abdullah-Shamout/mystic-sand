@@ -1,5 +1,6 @@
 import type { PaymentMethod } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
+import { getLiveCatalog, getLiveSettings } from "@/lib/live";
 import { newTrackId } from "@/lib/order";
 import { normalizeKuwaitPhone } from "@/lib/phone";
 import { bagKey, computeTotals, priceLines, type BagLine, type Promo } from "@/lib/pricing";
@@ -54,7 +55,8 @@ export function buildOrderInput({
   method: PaymentMethod;
   locale: Locale;
 }): OrderInput {
-  const { priced } = priceLines(bag.lines);
+  const catalog = getLiveCatalog();
+  const { priced } = priceLines(bag.lines, catalog);
   const lines: OrderLine[] = priced.map((l) => ({
     sku: l.sku,
     slug: l.product.slug,
@@ -69,7 +71,7 @@ export function buildOrderInput({
     id: newTrackId(useCheckout.getState().orders),
     locale,
     lines,
-    totals: computeTotals({ lines: bag.lines, deliveryMethod, promo: bag.promo }),
+    totals: computeTotals({ lines: bag.lines, deliveryMethod, promo: bag.promo, catalog, settings: getLiveSettings() }),
     details: cleanDetails(details),
     promoCode: bag.promo?.code ?? null,
     bagKey: bagKey({ lines: bag.lines, deliveryMethod, promo: bag.promo }),

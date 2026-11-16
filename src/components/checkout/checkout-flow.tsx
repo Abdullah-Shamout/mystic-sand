@@ -9,6 +9,7 @@ import { DRAFT_UPDATED_EVENT, SAMPLE_DETAILS } from "@/components/layout/demo-he
 import type { PaymentMethod } from "@/data/site";
 import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { getLiveCatalog } from "@/lib/live";
 import { getLiveAvailable, useLiveStock } from "@/lib/live-stock";
 import { mockGateway } from "@/lib/payments/mock";
 import { priceLines } from "@/lib/pricing";
@@ -161,7 +162,7 @@ export function CheckoutFlow() {
   /** Express: the form's details when complete, otherwise the (simulated) wallet's. */
   const openExpressSheet = useCallback(() => {
     // Same rule as Pay: items that are no longer available (or short on stock) leave the bag first.
-    const { priced, missing } = priceLines(useBag.getState().lines);
+    const { priced, missing } = priceLines(useBag.getState().lines, getLiveCatalog());
     const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
     if (priced.length === 0 || missing.length > 0 || short) {
       if (short) pushToast({ title: tc("stockRefused") });
@@ -214,7 +215,7 @@ export function CheckoutFlow() {
   const onValid = (values: CheckoutForm) => {
     if (locked.current) return;
     const bag = useBag.getState();
-    const { priced, missing } = priceLines(bag.lines);
+    const { priced, missing } = priceLines(bag.lines, getLiveCatalog());
     // Re-check stock against the live ledger: a size that sold out (or dropped) stops the payment.
     const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
     if (priced.length === 0 || missing.length > 0 || short) {

@@ -4,14 +4,14 @@ import { join } from "node:path";
 
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 
-import { db, pool } from "@/server/db";
+import { getDb, getPool } from "@/server/db";
 
 // Applies pending migrations from ./drizzle. Run via `npm run db:migrate`.
 // Migrations are generated with `npm run db:generate`; they are never run at request time.
 
 async function main() {
   const migrationsFolder = join(process.cwd(), "drizzle");
-  await migrate(db, { migrationsFolder });
+  await migrate(getDb(), { migrationsFolder });
   console.log("Migrations applied from", migrationsFolder);
 }
 
@@ -20,4 +20,4 @@ main()
     console.error("Migration failed:", err);
     process.exitCode = 1;
   })
-  .finally(() => pool.end());
+  .finally(() => getPool().end());

@@ -52,6 +52,12 @@ async function addToBagFromPdp(page: Page) {
 
 test.describe("live catalog & settings", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+  // These seed catalog/settings edits into localStorage and expect the storefront to reflect them.
+  // That premise moved to the DB: the storefront now reads catalog/settings from Postgres, and admin
+  // writes land in Phase 3. Restore (rewritten to edit via the DB/admin actions) then.
+  test.beforeEach(() => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+  });
 
   test("price edit flows to the card, the product page and the bag total", async ({ page }) => {
     await seed(page, {
@@ -232,6 +238,7 @@ test.describe("robustness with everything (and garbage) saved", () => {
   }
 
   test("garbage home overrides fall back to the defaults and hide an unknown featured product", async ({ page }) => {
+    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
     await page.goto("/en/");
     // The built-in hero text and link are shown despite the garbage overrides.
     await expect(page.locator("#hero-title")).toHaveText("Timeless scents that capture the moment");
