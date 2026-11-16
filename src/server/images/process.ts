@@ -65,6 +65,11 @@ export async function storeUploadedImage(
     // Trust the decoded format, not the declared MIME.
     if (!meta.format || !ACCEPTED.has(meta.format)) throw new ImageProcessError("notImage", 415);
 
+    // Reject decompression bombs from the header dimensions, BEFORE the full pixel decode below.
+    // metadata() reads only the header, so a tiny file that claims a huge canvas is caught here.
+    const MAX_INPUT_PIXELS = 50_000_000; // ~50MP: above real cameras, far below sharp's ~268MP default
+    if ((meta.width ?? 0) * (meta.height ?? 0) > MAX_INPUT_PIXELS) throw new ImageProcessError("tooLarge", 413);
+
     img.resize({ width: maxSide, height: maxSide, fit: "inside", withoutEnlargement: true });
     if (flatten) img.flatten({ background: "#ffffff" });
     const out = await img.webp({ quality: WEBP_QUALITY }).toBuffer({ resolveWithObject: true });

@@ -21,9 +21,35 @@ function fail(key: ImageProcessError["key"], status: number): Response {
 export async function POST(request: Request): Promise<Response> {
   await requireAdmin();
 
+  // Cap the body BEFORE buffering it: request.formData() would read the entire (unbounded) body into
+  // memory first. Stream it through a byte counter and parse only the capped buffer, bounding
+  // per-request memory. The canonical body limit is the Phase 9 reverse proxy; this is defense-in-depth.
+  if (!request.body) return fail("notImage", 400);
+  const CAP = MAX_UPLOAD_BYTES + 1024 * 1024; // image cap + headroom for multipart framing + the profile field
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > CAP) {
+        await reader.cancel();
+        return fail("tooLarge", 413);
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return fail("notImage", 400);
+  }
+
   let form: FormData;
   try {
-    form = await request.formData();
+    // Re-wrap the buffered bytes with the original headers (the multipart content-type + boundary) so
+    // formData() parses exactly what we counted.
+    const buffered = new Request(request.url, { method: "POST", headers: request.headers, body: Buffer.concat(chunks) });
+    form = await buffered.formData();
   } catch {
     return fail("notImage", 400);
   }
