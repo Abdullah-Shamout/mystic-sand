@@ -19,10 +19,10 @@ type Device = keyof typeof DEVICES;
 const NOTE_RESERVE = 44;
 
 /**
- * A live, scaled iframe of the storefront home page beside the editor. Home-section saves reach it
- * through the storage event (its own StorageSync rehydrates ms-home), so it never reloads. It
+ * A live, scaled iframe of the storefront home page beside the editor. The storefront renders home
+ * from the DB now, so a save no longer reaches the frame through a storage event: instead `saveTick`
+ * bumps on every save and remounts the frame (via its key) so it re-fetches the DB-backed home. It
  * scrolls to the open section, blocks clicks/links inside, and fits itself to the visible area.
- * (The ticker now saves to the DB; its preview refresh is a Phase 3b concern.)
  */
 export function HomePreview({ open, saveTick }: { open: SectionId; saveTick: number }) {
   const t = useTranslations("admin");
@@ -30,11 +30,19 @@ export function HomePreview({ open, saveTick }: { open: SectionId; saveTick: num
   const [device, setDevice] = useState<Device>("desktop");
   const [lang, setLang] = useState<Locale>(adminLocale);
   const [reloadKey, setReloadKey] = useState(0);
-  const [loaded, setLoaded] = useState(false);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [loadTick, setLoadTick] = useState(0);
   const [metrics, setMetrics] = useState({ w: 0, availH: 0 });
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
+
+  // The iframe key: changing it remounts the frame (a fresh load that re-reads the DB-backed home).
+  // lang/reloadKey change on a language switch or the manual reload; saveTick changes on every save,
+  // so a save reloads the preview with no extra effect (and no first-mount double load). `loaded` is
+  // true only once the CURRENT key's frame has fired load, so the click-blocking overlay re-arms on
+  // every remount.
+  const frameKey = `${lang}-${reloadKey}-${saveTick}`;
+  const loaded = loadedKey === frameKey;
 
   // Measure the stage width and the height visible below it (re-run on resize + scroll; setState
   // only inside these callbacks). The stage's top shifts as the page scrolls until the sticky engages.
@@ -98,13 +106,10 @@ export function HomePreview({ open, saveTick }: { open: SectionId; saveTick: num
     };
   }, [open, saveTick, device, loadTick, scrollToOpen]);
 
-  const remount = () => {
-    setLoaded(false);
-    setReloadKey((n) => n + 1);
-  };
+  // Both change the frame key, so `loaded` falls back to false on its own until the new frame loads.
+  const remount = () => setReloadKey((n) => n + 1);
   const switchLang = (next: Locale) => {
     if (next === lang) return;
-    setLoaded(false);
     setLang(next);
   };
 
@@ -113,7 +118,7 @@ export function HomePreview({ open, saveTick }: { open: SectionId; saveTick: num
     const frame = frameRef.current;
     const win = frame?.contentWindow;
     const doc = frame?.contentDocument;
-    setLoaded(true);
+    setLoadedKey(frameKey);
     setLoadTick((n) => n + 1);
     if (!win || !doc) return;
 
@@ -176,7 +181,7 @@ export function HomePreview({ open, saveTick }: { open: SectionId; saveTick: num
       <div ref={stageRef} data-testid="home-preview-stage" className="relative mt-3 overflow-hidden bg-tile" style={{ height: stageH }}>
         {metrics.w > 0 && (
           <iframe
-            key={`${lang}-${reloadKey}`}
+            key={frameKey}
             ref={frameRef}
             src={storeUrl}
             title={t("homePage.preview.frameTitle")}

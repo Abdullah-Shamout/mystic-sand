@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 
-import { clearImages } from "./db";
+import { clearHome, clearImages } from "./db";
 
 // Playwright globalSetup: ensure the test DB is migrated + seeded before the run.
 //
@@ -27,4 +27,7 @@ export default async function globalSetup() {
   // Seed doesn't touch the images table; clear leftover uploads from a previous run so the image
   // library starts empty (specs assert on their own uploaded keys, not a global count).
   await clearImages();
+  // Start every run with the built-in home defaults (no overrides row), so the default-home specs
+  // and the storefront see the built-ins. Home-mutating specs reset through the editor in a finally.
+  await clearHome();
 }

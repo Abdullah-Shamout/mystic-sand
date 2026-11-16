@@ -75,9 +75,10 @@ async function readCatalog(): Promise<CatalogData> {
 }
 
 /**
- * The storefront catalog, read from Postgres and tag-cached under "catalog" for later
- * revalidateTag (Phase 3 admin writes). The locale layout marks its render dynamic via
- * connection() so this never runs during the DB-free production build; the first real request
+ * The storefront catalog, read from Postgres and tag-cached under "catalog" for the later
+ * updateTag("catalog") write path (Phase 3c admin writes — immediate expiry, like settings/home).
+ * Until then STOREFRONT_REVALIDATE is the only refresh. The locale layout marks its render dynamic
+ * via connection() so this never runs during the DB-free production build; the first real request
  * reads the live DB.
  */
 export const getCatalogData = unstable_cache(readCatalog, ["catalog-data"], {

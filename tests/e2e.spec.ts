@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// Core shopping flows against the static export (run `npm run build` first).
+// Core shopping flows against the `next start` production server (run `npm run build` first).
 
 const BAG_KEY = "ms-bag";
 

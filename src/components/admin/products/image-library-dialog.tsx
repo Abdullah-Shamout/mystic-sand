@@ -9,9 +9,9 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import media from "@/data/media.generated.json";
 import { cn } from "@/lib/cn";
 import { homeImageKeys } from "@/lib/home";
-import { useLiveCatalog } from "@/lib/live";
+import { useLiveCatalog, useLiveHome } from "@/lib/live";
 import { deleteImage, listImages } from "@/server/actions/images";
-import { useHomeStore } from "@/store/home";
+import { useUi } from "@/store/ui";
 import { ConfirmDialog } from "../confirm-dialog";
 
 const LIBRARY_KEYS = Object.keys(media as Record<string, unknown>).sort();
@@ -40,7 +40,8 @@ export function ImageLibraryDialog({
 }) {
   const t = useTranslations("admin");
   const catalog = useLiveCatalog();
-  const homeOverrides = useHomeStore((s) => s.overrides);
+  const homeOverrides = useLiveHome();
+  const pushToast = useUi((s) => s.pushToast);
   const [selected, setSelected] = useState<string[]>([]);
   const [tick, setTick] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -93,8 +94,11 @@ export function ImageLibraryDialog({
     const key = pendingDelete;
     setSelected((prev) => prev.filter((k) => k !== key));
     setPendingDelete(null);
-    // Remove on the server, then re-list so the deleted photo drops out of the grid.
-    void deleteImage(key).finally(() => setTick((n) => n + 1));
+    // Remove on the server, then re-list so the deleted photo drops out of the grid. A failed delete
+    // toasts rather than silently swallowing the rejection.
+    void deleteImage(key)
+      .catch(() => pushToast({ title: t("editor.library.deleteError") }))
+      .finally(() => setTick((n) => n + 1));
   };
 
   const renderThumb = (imgKey: string, deletable: boolean) => {

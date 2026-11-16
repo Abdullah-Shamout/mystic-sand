@@ -16,30 +16,15 @@ import {
 } from "@/lib/admin/home-drafts";
 import { useRouter } from "@/i18n/navigation";
 import { useMediaQuery, useMounted } from "@/lib/hooks";
-import { useLiveCatalog, useLiveSettings } from "@/lib/live";
+import type { HomeOverrides } from "@/lib/home";
+import { useLiveCatalog, useLiveHome, useLiveSettings } from "@/lib/live";
 import { cleanTickerList, TICKER_CHARS } from "@/lib/settings";
-import { STORAGE_FULL_EVENT } from "@/lib/storage";
+import { resetAllHome, saveHomeSection } from "@/server/actions/home";
 import { saveSettings } from "@/server/actions/settings";
-import { useHomeStore } from "@/store/home";
 import { useUi } from "@/store/ui";
 
 /** sessionStorage key holding the drafts of unsaved sections (so a tab click / language switch keeps them). */
 const DRAFTS_KEY = "ms-home-drafts";
-
-/** Runs a store write and reports whether a storage-full event fired synchronously during it. */
-function runDetectingFull(fn: () => void): boolean {
-  let full = false;
-  const onFull = () => {
-    full = true;
-  };
-  window.addEventListener(STORAGE_FULL_EVENT, onFull);
-  try {
-    fn();
-  } finally {
-    window.removeEventListener(STORAGE_FULL_EVENT, onFull);
-  }
-  return full;
-}
 
 /** Merges a (possibly stale/invalid) saved draft onto a known-good base, keeping the base's shape. */
 function reconcileDraft<T>(base: T, saved: unknown): T {
@@ -77,7 +62,11 @@ import {
 } from "./section-forms";
 import { TickerForm } from "./ticker-form";
 
-/** The admin "Home page" editor. A skeleton until mounted (data is browser-only). */
+/**
+ * The admin "Home page" editor. A skeleton until mounted: the live data is server-fed now, but the
+ * editor restores unsaved drafts from sessionStorage, so it must render client-only to avoid a
+ * hydration mismatch.
+ */
 export function HomeEditor() {
   const mounted = useMounted();
   if (!mounted) return <HomeEditorSkeleton />;
@@ -91,16 +80,17 @@ function HomeEditorLoaded() {
   const catalog = useLiveCatalog();
   const pushToast = useUi((s) => s.pushToast);
 
-  // The home sections still live in the local home store (Phase 3b migrates them); the ticker is a
-  // settings field, read from the DB (live settings) and saved via saveSettings — the ms-settings
-  // store is gone.
-  const storeOverrides = useHomeStore((s) => s.overrides);
+  // The home sections and the ticker are both read from the DB now (server-fed live context) and
+  // saved via Server Actions (saveHomeSection / resetAllHome for the sections, saveSettings for the
+  // ticker). After each save, router.refresh() re-reads the DB so this live data updates.
+  const overrides = useLiveHome();
   const ticker = useLiveSettings().ticker;
-  const baseline = useMemo(() => toDrafts(storeOverrides, ticker), [storeOverrides, ticker]);
+  const baseline = useMemo(() => toDrafts(overrides, ticker), [overrides, ticker]);
 
-  // The editable drafts live here (lazy-initialised from the store, with any unsaved drafts restored).
+  // The editable drafts live here (lazy-initialised from the live overrides, with any unsaved drafts
+  // restored from sessionStorage — a client-only convenience that survives a tab click / nav).
   const [drafts, setDrafts] = useState<HomeDrafts>(() => {
-    const base = toDrafts(useHomeStore.getState().overrides, ticker);
+    const base = toDrafts(overrides, ticker);
     try {
       const raw = sessionStorage.getItem(DRAFTS_KEY);
       if (raw) {
@@ -124,11 +114,11 @@ function HomeEditorLoaded() {
 
   const dirty = (id: SectionId) => JSON.stringify(drafts[id]) !== JSON.stringify(baseline[id]);
   const edited = (id: SectionId) =>
-    id === "ticker" ? ticker.en.length > 0 || ticker.ar.length > 0 : storeOverrides[id] !== undefined;
+    id === "ticker" ? ticker.en.length > 0 || ticker.ar.length > 0 : overrides[id] !== undefined;
   const anyDirty = ORDER.some((id) => dirty(id));
 
-  // When the store's baseline changes (e.g. another tab saved), adopt it for any section the user
-  // hasn't touched; keep the drafts of sections edited against the previous baseline.
+  // When the live baseline changes (a save + router.refresh re-read the DB), adopt it for any section
+  // the user hasn't touched; keep the drafts of sections edited against the previous baseline.
   const prevBaselineRef = useRef(baseline);
   useEffect(() => {
     if (prevBaselineRef.current === baseline) return;
@@ -187,13 +177,18 @@ function HomeEditorLoaded() {
       setErrors((e) => ({ ...e, ticker: [] }));
       const cleaned = { en: cleanTickerList(drafts.ticker.en), ar: cleanTickerList(drafts.ticker.ar) };
       // The ticker is a settings field: save it to the DB and refresh so the live context updates.
+      const snapshot = drafts.ticker;
       try {
         await saveSettings({ ticker: cleaned });
       } catch {
         pushToast({ title: t("settings.saveError") });
         return;
       }
-      setDrafts((prev) => ({ ...prev, ticker: cleaned }));
+      // Only adopt the cleaned value if the user didn't keep typing during the await (else their
+      // in-flight keystrokes would be discarded) — same deep-equal guard as the baseline effect.
+      setDrafts((prev) =>
+        JSON.stringify(prev.ticker) === JSON.stringify(snapshot) ? { ...prev, ticker: cleaned } : prev,
+      );
       router.refresh();
     } else {
       const errs = validateDraft(id, drafts[id]);
@@ -202,15 +197,23 @@ function HomeEditorLoaded() {
         return;
       }
       setErrors((e) => ({ ...e, [id]: [] }));
-      const full = runDetectingFull(() =>
-        useHomeStore.getState().saveSection(id, draftToOverrides(id, drafts[id], catalog)),
-      );
-      if (full) {
-        void useHomeStore.persist.rehydrate();
+      // Save the minimal override for this section to the DB (null clears it — reset-to-built-in) and
+      // refresh so the live overrides and the baseline update.
+      const snapshot = drafts[id];
+      let resolved: HomeOverrides;
+      try {
+        resolved = await saveHomeSection(id, draftToOverrides(id, snapshot, catalog) ?? null);
+      } catch {
+        pushToast({ title: t("settings.saveError") });
         return;
       }
-      const saved = toDrafts(useHomeStore.getState().overrides, ticker);
-      setDrafts((prev) => ({ ...prev, [id]: saved[id] }));
+      router.refresh();
+      // Only adopt the server-normalized value if the user didn't keep typing during the await (else
+      // their in-flight keystrokes would be discarded) — same deep-equal guard as the baseline effect.
+      const saved = toDrafts(resolved, ticker);
+      setDrafts((prev) =>
+        JSON.stringify(prev[id]) === JSON.stringify(snapshot) ? { ...prev, [id]: saved[id] } : prev,
+      );
     }
     pushToast({ title: t("homePage.saved") });
     setSaveTick((n) => n + 1);
@@ -221,13 +224,26 @@ function HomeEditorLoaded() {
     setErrors((e) => ({ ...e, [id]: [] }));
   };
 
-  const resetSection = (id: SectionId) => {
+  const resetSection = async (id: SectionId) => {
     if (id === "ticker") {
-      void saveSettings({ ticker: { en: [], ar: [] } }).then(() => router.refresh()).catch(() => {});
+      try {
+        await saveSettings({ ticker: { en: [], ar: [] } });
+      } catch {
+        pushToast({ title: t("settings.saveError") });
+        return;
+      }
       setDrafts((prev) => ({ ...prev, ticker: { en: [], ar: [] } }));
+      router.refresh();
     } else {
-      useHomeStore.getState().resetSection(id);
-      const saved = toDrafts(useHomeStore.getState().overrides, ticker);
+      let resolved: HomeOverrides;
+      try {
+        resolved = await saveHomeSection(id, null);
+      } catch {
+        pushToast({ title: t("settings.saveError") });
+        return;
+      }
+      router.refresh();
+      const saved = toDrafts(resolved, ticker);
       setDrafts((prev) => ({ ...prev, [id]: saved[id] }));
     }
     setErrors((e) => ({ ...e, [id]: [] }));
@@ -235,9 +251,19 @@ function HomeEditorLoaded() {
     setSaveTick((n) => n + 1);
   };
 
-  const resetAll = () => {
-    useHomeStore.getState().resetAll();
-    void saveSettings({ ticker: { en: [], ar: [] } }).then(() => router.refresh()).catch(() => {});
+  const resetAll = async () => {
+    // Clear every section override (resetAllHome) and the ticker (saveSettings) in the DB, then
+    // refresh so the live overrides + ticker update.
+    try {
+      await Promise.all([resetAllHome(), saveSettings({ ticker: { en: [], ar: [] } })]);
+    } catch {
+      // One singleton may have been written before the other failed; refresh so the editor re-reads
+      // the real DB state instead of staying stale. (They are independent content, not one txn.)
+      pushToast({ title: t("settings.saveError") });
+      router.refresh();
+      return;
+    }
+    router.refresh();
     setDrafts(toDrafts({}, { en: [], ar: [] }));
     setErrors({});
     pushToast({ title: t("homePage.resetAllDone") });

@@ -6,19 +6,18 @@ import { STORAGE_FULL_EVENT } from "@/lib/storage";
 import { useBag } from "@/store/bag";
 import { useCatalogStore } from "@/store/catalog";
 import { useCheckout } from "@/store/checkout";
-import { useHomeStore } from "@/store/home";
 import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
 
 // Keeps this tab in step with edits made in another tab (the admin saving while the store is
 // open elsewhere), and turns a full-storage event into a toast. Mounted once, in Providers.
-// Settings live in the DB now (saved via saveSettings), so there is no ms-settings store to sync,
-// and uploaded images are served from the server, so there is no ms-img cache to drop.
+// Settings and the home-page CMS live in the DB now (saved via saveSettings / saveHomeSection), so
+// there is no ms-settings or ms-home store to sync, and uploaded images are served from the server,
+// so there is no ms-img cache to drop.
 const PERSISTED = {
   "ms-bag": useBag,
   "ms-checkout": useCheckout,
   "ms-catalog": useCatalogStore,
-  "ms-home": useHomeStore,
   "ms-stock": useStockStore,
 } as const;
 

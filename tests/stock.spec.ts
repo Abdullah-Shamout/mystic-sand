@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 // The stock system: per-size available stock, the admin Stock page, bag/checkout caps, the
 // once-only decrement on a paid order, and the capture-time guard that never oversells. Run
-// `npm run build` first — these hit the static export served at localhost:4319. Long flows run on desktop.
+// `npm run build` first — these hit the `next start` production server at localhost:4319. Long flows run on desktop.
 
 const FAR_FUTURE = 4102444800000; // ~ year 2100 (ms), so the admin opens without signing in
 

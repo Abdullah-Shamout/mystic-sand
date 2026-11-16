@@ -182,48 +182,17 @@ const PAGES = [
   "/ar/delivery/",
 ];
 
-test.describe("robustness with everything (and garbage) saved", () => {
+test.describe("storefront pages load cleanly", () => {
   test.skip(({ isMobile }) => isMobile, "Runs on the desktop project");
 
-  test.beforeEach(async ({ page }) => {
-    await seed(page, {
-      catalog: {
-        patches: {
-          i: { variants: [{ sku: "MS-I-50", size: { en: "50 ml", ar: "50 مل" }, priceFils: 21000, stock: 24 }] },
-          mist: { hidden: true },
-          aura: { category: "home" },
-          oasis: { category: "nope" }, // invalid category → repaired to the base one
-        },
-        added: [
-          CUSTOM_PRODUCT,
-          { slug: "c-broken", name: "Broken", category: "body" }, // no variants/images → dropped
-        ],
-      },
-      settings: {
-        standardFeeFils: 1500,
-        whatsapp: "96591234567",
-        phone: "22223333",
-        ticker: { en: ["Hello test"], ar: ["مرحبا"] },
-      },
-      // Deliberately broken home overrides: wrong types, blocked links, unknown products, a deleted
-      // upload and a text with braces/apostrophes. cleanHome must drop all of it to the defaults.
-      home: {
-        hero: { title: 123, cta: { en: 456 }, href: "javascript:alert(1)" },
-        trilogy: { products: "not-an-array" },
-        story: { image: "u:missing", mobileImage: "https://evil.example/x.jpg" },
-        duo: { items: "nope" },
-        feature: { product: "totally-unknown-product", image: "u:missing" },
-        film: { href: "https://evil.example", eyebrow: { en: "has { and ' chars" } },
-        homeGrid: { products: [123, {}] },
-        services: { items: [{ text: { en: "cost {fee} and {bogus}" } }], whatsappText: { en: 5 } },
-        instagram: { photos: ["u:missing", "https://evil.example", 42], subtitle: 999 },
-        bogusSection: { foo: "bar" },
-      },
-    });
-  });
+  // Phase 3b: the old localStorage seed here (ms-catalog / ms-settings / ms-home, incl. a deliberately
+  // garbage home blob) was removed — the storefront reads catalog / settings / home from Postgres, so
+  // a browser seed never reaches these pages and asserting against it was vacuous. These remain a plain
+  // smoke check that each page renders with no console errors. Phase 8: add real DB-resilience coverage
+  // (seed a garbage home_overrides blob and assert the built-in defaults show).
 
   for (const path of PAGES) {
-    test(`${path} loads cleanly with edits saved`, async ({ page }) => {
+    test(`${path} loads cleanly`, async ({ page }) => {
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
       page.on("console", (m) => {
@@ -238,7 +207,7 @@ test.describe("robustness with everything (and garbage) saved", () => {
   }
 
   test("garbage home overrides fall back to the defaults and hide an unknown featured product", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite: add cleanHome DB-resilience coverage by seeding a garbage home_overrides blob (cleanHome runs server-side now; the storefront never sees the raw blob).");
     await page.goto("/en/");
     // The built-in hero text and link are shown despite the garbage overrides.
     await expect(page.locator("#hero-title")).toHaveText("Timeless scents that capture the moment");
@@ -249,22 +218,6 @@ test.describe("robustness with everything (and garbage) saved", () => {
   });
 });
 
-test.describe("ms-home with unreadable JSON", () => {
-  test.skip(({ isMobile }) => isMobile, "Runs on the desktop project");
-
-  for (const path of ["/en/", "/ar/"]) {
-    test(`${path} ignores an invalid ms-home value and shows the defaults`, async ({ page }) => {
-      await page.addInitScript(() => localStorage.setItem("ms-home", "{not valid json"));
-      const errors: string[] = [];
-      page.on("pageerror", (e) => errors.push(e.message));
-      page.on("console", (m) => {
-        if (m.type() === "error") errors.push(m.text());
-      });
-      const response = await page.goto(path);
-      expect(response?.status()).toBe(200);
-      await expect(page.locator("h1").first()).toBeVisible();
-      await page.waitForTimeout(400);
-      expect(errors).toEqual([]);
-    });
-  }
-});
+// The old "ms-home with unreadable JSON" describe was deleted in Phase 3b: the storefront reads home
+// from a jsonb column (which cannot hold a non-JSON string), so that browser-storage scenario can no
+// longer occur. cleanHome's resilience is unit-tested.

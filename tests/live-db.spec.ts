@@ -4,7 +4,7 @@ import { Pool } from "pg";
 // Phase 2b proof: the storefront reads the catalog from Postgres at request time (runtime-dynamic,
 // tag-cached), NOT from a shell baked at build time. With the DB seeded (default), /en/ shows the
 // seeded catalog; then we change a product's price directly in the DB (SQL, no admin, no
-// revalidateTag) and a fresh page load reflects it within the short revalidate window.
+// updateTag) and a fresh page load reflects it within the short revalidate window.
 //
 // Target SKU is MS-DUNE-250 ("Dune"), whose price no default-catalog spec asserts, and it is
 // restored afterwards so the shared test DB is left at the seed value.
@@ -31,7 +31,7 @@ test.describe("live DB reads (Phase 2b)", () => {
       await page.goto(`/en/product/${SLUG}/`);
       await expect(page.getByText(SEED_PRICE).first()).toBeVisible();
 
-      // Change the price directly in Postgres — no admin action, no revalidateTag.
+      // Change the price directly in Postgres — no admin action, no updateTag.
       await pool.query("UPDATE variants SET price_fils = $1 WHERE sku = $2", [NEW_PRICE_FILS, SKU]);
 
       // A fresh page load reflects it (runtime-dynamic read; cached for ~1s then revalidated, so we

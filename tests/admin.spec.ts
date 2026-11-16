@@ -4,7 +4,7 @@ import { strFromU8, unzipSync } from "fflate";
 
 // The admin area is a browser-only demo gate (see src/lib/admin-auth.ts). These tests cover
 // the header entry, the sign-in flow, the signed-out gate and the admin-messages split.
-// Run `npm run build` first — they hit the static export served at localhost:4319.
+// Run `npm run build` first — they hit the `next start` production server at localhost:4319.
 
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "MysticSand@2026";
@@ -1044,8 +1044,9 @@ test.describe("admin product analysis", () => {
 });
 
 // ── Store settings ──────────────────────────────────────────────────────────────
-// Long flows on the desktop project. Settings are stored per field in ms-settings; the storefront
-// (bag, FAQ, footer, contact, banner) reads them live after mount.
+// Long flows on the desktop project. Settings are stored in the DB settings singleton (saved per
+// field via the saveSettings Server Action); the storefront (bag, FAQ, footer, contact, banner)
+// reads them server-side, and updateTag("settings") makes a save read-your-own-writes.
 
 const CUSTOM_PRODUCT = (slug: string, name: string, imageKey: string, sku: string) => ({
   slug,
@@ -1084,11 +1085,11 @@ test.describe("admin store settings", () => {
       await expect(page.getByText("Saved.").first()).toBeVisible();
 
       // Read-your-own-writes: the admin's own "In use" line updates via router.refresh() with no
-      // navigation and no polling — proving revalidateTag purged the settings read immediately
+      // navigation and no polling — proving updateTag purged the settings read immediately
       // (not stale-while-revalidate, which this assertion would fail).
       await expect(page.getByText("KWD 1.500").first()).toBeVisible();
 
-      // The FAQ copy reads the live (DB) fee. saveSettings calls revalidateTag("settings"); reload
+      // The FAQ copy reads the live (DB) fee. saveSettings calls updateTag("settings"); reload
       // until the storefront read reflects it (idempotent, so safe to repeat).
       await expect(async () => {
         await page.goto("/en/faq/");
@@ -1101,7 +1102,7 @@ test.describe("admin store settings", () => {
       await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
       await expect(page.getByRole("dialog").getByText("KWD 1.500")).toBeVisible();
     } finally {
-      // Reset to default through the admin (saveSettings → revalidateTag), leaving the shared DB clean.
+      // Reset to default through the admin (saveSettings → updateTag), leaving the shared DB clean.
       await page.goto("/en/admin/settings/");
       await page.getByTestId("settings-standard-reset").click();
       await expect(page.getByTestId("settings-standard-fee")).toHaveValue("1.000");

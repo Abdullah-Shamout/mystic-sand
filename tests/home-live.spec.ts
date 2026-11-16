@@ -1,8 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// The home page reads the admin's home-page edits (ms-home), the catalog (ms-catalog) and settings
-// (ms-settings) from this browser. These tests seed those stores in the zustand persist format
-// before the page loads, then check each section reflects the edit. Run `npm run build` first.
+// The home page renders the admin's home-page edits, the catalog and settings from the DB (server-
+// fed) now, not from browser stores. The per-section reflection tests below are deferred to the Phase
+// 8 E2E rewrite; the DB-backed editor→storefront round-trip is covered in home-editor.spec.ts. Only
+// the server-HTML structure test runs here. Run `npm run build` first.
 
 type Home = Record<string, unknown>;
 type Edits = { patches?: Record<string, unknown>; added?: unknown[]; categories?: Record<string, unknown> };
@@ -44,7 +45,7 @@ test.describe("live home page edits", () => {
   test.skip(({ isMobile }) => isMobile, "Runs on the desktop project");
 
   test("hero title, button and link follow the edits in English and Arabic", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, {
       home: {
         hero: {
@@ -67,7 +68,7 @@ test.describe("live home page edits", () => {
   });
 
   test("trilogy products are reordered, include a custom product and skip a hidden one", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, {
       home: { trilogy: { products: ["c-amber-nights-test", "ii", "iii"] } },
       catalog: { added: [CUSTOM_PRODUCT], patches: { ii: { hidden: true } } },
@@ -80,7 +81,7 @@ test.describe("live home page edits", () => {
   });
 
   test("the story photo is used on desktop, and phones follow it when no phone photo is set", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, { home: { story: { image: "renders/oasis" } } });
 
     await page.goto("/en/");
@@ -92,7 +93,7 @@ test.describe("live home page edits", () => {
   });
 
   test("a duo slot can be changed to another product", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, { home: { duo: { items: [{}, { product: "mist" }] } } });
 
     await page.goto("/en/");
@@ -101,7 +102,7 @@ test.describe("live home page edits", () => {
   });
 
   test("the featured product can be changed to CAFÉ", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, { home: { feature: { product: "cafe" } } });
 
     await page.goto("/en/");
@@ -111,7 +112,7 @@ test.describe("live home page edits", () => {
   });
 
   test("the featured panel disappears when its product is hidden", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, {
       home: { feature: { product: "cafe" } },
       catalog: { patches: { cafe: { hidden: true } } },
@@ -124,7 +125,7 @@ test.describe("live home page edits", () => {
   });
 
   test("the film title follows the edit", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, { home: { film: { title: { en: "A seeded film title", ar: "عنوان فيلم تجريبي" } } } });
 
     await page.goto("/en/");
@@ -132,7 +133,7 @@ test.describe("live home page edits", () => {
   });
 
   test("a service text keeps its tokens, filled with the live fee and lead time", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, {
       home: { services: { items: [{ text: { en: "Only {fee} — arrives {when}.", ar: "فقط {fee} — يصل {when}." } }] } },
       settings: { standardFeeFils: 1500 },
@@ -144,7 +145,7 @@ test.describe("live home page edits", () => {
   });
 
   test("an Instagram tile and the caption follow the edits", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await seed(page, {
       home: { instagram: { photos: ["", "renders/dune", "", "", "", ""], subtitle: { en: "A seeded caption", ar: "تعليق تجريبي" } } },
     });
@@ -155,13 +156,13 @@ test.describe("live home page edits", () => {
     await expect(band).toContainText("A seeded caption");
   });
 
-  test("the static HTML is unchanged until an edit is saved", async ({ page }) => {
+  test("every home section renders its preview anchor in the server HTML", async ({ page }) => {
+    // Overrides are server-rendered from the DB now (not applied after mount), so the hero text is no
+    // longer guaranteed built-in here while another spec may have an override live. The section anchors
+    // are always present whatever the overrides, so the storefront's structure is what we assert.
     const response = await page.request.get("/en/");
     expect(response.status()).toBe(200);
     const html = await response.text();
-    // The built-in hero text is still in the prerendered HTML (edits only apply after mount).
-    expect(html).toContain("Timeless scents that capture the moment");
-    // Every section carries its preview anchor.
     for (const id of ["hero", "trilogy", "story", "duo", "feature", "film", "homeGrid", "services", "instagram"]) {
       expect(html).toContain(`data-home-section="${id}"`);
     }

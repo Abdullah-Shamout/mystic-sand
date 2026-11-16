@@ -1,10 +1,13 @@
 import { expect, test, type Frame, type Page } from "@playwright/test";
 
-import { seedImageRow } from "./db";
+import { readHomeRow, seedImageRow } from "./db";
 
-// The admin "Home page" editor writes ms-home (and the top banner to the DB settings via
-// saveSettings), with a live preview beside it. These flows inject the admin session, drive the
-// editor, and check the store and the storefront reflect the edits.
+// The admin "Home page" editor writes the home_overrides singleton via a Server Action
+// (saveHomeSection / resetAllHome) and the top banner to the DB settings via saveSettings, with a
+// live preview beside it. These flows inject the admin session, drive the editor, and check the DB
+// row and the storefront reflect the edits. Any test that mutates the home singleton resets it
+// through the editor in a finally (the reset calls updateTag, so the shared home cache is purged —
+// a raw DB delete would leave the stale override cached for other specs).
 
 const FAR_FUTURE = 4102444800000; // ~ year 2100 (ms)
 
@@ -36,25 +39,24 @@ async function seed(page: Page, data: Seed) {
   }, data);
 }
 
-const readHome = (page: Page) =>
-  page.evaluate(() => {
-    try {
-      return (JSON.parse(localStorage.getItem("ms-home") || "{}").state?.overrides ?? {}) as Record<string, unknown>;
-    } catch {
-      return {} as Record<string, unknown>;
-    }
-  });
-
-const readSettings = (page: Page) =>
-  page.evaluate(() => {
-    try {
-      return (JSON.parse(localStorage.getItem("ms-settings") || "{}").state?.overrides ?? {}) as Record<string, unknown>;
-    } catch {
-      return {} as Record<string, unknown>;
-    }
-  });
-
 const section = (page: Page, id: string) => page.locator(`[data-home-section="${id}"]`);
+
+/**
+ * Cleanup for an editor-driven test: reopen the editor and reset the given section if it still carries
+ * an override. The reset goes through the Server Action (updateTag purges the shared home cache),
+ * leaving the singleton at its built-in defaults for the other specs. Guarded on `isEnabled()` so a
+ * test that failed before it saved doesn't wait out the timeout on a disabled Reset button.
+ */
+async function resetSectionIfEdited(page: Page, id: string) {
+  await page.goto("/en/admin/home/");
+  await page.getByTestId(`home-section-${id}-toggle`).click();
+  const reset = page.getByTestId(`home-${id}-reset`);
+  if (await reset.isEnabled()) {
+    await reset.click();
+    await page.getByTestId("confirm-accept").click();
+    await expect(page.getByText("Section reset to the original.").first()).toBeVisible();
+  }
+}
 
 // A complete, valid admin-added product (passes the catalog's normalizeAdded checks).
 const CUSTOM_PRODUCT = {
@@ -114,55 +116,80 @@ test.describe("admin home-page editor", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("hero title + link saved, storing only the changed fields; shown on the store", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+  test("hero title + link saved to the DB, storing only the changed fields; shown on the store", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-hero-toggle").click();
+    try {
+      await page.getByTestId("home-hero-title-en").fill("A new hero headline");
+      await page.getByTestId("home-hero-title-ar").fill("عنوان رئيسي جديد");
+      await page.getByTestId("home-hero-link").selectOption("/shop/oud");
+      await page.getByTestId("home-hero-save").click();
+      await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
-    await page.getByTestId("home-hero-title-en").fill("A new hero headline");
-    await page.getByTestId("home-hero-title-ar").fill("عنوان رئيسي جديد");
-    await page.getByTestId("home-hero-link").selectOption("/shop/oud");
-    await page.getByTestId("home-hero-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+      // Only the changed fields are stored (minimal override), written to the home_overrides singleton.
+      expect(await readHomeRow()).toEqual({
+        hero: { title: { en: "A new hero headline", ar: "عنوان رئيسي جديد" }, href: "/shop/oud" },
+      });
 
-    const home = (await readHome(page)) as { hero?: Record<string, unknown> };
-    expect(Object.keys(home)).toEqual(["hero"]);
-    expect(home.hero).toEqual({ title: { en: "A new hero headline", ar: "عنوان رئيسي جديد" }, href: "/shop/oud" });
+      // The DB-backed preview frame remounts on save and shows the new title (the only coverage of
+      // the preview's save-remount). frameLocator re-resolves the frame across the remount.
+      await expect(page.frameLocator('[data-testid="home-preview-frame"]').locator("#hero-title")).toHaveText(
+        "A new hero headline",
+      );
 
-    await page.goto("/en/");
-    await expect(page.locator("#hero-title")).toHaveText("A new hero headline");
-    await expect(section(page, "hero").getByRole("link", { name: "Discover" })).toHaveAttribute("href", /\/en\/shop\/oud\/$/);
+      // The storefront reflects it in both languages. updateTag("home") makes this read-your-own-writes,
+      // but reload-until-pass to be robust to any cache timing (mirrors the settings specs).
+      await expect(async () => {
+        await page.goto("/en/");
+        await expect(page.locator("#hero-title")).toHaveText("A new hero headline", { timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+      await expect(section(page, "hero").getByRole("link", { name: "Discover" })).toHaveAttribute(
+        "href",
+        /\/en\/shop\/oud\/$/,
+      );
 
-    await page.goto("/ar/");
-    await expect(page.locator("#hero-title")).toHaveText("عنوان رئيسي جديد");
+      await expect(async () => {
+        await page.goto("/ar/");
+        await expect(page.locator("#hero-title")).toHaveText("عنوان رئيسي جديد", { timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+    } finally {
+      await resetSectionIfEdited(page, "hero");
+    }
   });
 
   test("clearing a field restores the original, and typing it back keeps Save disabled", async ({ page }) => {
     await signIn(page);
-    // Start from a saved hero title override.
-    await seed(page, { home: { hero: { title: { en: "Seeded headline", ar: "عنوان مُدخَل" } } } });
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-hero-toggle").click();
+    try {
+      // Save a hero title override first (so there is something to clear).
+      await page.getByTestId("home-hero-title-en").fill("Seeded headline");
+      await page.getByTestId("home-hero-title-ar").fill("عنوان مُدخَل");
+      await page.getByTestId("home-hero-save").click();
+      await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
-    // Clear both languages and save → the hero override is removed entirely.
-    await page.getByTestId("home-hero-title-en").fill("");
-    await page.getByTestId("home-hero-title-ar").fill("");
-    await page.getByTestId("home-hero-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
-    expect(await readHome(page)).toEqual({});
+      // Clear both languages and save → the hero override is removed entirely from the DB.
+      await page.getByTestId("home-hero-title-en").fill("");
+      await page.getByTestId("home-hero-title-ar").fill("");
+      await page.getByTestId("home-hero-save").click();
+      await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
+      expect(await readHomeRow()).toEqual({});
 
-    // The field now shows the built-in text; typing it back keeps Save disabled.
-    const save = page.getByTestId("home-hero-save");
-    await expect(save).toBeDisabled();
-    await page.getByTestId("home-hero-title-en").fill("Changed again");
-    await expect(save).toBeEnabled();
-    await page.getByTestId("home-hero-title-en").fill("Timeless scents that capture the moment");
-    await expect(save).toBeDisabled();
+      // The field now shows the built-in text; typing it back keeps Save disabled.
+      const save = page.getByTestId("home-hero-save");
+      await expect(save).toBeDisabled();
+      await page.getByTestId("home-hero-title-en").fill("Changed again");
+      await expect(save).toBeEnabled();
+      await page.getByTestId("home-hero-title-en").fill("Timeless scents that capture the moment");
+      await expect(save).toBeDisabled();
+    } finally {
+      await resetSectionIfEdited(page, "hero");
+    }
   });
 
   test("product rows: add a custom product, reorder, remove one; hidden products are skipped", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await signIn(page);
     await seed(page, { catalog: { added: [CUSTOM_PRODUCT], patches: { iii: { hidden: true } } } });
     await page.goto("/en/admin/home/");
@@ -176,7 +203,7 @@ test.describe("admin home-page editor", () => {
     await page.getByRole("button", { name: "Move Amber Nights up" }).click(); // [i, ii, custom, iii]
     await page.getByRole("button", { name: "Remove II", exact: true }).click(); // [i, custom, iii]
     await page.getByTestId("home-trilogy-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+    await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
     await page.goto("/en/");
     // iii is hidden → skipped; order is I then Amber Nights.
@@ -184,7 +211,7 @@ test.describe("admin home-page editor", () => {
   });
 
   test("story photo from the library (phones follow it) and from an upload", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await signIn(page);
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-story-toggle").click();
@@ -193,7 +220,7 @@ test.describe("admin home-page editor", () => {
     await page.locator('[data-key="renders/oasis"]').click();
     await page.getByTestId("library-add").click();
     await page.getByTestId("home-story-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+    await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
     await page.goto("/en/");
     const imgs = section(page, "story").locator("img");
@@ -211,73 +238,70 @@ test.describe("admin home-page editor", () => {
     await page.getByTestId("home-section-story-toggle").click();
     await page.getByTestId("home-story-image-upload-input").setInputFiles({ name: "shot.png", mimeType: "image/png", buffer: TINY_PNG });
     await page.getByTestId("home-story-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+    await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
-    const home = (await readHome(page)) as { story?: { image?: string } };
-    expect(home.story?.image).toMatch(/^u:/);
+    // Phase 8: assert the stored override via readHomeRow() (DB) when this flow is restored.
     await page.goto("/en/");
     await expect(section(page, "story").locator("img").first()).toHaveAttribute("src", /^data:image\//);
   });
 
-  test("featured product: CAFÉ, a multi-size product, and the panel hides when hidden", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+  // Scope note: the multi-size and hidden-panel sub-cases of the old test needed ms-catalog seeding
+  // (Phase 3c), so this restores only the DB-reflectable CAFÉ change.
+  test("the featured product can be changed to CAFÉ and shown on the store", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-feature-toggle").click();
-    await page.getByTestId("home-feature-product").selectOption("cafe");
-    await page.getByTestId("home-feature-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+    try {
+      await page.getByTestId("home-feature-product").selectOption("cafe");
+      await page.getByTestId("home-feature-save").click();
+      await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
+      expect(await readHomeRow()).toEqual({ feature: { product: "cafe" } });
 
-    await page.goto("/en/");
-    await expect(page.locator("#aura-title")).toHaveText("CAFÉ");
-    await expect(section(page, "feature").locator("img")).toHaveAttribute("src", /renders\/cafe/);
-    await expect(page.getByTestId("feature-add-cafe")).toBeVisible();
-
-    // A product with several sizes shows "From" and a "Choose size" link instead of add-to-bag.
-    await page.goto("/en/admin/home/");
-    await page.getByTestId("home-section-feature-toggle").click();
-    await page.getByTestId("home-feature-product").selectOption("oud-chips");
-    await page.getByTestId("home-feature-save").click();
-    await page.goto("/en/");
-    await expect(section(page, "feature")).toContainText("From");
-    await expect(section(page, "feature").getByRole("link", { name: "Choose size" })).toBeVisible();
-
-    // Seeding the chosen product hidden removes the panel.
-    await seed(page, { home: { feature: { product: "cafe" } }, catalog: { patches: { cafe: { hidden: true } } } });
-    await page.goto("/en/");
-    await expect(page.locator("#hero-title")).toBeVisible();
-    await expect(page.locator("#aura-title")).toHaveCount(0);
+      await expect(async () => {
+        await page.goto("/en/");
+        await expect(page.locator("#aura-title")).toHaveText("CAFÉ", { timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+      await expect(section(page, "feature").locator("img")).toHaveAttribute("src", /renders\/cafe/);
+      await expect(page.getByTestId("feature-add-cafe")).toBeVisible();
+    } finally {
+      await resetSectionIfEdited(page, "feature");
+    }
   });
 
-  test("a duo slot can be changed to another product", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+  test("a duo slot can be changed to another product and shown on the store", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-duo-toggle").click();
-    await page.getByTestId("home-duo-1-product").selectOption("mist");
-    await page.getByTestId("home-duo-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+    try {
+      await page.getByTestId("home-duo-1-product").selectOption("mist");
+      await page.getByTestId("home-duo-save").click();
+      await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
-    await page.goto("/en/");
-    await expect(section(page, "duo").locator('a[href$="/product/mist/"]')).toHaveCount(1);
+      await expect(async () => {
+        await page.goto("/en/");
+        await expect(section(page, "duo").locator('a[href$="/product/mist/"]')).toHaveCount(1, { timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+    } finally {
+      await resetSectionIfEdited(page, "duo");
+    }
   });
 
   test("a service text keeps its tokens, filled with the live fee and lead time", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await signIn(page);
     await seed(page, { settings: { standardFeeFils: 1500 } });
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-services-toggle").click();
     await page.getByTestId("home-services-delivery-text-en").fill("Only {fee} — arrives {when}.");
     await page.getByTestId("home-services-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+    await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
     await page.goto("/en/");
     await expect(section(page, "services")).toContainText(/Only\s*.?KWD 1\.500.?\s*—\s*arrives the next day\./);
   });
 
   test("an Instagram tile and the caption follow the edits", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await signIn(page);
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-instagram-toggle").click();
@@ -286,7 +310,7 @@ test.describe("admin home-page editor", () => {
     await page.getByTestId("library-add").click();
     await page.getByTestId("home-instagram-subtitle-en").fill("A fresh caption");
     await page.getByTestId("home-instagram-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+    await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
     await page.goto("/en/");
     const band = section(page, "instagram");
@@ -294,23 +318,32 @@ test.describe("admin home-page editor", () => {
     await expect(band).toContainText("A fresh caption");
   });
 
-  test("reset section brings back the original and clears ms-home.hero", async ({ page }) => {
+  test("reset section brings back the original and clears the home_overrides row", async ({ page }) => {
     await signIn(page);
-    await seed(page, { home: { hero: { title: { en: "A seeded headline", ar: "عنوان مُدخَل" } } } });
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-hero-toggle").click();
-    await expect(page.getByTestId("home-hero-title-en")).toHaveValue("A seeded headline");
+    try {
+      // Save a hero title override first.
+      await page.getByTestId("home-hero-title-en").fill("A seeded headline");
+      await page.getByTestId("home-hero-title-ar").fill("عنوان مُدخَل");
+      await page.getByTestId("home-hero-save").click();
+      await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
+      await expect(page.getByTestId("home-hero-title-en")).toHaveValue("A seeded headline");
 
-    await page.getByTestId("home-hero-reset").click();
-    await page.getByTestId("confirm-accept").click();
-    await expect(page.getByText("Section reset to the original.").first()).toBeVisible();
+      // Reset the section → the built-in text comes back and the override is cleared from the DB.
+      await page.getByTestId("home-hero-reset").click();
+      await page.getByTestId("confirm-accept").click();
+      await expect(page.getByText("Section reset to the original.").first()).toBeVisible();
 
-    expect(await readHome(page)).toEqual({});
-    await expect(page.getByTestId("home-hero-title-en")).toHaveValue("Timeless scents that capture the moment");
+      expect(await readHomeRow()).toEqual({});
+      await expect(page.getByTestId("home-hero-title-en")).toHaveValue("Timeless scents that capture the moment");
+    } finally {
+      await resetSectionIfEdited(page, "hero");
+    }
   });
 
   test("the top banner is edited here, shows per language, and resets to built-in", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await signIn(page);
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-ticker-toggle").click();
@@ -319,7 +352,7 @@ test.describe("admin home-page editor", () => {
     await page.getByTestId("ticker-ar-add").click();
     await page.getByTestId("ticker-ar-input-0").fill("مرحبا");
     await page.getByTestId("home-ticker-save").click();
-    await expect(page.getByText("Saved — live on the home page in this browser.").first()).toBeVisible();
+    await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
 
     await page.goto("/en/");
     await expect(page.getByRole("region", { name: "Announcements" })).toContainText("Hello test");
@@ -346,7 +379,7 @@ test.describe("admin home-page editor", () => {
   });
 
   test("the preview updates on save without a reload, scrolls to the open section, and blocks links", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await signIn(page);
     await page.goto("/en/admin/home/");
     await page.getByTestId("home-section-hero-toggle").click();
@@ -400,15 +433,29 @@ test.describe("admin home-page editor", () => {
 
   test("the library delete warning mentions the home page when a photo is used there", async ({ page }) => {
     await signIn(page);
-    // The library lists from the DB images table now; seed a row and reference it on the home page.
+    // The library lists uploads from the DB images table; seed a row so it appears without a real file.
     await seedImageRow("testupload1");
-    await seed(page, { home: { instagram: { photos: ["u:testupload1", "", "", "", "", ""] } } });
-    await page.goto("/en/admin/home/");
-    await page.getByTestId("home-section-instagram-toggle").click();
-    await page.getByTestId("home-instagram-photo-0-choose").click();
-    // Delete the seeded upload from the library; the confirm warns it's used on the home page.
-    await page.locator('li:has([data-key="u:testupload1"]) [data-testid="library-upload-delete"]').click();
-    await expect(page.getByText(/also used on the home page/i)).toBeVisible();
+    try {
+      // Reference the upload on the home page by saving it into an Instagram slot (the live-home read
+      // for the delete warning now comes from the DB, not ms-home).
+      await page.goto("/en/admin/home/");
+      await page.getByTestId("home-section-instagram-toggle").click();
+      await page.getByTestId("home-instagram-photo-0-choose").click();
+      await page.locator('[data-key="u:testupload1"]').click();
+      await page.getByTestId("library-add").click();
+      await page.getByTestId("home-instagram-save").click();
+      await expect(page.getByText("Saved — now live on the home page for all visitors.").first()).toBeVisible();
+
+      // Reload so the editor's live-home context certainly reflects the saved photo, then reopen the
+      // library: deleting the upload warns that it's still used on the home page.
+      await page.goto("/en/admin/home/");
+      await page.getByTestId("home-section-instagram-toggle").click();
+      await page.getByTestId("home-instagram-photo-0-choose").click();
+      await page.locator('li:has([data-key="u:testupload1"]) [data-testid="library-upload-delete"]').click();
+      await expect(page.getByText(/also used on the home page/i)).toBeVisible();
+    } finally {
+      await resetSectionIfEdited(page, "instagram");
+    }
   });
 
   test("re-picking the current automatic photo creates no edit", async ({ page }) => {
@@ -420,7 +467,8 @@ test.describe("admin home-page editor", () => {
     await page.locator('[data-key="renders/aura"]').click();
     await page.getByTestId("library-add").click();
     await expect(page.getByTestId("home-feature-save")).toBeDisabled();
-    expect(await readHome(page)).toEqual({});
+    // Nothing was saved, so the home_overrides singleton stays empty (no stray override written).
+    expect(await readHomeRow()).toEqual({});
   });
 
   test("a top-banner message over 90 characters is blocked on save", async ({ page }) => {
@@ -437,7 +485,7 @@ test.describe("admin home-page editor", () => {
     }, "x".repeat(91));
     await page.getByTestId("home-ticker-save").click();
     await expect(page.getByText("Some text is too long. Please shorten it.")).toBeVisible();
-    expect(await readSettings(page)).toEqual({});
+    // The client blocks the save before any Server Action call, so nothing is written.
   });
 
   test("the preview re-scrolls on a device switch and after a reload", async ({ page }) => {
@@ -497,27 +545,19 @@ test.describe("admin home-page editor", () => {
     await expect(page.getByTestId("home-hero-save")).toBeEnabled();
   });
 
-  test("a malformed (lone-surrogate) stored text leaves the home page working", async ({ page }) => {
-    const errors: string[] = [];
-    page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
-    page.on("console", (m) => {
-      if (m.type() === "error") errors.push(`console: ${m.text()}`);
-    });
-    await page.addInitScript(() => {
-      const bad = "Need help " + String.fromCharCode(0xd800); // lone high surrogate
-      localStorage.setItem(
-        "ms-home",
-        JSON.stringify({ state: { overrides: { services: { whatsappMessage: { en: bad, ar: bad } } } }, version: 1 }),
-      );
-    });
+  test("the home page renders cleanly, including the WhatsApp concierge link", async ({ page }) => {
+    // Phase 8: add E2E coverage that a garbage / malformed DB override falls back to the defaults.
+    // cleanHome's resilience (incl. the lone-surrogate / "URI malformed" case) is unit-tested, and the
+    // storefront sanitises server-side, so — unlike the old ms-home era — there is nothing meaningful
+    // to seed from the browser (a lone surrogate can't even live in a jsonb column). This stays a smoke
+    // check that the home page and its WhatsApp link render.
     await page.goto("/en/");
     await expect(page.locator("#hero-title")).toBeVisible();
     await expect(page.locator('a[href*="wa.me"]').first()).toBeVisible();
-    expect(errors.join("\n")).not.toMatch(/malformed/i);
   });
 
   test("a home store saved under another version loads without a console error", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
     page.on("console", (m) => {
@@ -535,7 +575,7 @@ test.describe("admin home-page editor", () => {
   });
 
   test("a long unbroken word in a home title does not overflow at 390px", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 3 for admin edits.");
+    test.skip(true, "Phase 8 E2E rewrite");
     await page.setViewportSize({ width: 390, height: 844 });
     const token = "A".repeat(40);
     await page.addInitScript((tok) => {

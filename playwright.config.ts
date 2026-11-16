@@ -11,7 +11,12 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
-  workers: 2,
+  // Serial: the whole suite shares ONE `next start` + Postgres. admin.spec mutates the settings
+  // singleton (e.g. the delivery fee → 1500, held live across a ~20s reload-until-pass loop, plus
+  // whatsapp/phone) and updateTag purges the cache process-wide, while e2e.spec asserts the DEFAULT
+  // fee / delivery / footer with no tolerance — under parallel workers that is a cross-file flake, not
+  // a product bug. Phase 8 adds per-worker DB isolation to restore parallelism.
+  workers: 1,
   reporter: [["list"]],
   // Migrate + seed the test DB before the run (requires DATABASE_URL).
   globalSetup: "./tests/global-setup.ts",

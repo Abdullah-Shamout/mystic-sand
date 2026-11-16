@@ -397,7 +397,8 @@
       "deleteConfirmMessage": "Permanently delete this uploaded photo from the library. This can’t be undone.",
       "deleteConfirmInUse": "This photo is still used by {count, plural, one {# product} other {# products}}. Deleting it removes it there too.",
       "deleteConfirmHome": "This photo is also used on the home page. Deleting it removes it there too.",
-      "deleteConfirm": "Delete photo"
+      "deleteConfirm": "Delete photo",
+      "deleteError": "Could not delete the photo. Please try again."
     },
     "options": {
       "aliases": "Search keywords",
@@ -558,10 +559,10 @@
   "homePage": {
     "meta": "Home page · Mystic Sand admin",
     "title": "Home page",
-    "intro": "Change what shows on your home page — text, photos, products and links, in English and Arabic. Everything is saved in this browser only.",
+    "intro": "Change what shows on your home page — text, photos, products and links, in English and Arabic. Changes save to your store and go live for all visitors.",
     "viewStore": "View home page",
     "save": "Save",
-    "saved": "Saved — live on the home page in this browser.",
+    "saved": "Saved — now live on the home page for all visitors.",
     "discard": "Discard changes",
     "reset": "Reset section",
     "resetTitle": "Reset this section?",
@@ -577,7 +578,7 @@
     "edited": "Edited",
     "useOriginal": "Use original",
     "counter": "{n}/{max}",
-    "browserNote": "Changes apply in this browser only.",
+    "browserNote": "Changes go live on the home page for all visitors.",
     "emptyHint": "A field left empty shows the original text.",
     "sections": {
       "ticker": {
