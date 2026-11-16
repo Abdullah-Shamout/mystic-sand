@@ -12,13 +12,14 @@ import { expect, test, type Page } from "@playwright/test";
 const FAR_FUTURE = 4102444800000; // ~ year 2100 (ms), so the admin opens without a real sign-in
 
 async function signIn(page: Page) {
-  await page.addInitScript((exp) => {
-    try {
-      sessionStorage.setItem("ms-admin-session", JSON.stringify({ u: "admin", exp }));
-    } catch {
-      // storage blocked
-    }
-  }, FAR_FUTURE);
+  // Phase 4: real login (argon2 + session cookie). globalSetup seeds this admin.
+  const user = process.env.ADMIN_USERNAME ?? "admin";
+  const pass = process.env.ADMIN_PASSWORD ?? "Test-Admin-2026!";
+  await page.goto("/en/login/");
+  await page.getByTestId("login-username").fill(user);
+  await page.getByTestId("login-password").fill(pass);
+  await page.getByTestId("login-submit").click();
+  await page.waitForURL(/\/en\/admin(\/|$)/);
 }
 
 const SLUG = "dune";

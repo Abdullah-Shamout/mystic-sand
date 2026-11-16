@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { Providers } from "@/components/layout/providers";
 import { directionOf, routing } from "@/i18n/routing";
 import { omit } from "@/lib/omit";
+import { verifySession } from "@/server/auth/session";
 import { getCatalogData } from "@/server/read/catalog";
 import { getHomeData } from "@/server/read/home";
 import { getSettingsData } from "@/server/read/settings";
@@ -66,6 +67,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
     getSettingsData(),
     getHomeData(),
   ]);
+  // Optimistic admin flag for the header (Admin link vs Enter dialog). verifySession() does NO DB
+  // read for cookieless storefront visitors, so this is free for shoppers; the admin area itself is
+  // gated server-side by the admin layout + requireAdmin().
+  const isAdmin = (await verifySession())?.role === "admin";
 
   return (
     <html
@@ -82,7 +87,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
           {t("skipToContent")}
         </a>
         <NextIntlClientProvider messages={messages}>
-          <Providers dir={dir} live={{ catalog, settings, home }}>
+          <Providers dir={dir} live={{ catalog, settings, home }} isAdmin={isAdmin}>
             {children}
           </Providers>
         </NextIntlClientProvider>

@@ -21,6 +21,10 @@ export default async function globalSetup() {
       "DATABASE_URL must be set for the Playwright run (used by migrate + seed and by `next start`).",
     );
   }
+  // Seed a known admin so specs can perform the REAL login (argon2 + session cookie). Defaults are
+  // used only when the environment hasn't set them.
+  process.env.ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? "admin";
+  process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "Test-Admin-2026!";
   const opts = { stdio: "inherit" as const, env: process.env };
   execSync("npm run db:migrate", opts);
   execSync("npm run db:seed", opts);

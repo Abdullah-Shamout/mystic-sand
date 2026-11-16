@@ -1,5 +1,6 @@
 import "dotenv/config";
 
+import { hash } from "@node-rs/argon2";
 import { count } from "drizzle-orm";
 
 import { categories as categoryData } from "@/data/categories";
@@ -84,7 +85,23 @@ async function main() {
       await tx.insert(t.promoCodes).values(prow).onConflictDoUpdate({ target: t.promoCodes.code, set: prow });
     }
 
-    // Phase 4: seed admin from ADMIN_USERNAME/ADMIN_PASSWORD (argon2). Not seeded in this phase.
+    // Admin account (argon2id), from ADMIN_USERNAME / ADMIN_PASSWORD. Skipped (with a warning) when
+    // either is unset, so we never create a blank/guessable admin. Uses @node-rs/argon2 directly —
+    // the app's password module is "server-only" and can't be imported from this plain script.
+    const adminUsername = process.env.ADMIN_USERNAME?.trim().toLowerCase();
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminUsername && adminPassword) {
+      const passwordHash = await hash(adminPassword);
+      await tx
+        .insert(t.adminUsers)
+        .values({ username: adminUsername, passwordHash, role: "admin" })
+        .onConflictDoUpdate({
+          target: t.adminUsers.username,
+          set: { passwordHash, role: "admin", updatedAt: new Date() },
+        });
+    } else {
+      console.warn("Admin NOT seeded: set ADMIN_USERNAME and ADMIN_PASSWORD to create the first admin.");
+    }
   });
 
   const counts = {

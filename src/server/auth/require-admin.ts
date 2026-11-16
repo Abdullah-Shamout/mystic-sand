@@ -1,15 +1,25 @@
 import "server-only";
 
-// Admin authorization gate.
+import { verifySession, type SessionUser } from "./session";
+
+// Admin authorization gate. Every admin Server Action and the image-upload Route Handler call this
+// FIRST. It is the authoritative (DB-backed) check: verifySession() confirms the cookie maps to a
+// live, non-revoked, non-expired session row whose user is an admin.
 //
-// TODO(Phase 4): real server-side auth. This is a PLACEHOLDER. Phase 4 replaces the body with the
-// DAL check — `const session = await verifySession(); if (session?.role !== "admin") throw/403` —
-// and NOTHING else changes, because every admin Server Action and admin Route Handler already calls
-// requireAdmin() at its top (image upload/list/delete, saveSettings, and the Phase 3b/3c writes).
-// Keep it async so callers `await requireAdmin()` and the Phase 4 swap is a one-function change.
-//
-// Until then this is intentionally a no-op: the admin area is still gated only by the existing
-// client-side login (src/lib/admin-auth.ts), which Phase 4 removes.
-export async function requireAdmin(): Promise<void> {
-  // TODO(Phase 4): real server-side auth — replace this no-op with verifySession() + role check.
+// Server Actions let it throw — the admin editors already try/catch and surface a toast. The image
+// route catches UnauthorizedError and maps it to a 401 (a denial must be 401/403, never 500).
+
+/** Thrown by requireAdmin() when there is no admin session. */
+export class UnauthorizedError extends Error {
+  constructor(message = "Unauthorized") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+/** Resolves to the admin session, or throws UnauthorizedError. */
+export async function requireAdmin(): Promise<SessionUser> {
+  const session = await verifySession();
+  if (!session || session.role !== "admin") throw new UnauthorizedError();
+  return session;
 }

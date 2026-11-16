@@ -1,19 +1,31 @@
 "use client";
 
 import { Eye, EyeOff } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, TextInput } from "@/components/ui/form";
-import { startAdminSession, verifyAdmin } from "@/lib/admin-auth";
+import { login } from "@/server/actions/auth";
+
+type Locale = "en" | "ar";
 
 /**
- * Shared sign-in form for the login dialog and the admin full-page gate. On success it
- * starts the session and calls `onSuccess` (the caller navigates / closes). This is a
- * browser-only demo gate — see lib/admin-auth.ts.
+ * Admin sign-in form (used by the /login page and the header login dialog). Submits to the `login`
+ * Server Action, which verifies the password (argon2), sets the httpOnly session cookie and returns a
+ * safe same-site redirect. On success we hard-navigate there so the new cookie is sent with the next
+ * request. Every failure (bad credentials or a lockout) shows the same generic message.
  */
-export function LoginForm({ onSuccess, autoFocus = false }: { onSuccess?: () => void; autoFocus?: boolean }) {
+export function LoginForm({
+  onSuccess,
+  autoFocus = false,
+  next,
+}: {
+  onSuccess?: () => void;
+  autoFocus?: boolean;
+  next?: string;
+}) {
   const t = useTranslations("common");
+  const locale = useLocale() as Locale;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -27,15 +39,17 @@ export function LoginForm({ onSuccess, autoFocus = false }: { onSuccess?: () => 
     if (busy) return;
     setBusy(true);
     setError(false);
-    const ok = await verifyAdmin(username, password);
-    if (ok) {
-      startAdminSession(username.trim().toLowerCase(), remember);
-      setBusy(false);
-      onSuccess?.();
-      return;
+    try {
+      const result = await login({ username, password, remember, next, locale });
+      if (result.ok) {
+        onSuccess?.();
+        // Hard navigation so the just-set session cookie is sent with the next request.
+        window.location.assign(result.redirect);
+        return; // stay busy; the page is navigating away
+      }
+    } catch {
+      // fall through to the generic error
     }
-    // A short delay on failure blunts rapid guessing and reads as "we checked".
-    await new Promise((resolve) => setTimeout(resolve, 600));
     setBusy(false);
     setError(true);
   }
@@ -56,6 +70,7 @@ export function LoginForm({ onSuccess, autoFocus = false }: { onSuccess?: () => 
             aria-describedby={error ? errorId : undefined}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            data-testid="login-username"
           />
         )}
       </Field>
@@ -73,6 +88,7 @@ export function LoginForm({ onSuccess, autoFocus = false }: { onSuccess?: () => 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pe-12"
+              data-testid="login-password"
             />
             <button
               type="button"
@@ -99,11 +115,9 @@ export function LoginForm({ onSuccess, autoFocus = false }: { onSuccess?: () => 
         </p>
       )}
 
-      <Button type="submit" size="lg" block busy={busy}>
+      <Button type="submit" size="lg" block busy={busy} data-testid="login-submit">
         {t("login.submit")}
       </Button>
-
-      <p className="text-[13px] leading-snug text-muted">{t("login.demoNote")}</p>
     </form>
   );
 }

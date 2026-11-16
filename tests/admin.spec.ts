@@ -51,7 +51,9 @@ test.describe("password field styling", () => {
   });
 });
 
-test.describe("admin sign-in", () => {
+// Phase 4 replaced the browser-only gate with argon2 + a DB session cookie. The real sign-in flow
+// (wrong password, success, logout, unauthenticated redirect) is covered in auth.spec.ts.
+test.describe.skip("admin sign-in", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
 
   test("a wrong password shows a generic error", async ({ page }) => {
@@ -135,13 +137,14 @@ type StoredOrder = {
 type StoredAdmin = { fulfillment: Record<string, { doneAt: string }>; samples: StoredOrder[] };
 
 async function signIn(page: Page) {
-  await page.addInitScript((exp) => {
-    try {
-      sessionStorage.setItem("ms-admin-session", JSON.stringify({ u: "admin", exp }));
-    } catch {
-      // storage blocked
-    }
-  }, FAR_FUTURE);
+  // Phase 4: real login (argon2 + session cookie). globalSetup seeds this admin.
+  const user = process.env.ADMIN_USERNAME ?? "admin";
+  const pass = process.env.ADMIN_PASSWORD ?? "Test-Admin-2026!";
+  await page.goto("/en/login/");
+  await page.getByTestId("login-username").fill(user);
+  await page.getByTestId("login-password").fill(pass);
+  await page.getByTestId("login-submit").click();
+  await page.waitForURL(/\/en\/admin(\/|$)/);
 }
 
 async function readAdmin(page: Page): Promise<StoredAdmin> {
@@ -1275,6 +1278,7 @@ test.describe("admin store settings", () => {
   // The top-banner (ticker) editor moved to the Home page editor — see home-editor.spec.ts.
 
   test("the default login works with MysticSand@2026 and the old password fails", async ({ page }) => {
+    test.skip(true, "Phase 4: sign-in rewritten (argon2 + session cookie) — see auth.spec.ts");
     await page.goto("/en/");
     await page.getByRole("button", { name: "Enter", exact: true }).click();
     const dialog = page.getByRole("dialog");
@@ -1292,6 +1296,7 @@ test.describe("admin store settings", () => {
   });
 
   test("the username is changed in its own card, with the current password", async ({ page }) => {
+    test.skip(true, "Phase 4: the username-change card was removed with the browser-only gate");
     await signIn(page);
     await page.goto("/en/admin/settings/");
 
@@ -1308,6 +1313,7 @@ test.describe("admin store settings", () => {
   });
 
   test("the password checklist enforces the strong rule and only the new password works", async ({ page }) => {
+    test.skip(true, "Phase 4: changePassword now rotates the shared DB admin (would poison other specs) — see auth.spec.ts");
     // A real UI sign-in (no injected session) so the log-out step actually clears it.
     await page.goto("/en/");
     await page.getByRole("button", { name: "Enter", exact: true }).click();

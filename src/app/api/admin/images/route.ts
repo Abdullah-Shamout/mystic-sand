@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/server/auth/require-admin";
+import { requireAdmin, UnauthorizedError } from "@/server/auth/require-admin";
 import {
   ImageProcessError,
   isImageProfile,
@@ -19,7 +19,13 @@ function fail(key: ImageProcessError["key"], status: number): Response {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  await requireAdmin();
+  // A denial must be a 401, not a 500: catch the thrown UnauthorizedError and map it here.
+  try {
+    await requireAdmin();
+  } catch (error) {
+    if (error instanceof UnauthorizedError) return Response.json({ error: "unauthorized" }, { status: 401 });
+    throw error;
+  }
 
   // Cap the body BEFORE buffering it: request.formData() would read the entire (unbounded) body into
   // memory first. Stream it through a byte counter and parse only the capped buffer, bounding
