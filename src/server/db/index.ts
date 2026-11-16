@@ -1,0 +1,20 @@
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+import * as schema from "./schema";
+
+// Drizzle DB client (node-postgres driver). Reads DATABASE_URL from the environment.
+// Phase 1: this module is standalone — nothing in the running app imports it yet. Its
+// first consumers are the migrate/seed scripts; the server read/write layers wire it in
+// from Phase 2 onwards.
+
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set. Copy .env.example to .env (see docker-compose.dev.yml).");
+}
+
+export const pool = new Pool({ connectionString });
+
+export const db = drizzle(pool, { schema });
+
+export { schema };

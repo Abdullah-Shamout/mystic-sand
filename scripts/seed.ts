@@ -1,0 +1,104 @@
+import "dotenv/config";
+
+import { count } from "drizzle-orm";
+
+import { categories as categoryData } from "@/data/categories";
+import { products as productData } from "@/data/products";
+import { promoCodes as promoData } from "@/data/site";
+import { defaultSettings } from "@/lib/settings";
+import { db, pool } from "@/server/db";
+import * as t from "@/server/db/schema";
+
+// Idempotent seed: upserts today's canonical catalog from src/data into the DB. Re-running
+// converges to the same state (so it also RESETS stock/prices/copy to the src/data values —
+// safe now because there is no admin yet; the lead should note this before it runs against a
+// DB that holds admin edits). The row set reproduces buildCatalog(EMPTY): every product is one
+// row, every variant one row, with the seed stock. `sort` is the array index (catalog order).
+
+async function main() {
+  await db.transaction(async (tx) => {
+    // Categories (menu / footer / shop-chip order).
+    for (let i = 0; i < categoryData.length; i++) {
+      const c = categoryData[i];
+      const row = { slug: c.slug, name: c.name, description: c.description, banner: c.banner, sort: i };
+      await tx.insert(t.categories).values(row).onConflictDoUpdate({ target: t.categories.slug, set: row });
+    }
+
+    // Products + their variants.
+    for (let i = 0; i < productData.length; i++) {
+      const p = productData[i];
+      const row = {
+        slug: p.slug,
+        name: p.name,
+        category: p.category,
+        alsoIn: p.alsoIn ?? [],
+        collection: p.collection ?? null,
+        type: p.type,
+        family: p.family ?? null,
+        tagline: p.tagline,
+        description: p.description,
+        howTo: p.howTo,
+        notes: p.notes ?? null,
+        images: p.images,
+        badge: p.badge ?? null,
+        related: p.related,
+        aliases: p.aliases,
+        hidden: p.hidden ?? false,
+        todo: p.todo,
+        sort: i,
+      };
+      const [inserted] = await tx
+        .insert(t.products)
+        .values(row)
+        .onConflictDoUpdate({ target: t.products.slug, set: { ...row, updatedAt: new Date() } })
+        .returning({ id: t.products.id });
+      const productId = inserted.id;
+
+      for (let j = 0; j < p.variants.length; j++) {
+        const v = p.variants[j];
+        const vrow = { productId, sku: v.sku, size: v.size, priceFils: v.priceFils, stock: v.stock, sort: j };
+        await tx.insert(t.variants).values(vrow).onConflictDoUpdate({ target: t.variants.sku, set: vrow });
+      }
+    }
+
+    // Store settings singleton (id = 1), from defaultSettings.
+    const settingsRow = {
+      id: 1,
+      standardFeeFils: defaultSettings.standardFeeFils,
+      whatsapp: defaultSettings.whatsapp,
+      phone: defaultSettings.phone,
+      ticker: defaultSettings.ticker,
+    };
+    await tx.insert(t.settings).values(settingsRow).onConflictDoUpdate({ target: t.settings.id, set: settingsRow });
+
+    // Promo codes.
+    for (const [code, info] of Object.entries(promoData)) {
+      const prow = {
+        code,
+        percent: info.percent,
+        // Live semantics (src/store/bag.ts): valid through end-of-day Kuwait time (+03:00).
+        expiresAt: new Date(`${info.expires}T23:59:59+03:00`),
+        active: true,
+      };
+      await tx.insert(t.promoCodes).values(prow).onConflictDoUpdate({ target: t.promoCodes.code, set: prow });
+    }
+
+    // Phase 4: seed admin from ADMIN_USERNAME/ADMIN_PASSWORD (argon2). Not seeded in this phase.
+  });
+
+  const counts = {
+    categories: (await db.select({ n: count() }).from(t.categories))[0].n,
+    products: (await db.select({ n: count() }).from(t.products))[0].n,
+    variants: (await db.select({ n: count() }).from(t.variants))[0].n,
+    settings: (await db.select({ n: count() }).from(t.settings))[0].n,
+    promoCodes: (await db.select({ n: count() }).from(t.promoCodes))[0].n,
+  };
+  console.log("Seed complete. Row counts:", JSON.stringify(counts));
+}
+
+main()
+  .catch((err) => {
+    console.error("Seed failed:", err);
+    process.exitCode = 1;
+  })
+  .finally(() => pool.end());

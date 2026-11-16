@@ -1,0 +1,28 @@
+# Local development Postgres for Mystic Sand (launch branch).
+# Start with `npm run db:up`, stop with `npm run db:down`, reset with `npm run db:reset`.
+# Canonical dev connection string (host port 5433 to avoid a native Postgres on 5432):
+#   DATABASE_URL=postgres://mystic:mystic@localhost:5433/mystic
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: mystic-sand-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mystic
+      POSTGRES_PASSWORD: mystic
+      POSTGRES_DB: mystic
+    # Host port 5433 (container 5432) so this coexists with a native Postgres on 5432.
+    ports:
+      - "5433:5432"
+    volumes:
+      - mystic_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mystic -d mystic"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  mystic_pgdata:
