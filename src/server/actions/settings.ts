@@ -6,7 +6,8 @@ import { z } from "zod";
 import { phoneStatus } from "@/lib/phone";
 import { resolveSettings, type StoreSettings } from "@/lib/settings";
 import { requireAdmin } from "@/server/auth/require-admin";
-import { getDb, schema } from "@/server/db";
+import { schema } from "@/server/db";
+import { SETTINGS_LOCK, withAdvisoryLock, type Tx } from "@/server/db/locks";
 
 // The one admin write for the settings singleton (delivery fee, WhatsApp, phone, ticker). Each
 // settings card saves only its own fields, and the ticker is edited in the Home editor, so this
@@ -30,9 +31,13 @@ const patchSchema = z
 
 export type SettingsPatch = z.infer<typeof patchSchema>;
 
-/** Current resolved settings from the singleton row (or the defaults when there is no row yet). */
-async function currentSettings(): Promise<StoreSettings> {
-  const [row] = await getDb().select().from(schema.settings).limit(1);
+/**
+ * Current resolved settings from the singleton row (or the defaults when there is no row yet). Reads
+ * through the given handle — inside saveSettings this is the advisory-locked `tx`, so the read is
+ * serialised with the upsert that follows (no lost update between concurrent saves).
+ */
+async function currentSettings(reader: Tx): Promise<StoreSettings> {
+  const [row] = await reader.select().from(schema.settings).limit(1);
   if (!row) return resolveSettings(null);
   return resolveSettings({
     standardFeeFils: row.standardFeeFils,
@@ -51,24 +56,32 @@ export async function saveSettings(input: SettingsPatch): Promise<StoreSettings>
   await requireAdmin();
   const patch = patchSchema.parse(input);
 
-  const current = await currentSettings();
-  const resolved = resolveSettings({
-    standardFeeFils: patch.standardFeeFils ?? current.standardFeeFils,
-    whatsapp: patch.whatsapp ?? current.whatsapp,
-    phone: patch.phone ?? current.phone,
-    ticker: patch.ticker
-      ? { en: patch.ticker.en ?? current.ticker.en, ar: patch.ticker.ar ?? current.ticker.ar }
-      : current.ticker,
-  });
+  // The read→merge→upsert runs under a per-singleton advisory lock so two concurrent saves can't lose
+  // an update (both read the old row, each merges its own field, the later upsert wipes the other's).
+  // The merge + resolveSettings sanitiser must sit INSIDE the lock because they operate on the
+  // in-lock read (`current`); only requireAdmin + the zod parse above are lock-free. The lock
+  // auto-releases at commit, and updateTag runs AFTER (a Next cache op, not a DB write).
+  const resolved = await withAdvisoryLock(SETTINGS_LOCK, async (tx) => {
+    const current = await currentSettings(tx);
+    const merged = resolveSettings({
+      standardFeeFils: patch.standardFeeFils ?? current.standardFeeFils,
+      whatsapp: patch.whatsapp ?? current.whatsapp,
+      phone: patch.phone ?? current.phone,
+      ticker: patch.ticker
+        ? { en: patch.ticker.en ?? current.ticker.en, ar: patch.ticker.ar ?? current.ticker.ar }
+        : current.ticker,
+    });
 
-  const row = {
-    id: 1 as const,
-    standardFeeFils: resolved.standardFeeFils,
-    whatsapp: resolved.whatsapp,
-    phone: resolved.phone,
-    ticker: resolved.ticker,
-  };
-  await getDb().insert(schema.settings).values(row).onConflictDoUpdate({ target: schema.settings.id, set: row });
+    const row = {
+      id: 1 as const,
+      standardFeeFils: merged.standardFeeFils,
+      whatsapp: merged.whatsapp,
+      phone: merged.phone,
+      ticker: merged.ticker,
+    };
+    await tx.insert(schema.settings).values(row).onConflictDoUpdate({ target: schema.settings.id, set: row });
+    return merged;
+  });
 
   // updateTag (Server-Actions-only) IMMEDIATELY expires the "settings" tag, so the admin's own
   // router.refresh() and the storefront both read the new value on their next read. revalidateTag is

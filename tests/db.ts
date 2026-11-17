@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 
 // Direct Postgres helpers for specs that must touch global server state the UI can't easily set up
 // (the images and home_overrides tables). Each call opens and closes its own pool so no handle
@@ -302,4 +302,69 @@ export async function seedHomeRow(data: unknown): Promise<void> {
 export async function readHomeRow(): Promise<Record<string, unknown>> {
   const rows = await dbQueryRows<{ data: Record<string, unknown> }>("SELECT data FROM home_overrides WHERE id = 1");
   return rows[0]?.data ?? {};
+}
+
+// --- advisory-lock serialisation (the singleton RMW hardening) -----------------------
+// These prove that saveSettings / saveHomeSection take pg_advisory_xact_lock before touching the
+// singleton (src/server/db/locks.ts). The side connection takes the SAME key as a SESSION-level
+// advisory lock, which conflicts with the action's transaction-level lock, so an in-flight save blocks.
+
+/** A held session-level advisory lock on a dedicated connection; release() frees it and is idempotent. */
+export type AdvisoryLockHandle = { release: () => Promise<void> };
+
+/**
+ * Takes a SESSION-level advisory lock on `key` on its own dedicated connection and holds it until
+ * release(). A concurrent save that calls pg_advisory_xact_lock(key) blocks until release() runs.
+ */
+export async function acquireSessionAdvisoryLock(key: number): Promise<AdvisoryLockHandle> {
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL must be set for the DB test helpers.");
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+  const client: PoolClient = await pool.connect();
+  await client.query("SELECT pg_advisory_lock($1)", [key]);
+  let released = false;
+  return {
+    release: async () => {
+      if (released) return;
+      released = true;
+      try {
+        await client.query("SELECT pg_advisory_unlock($1)", [key]);
+      } finally {
+        client.release();
+        await pool.end();
+      }
+    },
+  };
+}
+
+/**
+ * How many advisory locks on `key` are currently GRANTED vs WAITING across the whole cluster. A waiting
+ * entry is a session (here, the in-flight save) blocked on pg_advisory_xact_lock while we hold the key.
+ * Reconstructs the full bigint key from pg_locks' (classid, objid) split; objsubid = 1 is the single
+ * bigint-key form both our lock and the action use.
+ */
+export async function countAdvisoryLocks(key: number): Promise<{ granted: number; waiting: number }> {
+  const rows = await dbQueryRows<{ granted: boolean; n: string }>(
+    `SELECT granted, count(*)::text AS n
+       FROM pg_locks
+      WHERE locktype = 'advisory'
+        AND objsubid = 1
+        AND ((classid::bigint << 32) | objid::bigint) = $1
+      GROUP BY granted`,
+    [key],
+  );
+  let granted = 0;
+  let waiting = 0;
+  for (const r of rows) {
+    if (r.granted) granted = Number(r.n);
+    else waiting = Number(r.n);
+  }
+  return { granted, waiting };
+}
+
+/** The settings singleton's stored delivery fee (standard_fee_fils), or null when there is no row. */
+export async function readSettingsFee(): Promise<number | null> {
+  const rows = await dbQueryRows<{ standard_fee_fils: number }>(
+    "SELECT standard_fee_fils FROM settings WHERE id = 1",
+  );
+  return rows[0]?.standard_fee_fils ?? null;
 }

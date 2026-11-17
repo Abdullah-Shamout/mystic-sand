@@ -21,9 +21,13 @@ import { getDb, schema, type Db } from "@/server/db";
 // Multi-row writes (a product and its variants) run in db.transaction(...) so a reader never sees a
 // product with half its variants.
 //
-// NOTE (Phase 4): these do cross-request read-modify-writes (read current, then write) with no
-// advisory lock — harmless with the single admin today; the tx + pg_advisory_xact_lock hardening is
-// Phase 4. The transactions here are for multi-ROW consistency only.
+// NOTE: the SINGLETON read-modify-write actions (settings, home_overrides) are serialised against
+// concurrent admins by a transaction-scoped pg_advisory_xact_lock (Phase 10, src/server/db/locks.ts).
+// The catalog writes here deliberately take NO such lock: they are per-row upserts, not a shared
+// singleton, so one admin's write can't silently wipe another's merge. The only read-then-write is
+// createProduct's `max(sort)+1`, where a duplicate sort is a harmless ordering tie; resetAllCatalog is
+// a blind write-all of the seed (it computes nothing from current shared state). The transactions here
+// are for multi-ROW consistency only (a product and its variants).
 
 const CATEGORY_SLUGS = ["perfumes", "oud", "body", "home"] as const;
 const categorySchema = z.enum(CATEGORY_SLUGS);
