@@ -2,6 +2,8 @@ import fs from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 
+import { clearOrders, insertPaidOrder } from "./db";
+
 // The admin area is a browser-only demo gate (see src/lib/admin-auth.ts). These tests cover
 // the header entry, the sign-in flow, the signed-out gate and the admin-messages split.
 // Run `npm run build` first — they hit the `next start` production server at localhost:4319.
@@ -407,48 +409,25 @@ test.describe("admin orders dashboard", () => {
   });
 
   test("a real order placed in the store appears as a Website order", async ({ page }) => {
-    await signIn(page);
-    await page.addInitScript(() => {
-      const iso = new Date().toISOString();
-      const order = {
-        id: "MS-50001",
-        createdAt: iso,
-        locale: "en",
-        lines: [
-          { sku: "MS-I-50", slug: "i", qty: 1, priceFils: 19000, name: "I", size: { en: "50 ml", ar: "50 مل" }, image: "products/i/bottle" },
-        ],
-        totals: { itemCount: 1, subtotalFils: 19000, discountFils: 0, deliveryFils: 1000, totalFils: 20000 },
-        details: {
-          name: "Website Tester", phone: "99887766", email: "", areaId: "salmiya", housing: "house",
-          block: "1", street: "Street 1", avenue: "", building: "5", floor: "", apartment: "",
-          mapsLink: "", notes: "", deliveryMethod: "standard", paymentMethod: "knet", saveDetails: true,
-        },
-        promoCode: null,
-        bagKey: "MS-I-50x1|standard|",
-        method: "knet",
-        status: "paid",
-        attempts: [
-          { method: "knet", result: "CAPTURED", paymentId: "100123456789012345", trackId: "MS-50001", tranId: "123456789012345", ref: "123456789012", auth: "123456", postDate: "1009", amountFils: 20000, at: iso },
-        ],
-        finalizedAt: iso,
-      };
-      localStorage.setItem(
-        "ms-checkout",
-        JSON.stringify({ state: { draft: {}, remembered: null, orders: { "MS-50001": order }, lastOrderId: "MS-50001" }, version: 2 }),
-      );
-    });
+    // The dashboard now reads site orders from Postgres (server), merged with the client samples. Insert
+    // one paid DB order and confirm it shows as a Website order (no "Sample" tag). Cleaned up after.
+    await insertPaidOrder({ id: "MS-50001", sku: "MS-I-50", slug: "i", name: "I" });
+    try {
+      await signIn(page);
+      await page.goto("/en/admin/");
+      // 31 built-in samples + the 1 real website order.
+      await expect.poll(() => resultCount(page)).toBe(32);
 
-    await page.goto("/en/admin/");
-    // 31 built-in samples + the 1 real website order.
-    await expect.poll(() => resultCount(page)).toBe(32);
-
-    // Narrow to the real order by number; it is listed and carries no "Sample" tag
-    // (only the built-in samples are tagged).
-    await page.getByTestId("orders-search").fill("MS-50001");
-    await expect.poll(() => resultCount(page)).toBe(1);
-    const realRow = page.getByTestId("order-row").filter({ hasText: "MS-50001" });
-    await expect(realRow).toHaveCount(1);
-    await expect(realRow.getByText("Sample")).toHaveCount(0);
+      // Narrow to the real order by number; it is listed and carries no "Sample" tag
+      // (only the built-in samples are tagged).
+      await page.getByTestId("orders-search").fill("MS-50001");
+      await expect.poll(() => resultCount(page)).toBe(1);
+      const realRow = page.getByTestId("order-row").filter({ hasText: "MS-50001" });
+      await expect(realRow).toHaveCount(1);
+      await expect(realRow.getByText("Sample")).toHaveCount(0);
+    } finally {
+      await clearOrders();
+    }
   });
 
   test("the built-in 67095252 order is searchable and its receipt downloads", async ({ page }) => {

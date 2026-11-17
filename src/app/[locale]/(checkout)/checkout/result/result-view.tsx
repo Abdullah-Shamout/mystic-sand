@@ -1,32 +1,22 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { OrderNotFound } from "@/components/payment/order-not-found";
-import { PaymentSkeleton } from "@/components/payment/payment-skeleton";
 import { ResultFailed } from "@/components/payment/result-failed";
 import { ResultSuccess } from "@/components/payment/result-success";
-import { useMounted } from "@/lib/hooks";
-import { useCheckout } from "@/store/checkout";
+import type { Order } from "@/store/checkout";
 
 /**
- * The URL mirrors KNET's response parameters (paymentid, result, trackid…), but the
- * outcome shown always comes from the order saved on this device — never from the URL.
+ * Renders the server-settled order: success (paid) or failed/canceled, straight from the DB order's
+ * status. `order` is null when the id is unknown or the per-order cookie token did not match it
+ * (ownership gate) — shown as "order not found". No URL parsing or on-device order reading here.
  */
-export default function ResultView() {
-  const params = useSearchParams();
-  const orderId = params.get("order") ?? "";
-  const mounted = useMounted();
-  const order = useCheckout((s) => (orderId ? s.orders[orderId] : undefined));
-
-  if (!mounted) return <PaymentSkeleton variant="result" />;
+export default function ResultView({ order, orderId }: { order: Order | null; orderId: string }) {
   if (!order) return <OrderNotFound orderId={orderId} />;
 
-  const attempt = order.attempts[order.attempts.length - 1];
-  const key = attempt ? `${attempt.paymentId}-${attempt.result}` : "none";
+  if (order.status === "paid") {
+    const attempt = order.attempts.find((a) => a.result === "CAPTURED") ?? order.attempts.at(-1);
+    if (attempt) return <ResultSuccess order={order} attempt={attempt} />;
+  }
 
-  if (attempt?.result === "CAPTURED") return <ResultSuccess key={key} order={order} attempt={attempt} />;
-
-  // A cosmetic hint from our own gateway (session expiry), trusted only for this very attempt.
-  const timedOut = attempt !== undefined && params.get("reason") === "timeout" && params.get("paymentid") === attempt.paymentId;
-  return <ResultFailed key={key} order={order} attempt={attempt} reason={timedOut ? "timeout" : null} />;
+  return <ResultFailed order={order} attempt={order.attempts.at(-1)} reason={null} />;
 }

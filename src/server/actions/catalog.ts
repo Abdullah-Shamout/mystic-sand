@@ -88,13 +88,22 @@ function seedProductColumns(p: Product, index: number) {
  * sku's owner moves to `productId`, so callers that take untrusted input must guard ownership
  * first), preserving order in `sort`, then delete this product's variant rows whose sku isn't
  * incoming. Respects the CHECK(stock >= 0) / CHECK(price_fils >= 0) constraints via the validators.
+ *
+ * STOCK IS NEVER TOUCHED ON UPDATE. `variants.stock` is the live inventory count that settleOrder
+ * decrements on a sale; a general product save/reset must not clobber it. So `stock` is set ONLY on
+ * the INSERT branch (a brand-new sku has no live count yet) and is EXCLUDED from the
+ * onConflictDoUpdate SET for an existing sku — the row's live stock survives the write untouched.
+ * The one and only path that changes an existing variant's stock is setVariantStock (the Stock page).
  */
 async function writeVariants(tx: Tx, productId: string, vs: Variant[]): Promise<void> {
   const skus = vs.map((v) => v.sku);
   for (let j = 0; j < vs.length; j++) {
     const v = vs[j];
-    const row = { productId, sku: v.sku, size: v.size, priceFils: v.priceFils, stock: v.stock, sort: j };
-    await tx.insert(schema.variants).values(row).onConflictDoUpdate({ target: schema.variants.sku, set: row });
+    // INSERT a new sku with its seed/typed stock…
+    const insertRow = { productId, sku: v.sku, size: v.size, priceFils: v.priceFils, stock: v.stock, sort: j };
+    // …but on conflict (an EXISTING sku) update everything EXCEPT stock, so the live count is preserved.
+    const updateSet = { productId, size: v.size, priceFils: v.priceFils, sort: j };
+    await tx.insert(schema.variants).values(insertRow).onConflictDoUpdate({ target: schema.variants.sku, set: updateSet });
   }
   if (skus.length > 0) {
     await tx
@@ -257,6 +266,9 @@ export async function setCategory(
 /**
  * Restores a BASE product (and its variants) to the src/data seed. A custom slug is a no-op (customs
  * have no seed); an unknown base slug is a no-op. Replaces the old "drop patch → restore base".
+ *
+ * Live `variants.stock` is PRESERVED (writeVariants never updates stock for an existing sku): a reset
+ * restores copy/price/size but not the inventory count, which is owned by the Stock page.
  */
 export async function resetProduct(slug: string): Promise<void> {
   await requireAdmin();
@@ -326,6 +338,9 @@ export async function saveCategory(slug: CategorySlug, patch: CategoryPatch): Pr
  * Restores the whole catalog to the src/data seed: re-seed all base categories, products and
  * variants, and delete every custom (`c-…`) product. Runs in one transaction (mirrors scripts/seed.ts,
  * which can't be imported — it runs main()/pool.end() at import time).
+ *
+ * Live `variants.stock` is PRESERVED for every existing sku (writeVariants only sets stock on INSERT),
+ * so a catalog reset never rewinds inventory the way the standalone db:seed script deliberately does.
  */
 export async function resetAllCatalog(): Promise<void> {
   await requireAdmin();

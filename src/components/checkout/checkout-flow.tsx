@@ -5,15 +5,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { FormProvider, useForm, type FieldErrors } from "react-hook-form";
-import { DRAFT_UPDATED_EVENT, SAMPLE_DETAILS } from "@/components/layout/demo-helpers";
+import { DRAFT_UPDATED_EVENT } from "@/components/layout/demo-helpers";
 import type { PaymentMethod } from "@/data/site";
-import { useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { getLiveCatalog } from "@/lib/live";
+import { getLiveCatalog, getLiveSettings } from "@/lib/live";
 import { getLiveAvailable, useLiveStock } from "@/lib/live-stock";
-import { mockGateway } from "@/lib/payments/mock";
-import { priceLines } from "@/lib/pricing";
+import { computeTotals, priceLines } from "@/lib/pricing";
 import { checkoutSchema, emptyCheckoutForm, rememberedFields, type CheckoutForm } from "@/lib/validation";
+import { initiateCheckout } from "@/server/actions/checkout";
 import { useBag } from "@/store/bag";
 import { useCheckout } from "@/store/checkout";
 import { useUi } from "@/store/ui";
@@ -27,7 +26,7 @@ import { ExpressCheckout } from "./express-checkout";
 import { EXPRESS_APPLE_PAY_EVENT } from "./events";
 import { FIELD_ORDER, focusField, FORM_ID } from "./form-helpers";
 import { MobilePayBar } from "./mobile-pay-bar";
-import { buildOrderInput, detailsComplete, matchesRemembered, withoutTerms, type OrderDetails } from "./order";
+import { detailsComplete, matchesRemembered, withoutTerms, type OrderDetails } from "./order";
 import { MobileOrderSummary, OrderSummaryPanel } from "./order-summary";
 import { PaymentSection } from "./payment-section";
 import { RedirectOverlay } from "./redirect-overlay";
@@ -64,7 +63,6 @@ export function CheckoutFlow() {
   const t = useTranslations("checkout");
   const tc = useTranslations("common");
   const locale = useLocale() as Locale;
-  const router = useRouter();
   const announce = useUi((s) => s.announce);
   const openBag = useUi((s) => s.openBag);
   const pushToast = useUi((s) => s.pushToast);
@@ -151,15 +149,53 @@ export function CheckoutFlow() {
     return () => pending.forEach((id) => window.clearTimeout(id));
   }, []);
 
-  const createOrder = useCallback(
-    (details: OrderDetails, method: PaymentMethod) =>
-      useCheckout
-        .getState()
-        .createOrReuseOrder(buildOrderInput({ details, bag: useBag.getState(), method, locale }), new Date()),
-    [locale],
+  /**
+   * Hands the (server-repriced) bag to initiateCheckout and redirects to the provider's hosted page.
+   * The client total is for the redirect overlay only — the server reprices from the DB and never
+   * trusts it. KNET and card go straight here; Apple Pay reaches it through the confirm sheet.
+   */
+  const startCheckout = useCallback(
+    async (details: OrderDetails, method: PaymentMethod) => {
+      if (locked.current) return;
+      locked.current = true;
+      setBusy(true);
+      const bag = useBag.getState();
+      const amountFils = computeTotals({
+        lines: bag.lines,
+        deliveryMethod: details.deliveryMethod,
+        promo: bag.promo,
+        catalog: getLiveCatalog(),
+        settings: getLiveSettings(),
+      }).totalFils;
+      if (method !== "applepay") {
+        setRedirect({ method, amountFils });
+        announce(method === "knet" ? t("redirect.knet") : t("redirect.card"));
+      }
+      const result = await initiateCheckout({
+        lines: bag.lines.map((l) => ({ sku: l.sku, qty: l.qty })),
+        promoCode: bag.promo?.code ?? null,
+        details,
+        locale,
+      });
+      if (result.ok) {
+        window.location.assign(result.redirectUrl);
+        return;
+      }
+      // Failed to start: unlock and tell the shopper. Stock/availability sends them back to the bag.
+      locked.current = false;
+      setBusy(false);
+      setRedirect(null);
+      if (result.error === "stock" || result.error === "unavailable" || result.error === "empty") {
+        pushToast({ title: tc("stockRefused") });
+        openBag();
+      } else {
+        pushToast({ title: t("errors.generic") });
+      }
+    },
+    [locale, announce, t, tc, openBag, pushToast],
   );
 
-  /** Express: the form's details when complete, otherwise the (simulated) wallet's. */
+  /** Express Apple Pay: open the confirm sheet when the form is complete, else expand it to fill. */
   const openExpressSheet = useCallback(() => {
     // Same rule as Pay: items that are no longer available (or short on stock) leave the bag first.
     const { priced, missing } = priceLines(useBag.getState().lines, getLiveCatalog());
@@ -170,8 +206,13 @@ export function CheckoutFlow() {
       return;
     }
     const values = getValues();
-    const details = detailsComplete(values) ? values : { ...values, ...SAMPLE_DETAILS };
-    setSheet({ open: true, details: withoutTerms(details) });
+    if (!detailsComplete(values)) {
+      // No sample fallback now: the shopper fills the real address before Apple Pay can run.
+      flushSync(() => setCollapsed(false));
+      focusField("name");
+      return;
+    }
+    setSheet({ open: true, details: withoutTerms(values) });
   }, [getValues, openBag, pushToast, tc]);
 
   // "Apple Pay" from the bag drawer or product page lands here with ?express=applepay (once).
@@ -216,7 +257,8 @@ export function CheckoutFlow() {
     if (locked.current) return;
     const bag = useBag.getState();
     const { priced, missing } = priceLines(bag.lines, getLiveCatalog());
-    // Re-check stock against the live ledger: a size that sold out (or dropped) stops the payment.
+    // Client-side pre-check (fast UI): a size that sold out (or dropped) stops before the round-trip.
+    // The server reprice in initiateCheckout is the authoritative stock gate.
     const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
     if (priced.length === 0 || missing.length > 0 || short) {
       if (short) pushToast({ title: tc("stockRefused") });
@@ -227,27 +269,16 @@ export function CheckoutFlow() {
     // Save now rather than in 300ms: we are about to leave the page.
     window.clearTimeout(saveTimer.current);
     pendingDraft.current = null;
-    useCheckout.getState().updateDraft(withoutTerms(values));
-
     const details = withoutTerms(values);
+    useCheckout.getState().updateDraft(details);
+
     if (values.paymentMethod === "applepay") {
+      // Apple Pay opens the confirm sheet, which routes through the SAME initiateCheckout → sandbox.
       setSheet({ open: true, details });
       return;
     }
 
-    locked.current = true;
-    setBusy(true);
-    const method = values.paymentMethod;
-    const orderId = createOrder(details, method);
-    const amountFils = useCheckout.getState().orders[orderId]?.totals.totalFils ?? 0;
-    setRedirect({ method, amountFils });
-    announce(method === "knet" ? t("redirect.knet") : t("redirect.card"));
-    timers.current.push(
-      window.setTimeout(
-        () => router.push(mockGateway.initiate({ orderId, method, amountFils }).redirectPath),
-        REDIRECT_MS,
-      ),
-    );
+    void startCheckout(details, values.paymentMethod);
   };
 
   const onInvalid = (invalid: FieldErrors<CheckoutForm>) => {
@@ -329,7 +360,7 @@ export function CheckoutFlow() {
         open={sheet.open}
         onOpenChange={(open) => setSheet((s) => ({ ...s, open }))}
         details={sheet.details}
-        createOrder={() => createOrder(sheet.details, "applepay")}
+        onConfirm={() => startCheckout(sheet.details, "applepay")}
       />
       {redirect && <RedirectOverlay method={redirect.method} amountFils={redirect.amountFils} durationMs={REDIRECT_MS} />}
     </FormProvider>

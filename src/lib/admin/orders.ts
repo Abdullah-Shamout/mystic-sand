@@ -17,6 +17,8 @@ export type AdminOrder = {
   source: OrderSource;
   /** True for paid and confirming orders (a confirming order is paid-pending, shown as Pending). */
   paid: boolean;
+  /** A captured-but-unfulfillable order (settleOrder's oversold flag) — a human must act on it. */
+  oversold: boolean;
   fulfillment: "pending" | "done";
   doneAt: string | null;
   /** The attempt a receipt is built from: last CAPTURED, else the last attempt (or null). */
@@ -66,6 +68,7 @@ function toAdminOrder(order: Order, source: OrderSource, fulfillment: Fulfillmen
     order,
     source,
     paid,
+    oversold: Boolean(order.oversold),
     fulfillment: done ? "done" : "pending",
     doneAt: done ? (fulfillment[order.id]?.doneAt ?? null) : null,
     receiptAttempt: receiptAttemptFor(order),

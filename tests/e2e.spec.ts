@@ -1,6 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// Core shopping flows against the `next start` production server (run `npm run build` first).
+import { clearOrders, readLatestOrder, readVariantStock } from "./db";
+
+// Core shopping flows against the `next start` production server (run `npm run build` first). The
+// purchase flow is REAL now: add to bag → checkout → the hosted /sandbox/pay page → Approve/Decline →
+// /checkout/result, settled server-side (orders + stock in Postgres). DB assertions use tests/db.ts.
 
 const BAG_KEY = "ms-bag";
 
@@ -22,23 +26,25 @@ async function fillCheckout(page: Page, phone = "٩٩١٢٣٤٥٦") {
   await page.getByRole("checkbox", { name: /I agree to the Terms/ }).check();
 }
 
-async function payWithKnet(page: Page) {
+/** Drive the hosted sandbox page to the chosen outcome, landing back on /checkout/result. */
+async function paySandbox(page: Page, outcome: "approve" | "decline" | "cancel") {
   await page.getByTestId("checkout-pay").first().click();
-  await page.waitForURL(/\/checkout\/pay\//);
-  await page.getByRole("radio", { name: /National Bank of Kuwait/ }).check();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Submit" }).click();
-  await page.getByRole("button", { name: "Confirm", exact: true }).click();
-  // Orders of KD 25 or more add the bank's SMS-code step.
-  const smsConfirm = page.getByRole("button", { name: "Confirm", exact: true });
-  if (await page.getByText(/verification code/i).isVisible().catch(() => false)) await smsConfirm.click();
+  await page.waitForURL(/\/sandbox\/pay\//, { timeout: 15_000 });
+  const label = { approve: "Approve payment", decline: "Decline payment", cancel: "Cancel payment" }[outcome];
+  await page.getByRole("button", { name: label }).click();
   await page.waitForURL(/\/checkout\/result\//, { timeout: 15_000 });
 }
 
 test.describe("shopping flows", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+  // Each test here places a REAL order in Postgres; clear them so the admin "N samples" counts stay
+  // deterministic and stock deltas are read per test.
+  test.afterEach(async () => {
+    await clearOrders();
+  });
 
-  test("add to bag → checkout → KNET captured → receipt survives refresh", async ({ page }) => {
+  test("add to bag → checkout → sandbox Approve → paid + stock decremented, receipt survives refresh", async ({ page }) => {
+    const before = await readVariantStock("MS-I-50");
     await addFromProductPage(page, "i");
     await expect(page.getByTestId("bag-line")).toHaveCount(1);
     await page.getByTestId("bag-checkout").click();
@@ -46,28 +52,37 @@ test.describe("shopping flows", () => {
 
     await fillCheckout(page);
     await expect(page.getByLabel("Mobile number")).toHaveValue("99123456"); // Arabic digits normalised
-    await payWithKnet(page);
+    await paySandbox(page, "approve");
 
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
-    await expect(page.getByText("CAPTURED").first()).toBeVisible();
     await expect(page.getByText(/MS-\d{5}/).first()).toBeVisible();
 
-    // The bag was cleared exactly once; a refresh shows the same receipt.
+    // The backend settled it: the order is paid and variants.stock dropped by exactly one.
+    const order = await readLatestOrder();
+    expect(order?.status).toBe("paid");
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1);
+
+    // The bag was cleared exactly once; a refresh re-renders (re-settles) but never double-decrements.
     const bag = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? "{}"), BAG_KEY);
     expect(bag.state.lines).toHaveLength(0);
     await page.reload();
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1);
   });
 
-  test("declined payment keeps the bag and offers a retry", async ({ page }) => {
+  test("declined payment keeps the bag, leaves stock untouched, and offers a retry", async ({ page }) => {
+    const before = await readVariantStock("MS-AURA-100");
     await addFromProductPage(page, "aura");
     await page.goto("/en/checkout/");
-    await page.evaluate(() => sessionStorage.setItem("ms-demo-outcome", "NOT CAPTURED"));
     await fillCheckout(page);
-    await payWithKnet(page);
+    await paySandbox(page, "decline");
 
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/not completed/i);
     await expect(page.getByText(/not been charged/i)).toBeVisible();
+
+    // Unpaid in the DB, stock unchanged, bag retained.
+    expect((await readLatestOrder())?.status).toBe("failed");
+    expect(await readVariantStock("MS-AURA-100")).toBe(before);
     const bag = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? "{}"), BAG_KEY);
     expect(bag.state.lines).toHaveLength(1);
     await expect(page.getByRole("button", { name: /Try again/i }).or(page.getByRole("link", { name: /Try again/i }))).toBeVisible();
@@ -81,7 +96,7 @@ test.describe("shopping flows", () => {
     await addFromProductPage(page, "i");
     await page.goto("/en/checkout/");
     await fillCheckout(page);
-    await payWithKnet(page);
+    await paySandbox(page, "approve");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
 
     await page.goto("/en/orders/");
@@ -93,9 +108,8 @@ test.describe("shopping flows", () => {
   test("a failed payment leaves My orders empty", async ({ page }) => {
     await addFromProductPage(page, "aura");
     await page.goto("/en/checkout/");
-    await page.evaluate(() => sessionStorage.setItem("ms-demo-outcome", "NOT CAPTURED"));
     await fillCheckout(page);
-    await payWithKnet(page);
+    await paySandbox(page, "decline");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/not completed/i);
 
     await page.goto("/en/orders/");

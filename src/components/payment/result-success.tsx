@@ -14,7 +14,6 @@ import { whatsappHref } from "@/lib/settings";
 import type { PaymentRecord } from "@/lib/payments/types";
 import { useBag } from "@/store/bag";
 import { useCheckout, type Order } from "@/store/checkout";
-import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { DeliveryDetails } from "./delivery-details";
 import { firstName, isolate } from "./format";
@@ -36,15 +35,14 @@ export function ResultSuccess({ order, attempt }: { order: Order; attempt: Payme
   const heading = useFocusOnMount<HTMLHeadingElement>();
 
   useEffect(() => {
-    // Exactly once per order: a refresh, Back or a later visit finds it finalized and changes nothing.
-    // finalize() returns true only on its first call, so stock is decremented exactly once per paid
-    // order (a refresh never double-counts). Apple Pay and a late PENDING→CAPTURED both land here.
-    if (useCheckout.getState().finalize(order.id, new Date())) {
-      useStockStore.getState().recordSale(order.lines);
+    // Stock is already decremented server-side by settleOrder (atomic, idempotent). Here we only keep
+    // the device-local record + clear the bag, exactly once: recordPaidOrder returns true only on its
+    // first call, so a refresh or a later visit to the receipt never re-clears a fresh bag.
+    if (useCheckout.getState().recordPaidOrder(order, new Date())) {
       useBag.getState().clear();
       announce(t("success.announce", { id: order.id }));
     }
-  }, [order.id, order.lines, announce, t]);
+  }, [order, announce, t]);
 
   const name = firstName(order.details.name);
   const bdi = (chunks: React.ReactNode) => <bdi>{chunks}</bdi>;

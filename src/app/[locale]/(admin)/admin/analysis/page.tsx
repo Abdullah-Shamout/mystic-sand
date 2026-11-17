@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ProductAnalysis } from "@/components/admin/analysis/product-analysis";
+import { getSiteOrdersForAdmin } from "@/server/read/orders";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -13,5 +14,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function AdminAnalysisPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <ProductAnalysis />;
+  const siteOrders = await getSiteOrdersForAdmin();
+  return <ProductAnalysis siteOrders={siteOrders} />;
 }

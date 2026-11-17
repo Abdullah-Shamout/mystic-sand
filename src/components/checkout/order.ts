@@ -1,15 +1,6 @@
-import type { PaymentMethod } from "@/data/site";
-import type { Locale } from "@/i18n/routing";
-import { getLiveCatalog, getLiveSettings } from "@/lib/live";
-import { newTrackId } from "@/lib/order";
-import { normalizeKuwaitPhone } from "@/lib/phone";
-import { bagKey, computeTotals, priceLines, type BagLine, type Promo } from "@/lib/pricing";
 import { checkoutSchema, rememberedFields, type CheckoutForm } from "@/lib/validation";
-import { useCheckout, type Order, type OrderLine } from "@/store/checkout";
 
 export type OrderDetails = Omit<CheckoutForm, "acceptTerms">;
-export type OrderInput = Omit<Order, "createdAt" | "status" | "attempts" | "finalizedAt">;
-export type BagSnapshot = { lines: BagLine[]; promo: Promo | null };
 
 /** The terms box is never stored: it has to be ticked again on every order. */
 export function withoutTerms(values: CheckoutForm): OrderDetails {
@@ -30,51 +21,4 @@ export function detailsComplete(values: OrderDetails): boolean {
 export function matchesRemembered(draft: CheckoutForm, remembered: Partial<CheckoutForm> | null): boolean {
   if (!remembered) return false;
   return rememberedFields.every((k) => (draft[k] ?? "") === (remembered[k] ?? "")) && detailsComplete(draft);
-}
-
-/** What is stored on the order: a normalised phone, and fields that don't apply cleared. */
-function cleanDetails(d: OrderDetails): OrderDetails {
-  const house = d.housing === "house";
-  return {
-    ...d,
-    phone: normalizeKuwaitPhone(d.phone),
-    floor: house ? "" : d.floor,
-    apartment: house ? "" : d.apartment,
-  };
-}
-
-/** Snapshot of the bag + details for useCheckout.createOrReuseOrder (call from event handlers only). */
-export function buildOrderInput({
-  details,
-  bag,
-  method,
-  locale,
-}: {
-  details: OrderDetails;
-  bag: BagSnapshot;
-  method: PaymentMethod;
-  locale: Locale;
-}): OrderInput {
-  const catalog = getLiveCatalog();
-  const { priced } = priceLines(bag.lines, catalog);
-  const lines: OrderLine[] = priced.map((l) => ({
-    sku: l.sku,
-    slug: l.product.slug,
-    qty: l.qty,
-    priceFils: l.variant.priceFils,
-    name: l.product.name,
-    size: l.variant.size,
-    image: l.product.images.card,
-  }));
-  const { deliveryMethod } = details;
-  return {
-    id: newTrackId(useCheckout.getState().orders),
-    locale,
-    lines,
-    totals: computeTotals({ lines: bag.lines, deliveryMethod, promo: bag.promo, catalog, settings: getLiveSettings() }),
-    details: cleanDetails(details),
-    promoCode: bag.promo?.code ?? null,
-    bagKey: bagKey({ lines: bag.lines, deliveryMethod, promo: bag.promo }),
-    method,
-  };
 }

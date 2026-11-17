@@ -14,9 +14,8 @@ import { CATEGORY_SLUGS, isCustomSlug, isProductEdited, productHref } from "@/li
 import { cn } from "@/lib/cn";
 import { useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
-import { availableFromStock } from "@/lib/stock";
+import { availableFromStock, NO_SOLD, type SoldMap } from "@/lib/stock";
 import { deleteProduct, resetProduct, saveCategory, setCategory, setHidden } from "@/server/actions/catalog";
-import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { ConfirmDialog } from "../confirm-dialog";
 
@@ -43,7 +42,8 @@ export function ProductsList() {
   const locale = useLocale() as Locale;
   const router = useRouter();
   const catalog = useLiveCatalog();
-  const sold = useStockStore((s) => s.sold);
+  // variants.stock is the live available quantity now (settleOrder decrements it); no client ledger.
+  const sold = NO_SOLD;
   const pushToast = useUi((s) => s.pushToast);
 
   const [query, setQuery] = useState("");

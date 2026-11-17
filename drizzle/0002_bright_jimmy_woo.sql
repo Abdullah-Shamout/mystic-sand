@@ -1,0 +1,2 @@
+ALTER SEQUENCE "public"."ms_order_seq" INCREMENT BY 1 MINVALUE 20000 MAXVALUE 9999999999 START WITH 20000 CACHE 1;--> statement-breakpoint
+ALTER TABLE "promo_codes" ADD CONSTRAINT "promo_codes_percent_range" CHECK ("promo_codes"."percent" between 1 and 100);

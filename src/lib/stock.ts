@@ -1,10 +1,17 @@
 import type { Product } from "@/data/types";
 import { visibleBySku, type Catalog } from "@/lib/catalog";
-import type { SoldMap } from "@/store/stock";
 
 // Pure stock maths (no React, no zustand). "Available" is the catalog's set stock minus the units
 // sold since it was set, never below zero. Storefront callers read through visibleBySku, so a hidden
 // or unknown SKU is never buyable; the admin computes available straight from a variant's stock.
+//
+// Since Phase 5b, variants.stock is the single source of truth (settleOrder decrements it in the DB),
+// so the client "sold since set" ledger is gone. `SoldMap` is kept as a pure parameter type (callers
+// now always pass {}), so these helpers and the admin analytics keep their signatures.
+export type SoldMap = Record<string, number>;
+
+/** An empty sold map — the only value callers pass now that the client ledger is removed. */
+export const NO_SOLD: SoldMap = {};
 
 /** Available from a raw set value and its sold counter, clamped at zero. */
 export const availableFromStock = (stock: number, sold: number): number => Math.max(0, stock - sold);

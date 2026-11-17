@@ -12,7 +12,7 @@ import { statusKind, type AdminOrder } from "@/lib/admin/orders";
 import { formatDateTime } from "@/lib/delivery";
 import { formatKuwaitPhone } from "@/lib/phone";
 import { useUi } from "@/store/ui";
-import { SampleTag, StatusChip } from "../status-chip";
+import { OversoldTag, SampleTag, StatusChip } from "../status-chip";
 import { ReceiptActions } from "./receipt-capture";
 import { useFulfillment } from "./use-fulfillment";
 
@@ -34,8 +34,18 @@ function Body({ item }: { item: AdminOrder }) {
     <div className="space-y-10 px-6 py-6">
       <div className="flex flex-wrap items-center gap-2">
         <StatusChip kind={statusKind(item)} />
+        {item.oversold && <OversoldTag />}
         {item.source === "sample" && <SampleTag />}
       </div>
+
+      {item.oversold && (
+        <div
+          className="border border-danger/40 bg-danger/10 px-4 py-3 text-[13px] text-danger"
+          role="alert"
+        >
+          {t("orders.oversold.notice")}
+        </div>
+      )}
 
       <dl className="divide-y divide-line border-y border-line">
         <Row label={t("orders.drawer.placed")}>

@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { readVariantStock, setVariantStock } from "./db";
+
 // Phase 3c proof: the storefront reads the catalog from Postgres at request time (runtime-dynamic,
 // tag-cached), and an admin edit is reflected immediately. The admin product editor saves via the
 // saveProduct Server Action, which calls updateTag("catalog") — read-your-own-writes, no long wait.
@@ -24,6 +26,8 @@ async function signIn(page: Page) {
 
 const SLUG = "dune";
 const NAME = "Dune";
+const SKU = "MS-DUNE-250";
+const SENTINEL_STOCK = 7; // a live count that differs from the seed, to prove save/reset never clobber it
 const SEED_PRICE = "KWD 7.500";
 const NEW_PRICE = "KWD 33.300"; // a value no other product uses
 
@@ -32,10 +36,16 @@ test.describe("live DB reads via the admin editor (Phase 3c)", () => {
 
   test("an editor price change is reflected on the list and the storefront, then reset", async ({ page }) => {
     await signIn(page);
+    const seedStock = await readVariantStock(SKU);
     try {
       // The seeded product page shows the seed price.
       await page.goto(`/en/product/${SLUG}/`);
       await expect(page.getByText(SEED_PRICE).first()).toBeVisible();
+
+      // A live sale would leave variants.stock below the seed. Set a sentinel the editor save / list
+      // Reset must NOT overwrite — this is the Phase-5b silent-oversell regression guard: a general
+      // product save/reset writes stock back to the form/seed value, re-materialising sold units.
+      await setVariantStock(SKU, SENTINEL_STOCK);
 
       // Edit the price in the admin editor and save (→ saveProduct → updateTag("catalog")).
       await page.goto(`/en/admin/products/edit/?p=${SLUG}`);
@@ -44,6 +54,9 @@ test.describe("live DB reads via the admin editor (Phase 3c)", () => {
       await price.fill("33.300");
       await page.getByTestId("editor-save").click();
       await page.waitForURL(/\/admin\/products\/$/);
+
+      // The save changed price but must leave the LIVE stock count untouched.
+      expect(await readVariantStock(SKU)).toBe(SENTINEL_STOCK);
 
       // The products list (server-fed live catalog) reflects it straight away — no reload. This proves
       // the post-save router.refresh() re-read the DB through the shared layout.
@@ -68,6 +81,10 @@ test.describe("live DB reads via the admin editor (Phase 3c)", () => {
         await page.getByTestId("confirm-accept").click();
         await expect(resetBtn).toHaveCount(0);
       }
+      // Reset restores copy/price to the seed but must also PRESERVE the live stock count.
+      expect(await readVariantStock(SKU)).toBe(SENTINEL_STOCK);
+      // Restore the seed stock so the shared DB is left clean for later specs.
+      await setVariantStock(SKU, seedStock);
     }
   });
 });

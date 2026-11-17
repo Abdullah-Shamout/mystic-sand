@@ -9,7 +9,7 @@ import { statusKind, type AdminOrder, type SortDir, type SortKey } from "@/lib/a
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/delivery";
 import { formatKuwaitPhone } from "@/lib/phone";
-import { SampleTag, StatusChip } from "../status-chip";
+import { OversoldTag, SampleTag, StatusChip } from "../status-chip";
 import { useFulfillment } from "./use-fulfillment";
 
 type Sort = { key: SortKey; dir: SortDir };
@@ -140,7 +140,10 @@ export function OrdersTable({
                   <Price fils={order.totals.totalFils} className="font-medium" />
                 </td>
                 <td className="px-3 py-3">
-                  <StatusChip kind={statusKind(item)} />
+                  <div className="flex flex-col items-start gap-1">
+                    <StatusChip kind={statusKind(item)} />
+                    {item.oversold && <OversoldTag />}
+                  </div>
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center justify-end gap-3 whitespace-nowrap">

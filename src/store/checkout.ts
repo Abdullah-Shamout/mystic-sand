@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 import type { Locale } from "@/i18n/routing";
 import type { PaymentMethod } from "@/data/site";
 import type { Localized } from "@/data/types";
-import type { PaymentRecord, PaymentResult } from "@/lib/payments/types";
+import type { PaymentRecord } from "@/lib/payments/types";
 import type { Totals } from "@/lib/pricing";
 import { safeJSONStorage } from "@/lib/storage";
 import { emptyCheckoutForm, rememberedFields, type CheckoutForm } from "@/lib/validation";
@@ -34,28 +34,36 @@ export type Order = {
   method: PaymentMethod;
   status: OrderStatus;
   attempts: PaymentRecord[];
+  /**
+   * ADMIN-ONLY flag: a captured payment that could not be fully fulfilled (settleOrder set
+   * orders.oversold). Populated by the admin order read (getSiteOrdersForAdmin); the storefront
+   * receipt and the client-generated samples leave it undefined.
+   */
+  oversold?: boolean;
   /** Set once the result page has applied the outcome (bag cleared etc.). */
   finalizedAt: string | null;
 };
-
-const statusFor = (result: PaymentResult): OrderStatus =>
-  result === "CAPTURED" ? "paid" : result === "PENDING" ? "confirming" : result === "CANCELED" ? "canceled" : "failed";
 
 type Remembered = Partial<Pick<CheckoutForm, (typeof rememberedFields)[number]>>;
 
 type CheckoutState = {
   draft: CheckoutForm;
   remembered: Remembered | null;
+  /**
+   * DEVICE-LOCAL order history (the "My orders" list + the empty-checkout "last order" link). Orders
+   * are server-authoritative now (money + stock live in Postgres); this map is a display-only record
+   * of orders paid on THIS device, written by recordPaidOrder on the result page.
+   */
   orders: Record<string, Order>;
   lastOrderId: string | null;
 
   updateDraft: (patch: Partial<CheckoutForm>) => void;
-  /** Reuses the open pending order when nothing that affects the amount changed. */
-  createOrReuseOrder: (input: Omit<Order, "createdAt" | "status" | "attempts" | "finalizedAt">, now: Date) => string;
-  recordAttempt: (orderId: string, record: PaymentRecord) => void;
-  /** Applies a captured/settled outcome exactly once. Returns true on the first call. */
-  finalize: (orderId: string, now: Date) => boolean;
-  setMethod: (orderId: string, method: PaymentMethod) => void;
+  /**
+   * Records a server-confirmed paid order into the device-local history, exactly once (a refresh or a
+   * later visit to the receipt is a no-op). On the first call it also saves "remembered" details and
+   * points lastOrderId at it. Returns true only on that first call, so the caller clears the bag once.
+   */
+  recordPaidOrder: (order: Order, now: Date) => boolean;
   forgetDetails: () => void;
   resetAll: () => void;
 };
@@ -79,51 +87,20 @@ export const useCheckout = create<CheckoutState>()(
 
       updateDraft: (patch) => set({ draft: { ...get().draft, ...patch } }),
 
-      createOrReuseOrder: (input, now) => {
-        const existing = Object.values(get().orders).find(
-          (o) => o.bagKey === input.bagKey && (o.status === "pending" || o.status === "failed" || o.status === "canceled"),
-        );
-        if (existing) {
-          set({
-            orders: {
-              ...get().orders,
-              [existing.id]: { ...existing, ...input, id: existing.id, status: "pending" },
-            },
-          });
-          return existing.id;
-        }
-        const order: Order = {
-          ...input,
-          createdAt: now.toISOString(),
-          status: "pending",
-          attempts: [],
-          finalizedAt: null,
-        };
-        // `lastOrderId` deliberately points only at a paid order (set in finalize), never at a
-        // pending/abandoned checkout, so the empty-checkout "View your last order" link is safe.
-        set({ orders: { ...get().orders, [order.id]: order } });
-        return order.id;
-      },
-
-      recordAttempt: (orderId, record) => {
-        const order = get().orders[orderId];
-        if (!order) return;
+      recordPaidOrder: (order, now) => {
+        // Idempotent: a refresh or a later visit to the receipt finds it already recorded and changes
+        // nothing, so the bag is cleared exactly once.
+        if (get().orders[order.id]) return false;
+        const remembered = order.details.saveDetails
+          ? pick({ ...order.details, acceptTerms: true })
+          : get().remembered;
         set({
           orders: {
             ...get().orders,
-            [orderId]: { ...order, attempts: [...order.attempts, record], status: statusFor(record.result), method: record.method },
+            [order.id]: { ...order, finalizedAt: order.finalizedAt ?? now.toISOString() },
           },
-        });
-      },
-
-      finalize: (orderId, now) => {
-        const order = get().orders[orderId];
-        if (!order || order.finalizedAt || order.status !== "paid") return false;
-        const remembered = order.details.saveDetails ? pick({ ...order.details, acceptTerms: true }) : get().remembered;
-        set({
-          orders: { ...get().orders, [orderId]: { ...order, finalizedAt: now.toISOString() } },
           // Only a paid order ever becomes the "last order" surfaced on the empty checkout page.
-          lastOrderId: orderId,
+          lastOrderId: order.id,
           remembered,
           // One-off fields are cleared; saved details stay.
           draft: {
@@ -133,11 +110,6 @@ export const useCheckout = create<CheckoutState>()(
           },
         });
         return true;
-      },
-
-      setMethod: (orderId, method) => {
-        const order = get().orders[orderId];
-        if (order) set({ orders: { ...get().orders, [orderId]: { ...order, method } } });
       },
 
       forgetDetails: () => set({ remembered: null, draft: emptyCheckoutForm }),

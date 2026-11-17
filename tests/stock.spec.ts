@@ -1,15 +1,24 @@
-import { expect, test, type Page } from "@playwright/test";
+import crypto from "node:crypto";
 
-import { readVariantStock } from "./db";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 
-// The stock system: per-size available stock, the admin Stock page, bag/checkout caps, the
-// once-only decrement on a paid order, and the capture-time guard that never oversells. Run
-// `npm run build` first — these hit the `next start` production server at localhost:4319. Long flows run on desktop.
+import { clearOrders, countSaleMoves, readLatestOrder, readVariantStock, setVariantStock } from "./db";
 
-const FAR_FUTURE = 4102444800000; // ~ year 2100 (ms), so the admin opens without signing in
+// Matches SANDBOX_WEBHOOK_SECRET in playwright.config.ts (webServer env).
+const WEBHOOK_SECRET = "test-sandbox-webhook-secret";
+const signWebhook = (body: string) => crypto.createHmac("sha256", WEBHOOK_SECRET).update(body).digest("hex");
+
+// Stock is server-backed now: variants.stock is the single source of truth and settleOrder decrements
+// it atomically on a captured payment. These specs drive the real sandbox purchase and read the
+// outcome straight from Postgres (tests/db.ts). Run `npm run build` first — they hit the `next start`
+// production server at localhost:4319. Long flows run on desktop.
+//
+// Note: the /checkout/result render settles the order but cannot expire the storefront's tag-cached
+// catalog (revalidateTag/updateTag are not allowed during a page render — only the webhook route can),
+// so the storefront's DISPLAYED stock can lag the 300s backstop after a sale. We therefore assert
+// stock via the DB, not the storefront UI, and as before/after deltas (orders persist across specs).
 
 async function signIn(page: Page) {
-  // Phase 4: real login (argon2 + session cookie). globalSetup seeds this admin.
   const user = process.env.ADMIN_USERNAME ?? "admin";
   const pass = process.env.ADMIN_PASSWORD ?? "Test-Admin-2026!";
   await page.goto("/en/login/");
@@ -19,24 +28,10 @@ async function signIn(page: Page) {
   await page.waitForURL(/\/en\/admin(\/|$)/);
 }
 
-/** Seed a zustand-persist store exactly as it is written to localStorage (runs on every load). */
-async function seedStore(page: Page, key: string, state: unknown, version: number) {
-  await page.addInitScript(
-    ({ key, state, version }) => localStorage.setItem(key, JSON.stringify({ state, version })),
-    { key, state, version },
-  );
-}
-
-const readSold = (page: Page): Promise<Record<string, number>> =>
-  page.evaluate(() => JSON.parse(localStorage.getItem("ms-stock") || "{}").state?.sold ?? {});
-
-async function setStock(page: Page, sku: string, value: number) {
-  await page.goto("/en/admin/stock/");
-  const row = page.locator(`[data-testid="stock-row"][data-sku="${sku}"]`);
-  await expect(row).toBeVisible();
-  await row.getByTestId("stock-input").fill(String(value));
-  await row.getByTestId("stock-save").click();
-  await expect(row).toHaveAttribute("data-available", String(value));
+async function addToBag(page: Page, slug: string) {
+  await page.goto(`/en/product/${slug}/`);
+  await page.getByTestId("pdp-add-to-bag").click();
+  await expect(page.getByRole("dialog")).toBeVisible();
 }
 
 async function fillCheckout(page: Page, phone = "99123456") {
@@ -51,286 +46,266 @@ async function fillCheckout(page: Page, phone = "99123456") {
   await page.getByRole("checkbox", { name: /I agree to the Terms/ }).check();
 }
 
-async function payWithKnet(page: Page) {
+/** Pay from the checkout page through the hosted sandbox, landing on /checkout/result. */
+async function paySandbox(page: Page, outcome: "approve" | "decline") {
   await page.getByTestId("checkout-pay").first().click();
-  await page.waitForURL(/\/checkout\/pay\//);
-  await page.getByRole("radio", { name: /National Bank of Kuwait/ }).check();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Submit" }).click();
-  await page.getByRole("button", { name: "Confirm", exact: true }).click();
-  // Orders of KD 25 or more add the bank's SMS-code (OTP) step before capture.
-  const otp = page.getByTestId("pay-otp-confirm");
-  await Promise.race([
-    page.waitForURL(/\/checkout\/result\//, { timeout: 15_000 }),
-    otp.waitFor({ state: "visible", timeout: 15_000 }),
-  ]).catch(() => {});
-  if (await otp.isVisible().catch(() => false)) await otp.click();
+  await page.waitForURL(/\/sandbox\/pay\//, { timeout: 15_000 });
+  const label = outcome === "approve" ? "Approve payment" : "Decline payment";
+  await page.getByRole("button", { name: label }).click();
   await page.waitForURL(/\/checkout\/result\//, { timeout: 15_000 });
 }
 
-test.describe("stock system", () => {
+/**
+ * Drives a checkout to the sandbox and APPROVES the payment while leaving the order PENDING, so the
+ * webhook is the only remaining settle path (exactly the state needed to prove a webhook settles on
+ * its own). Returns the providerPaymentId (the sandbox `ref`).
+ *
+ * The trick: with the client runtime present, Next inlines the /checkout/result render into the Approve
+ * server-action response, which settles the order server-side before any webhook. So we approve WITHOUT
+ * JavaScript — a plain-HTML form POST whose `decide` action returns a real 303 redirect instead of an
+ * inlined render. We intercept that POST and send it with maxRedirects:0: the server records the
+ * CAPTURED outcome on the provider session, but we never follow the 303 to the result page, so nothing
+ * settles the order. The checkout flow itself needs JS, so it runs in the main context; only the approve
+ * step runs in a throwaway no-JS context.
+ */
+async function approveWithoutReturnVisit(page: Page, browser: Browser): Promise<string> {
+  await addToBag(page, "i");
+  await page.goto("/en/checkout/");
+  await fillCheckout(page);
+  await page.getByTestId("checkout-pay").first().click();
+  await page.waitForURL(/\/sandbox\/pay\//, { timeout: 15_000 });
+  const sandboxUrl = page.url();
+  const providerPaymentId = new URL(sandboxUrl).searchParams.get("ref");
+  expect(providerPaymentId, "sandbox ref (providerPaymentId) in the pay URL").toBeTruthy();
+
+  const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: "http://localhost:4319" });
+  try {
+    const p2 = await noJs.newPage();
+    let approvePosted = false;
+    await p2.route(/\/sandbox\/pay\//, async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      await route.fetch({ maxRedirects: 0 }); // hits the server: records the CAPTURED outcome, returns 303…
+      approvePosted = true;
+      await route.fulfill({ status: 200, contentType: "text/plain", body: "ok" }); // …but we don't follow it
+    });
+    await p2.goto(sandboxUrl);
+    await p2.getByRole("button", { name: "Approve payment" }).click();
+    // Wait until the server has processed the Approve POST (the outcome is now set on the session).
+    await expect.poll(() => approvePosted, { timeout: 10_000 }).toBe(true);
+  } finally {
+    await noJs.close();
+  }
+
+  // The order was approved but never settled (no result-page render ran) — it is still pending.
+  expect((await readLatestOrder())?.status).toBe("pending");
+  return providerPaymentId!;
+}
+
+test.describe("stock (server-backed)", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+  // Every purchase here is a real DB order; clear them so the admin "N samples" counts stay stable.
+  test.afterEach(async () => {
+    await clearOrders();
+  });
 
-  test("I set to 2 caps the bag, sells out after buying 2, and + makes it buyable again", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 5 for stock.");
-    await signIn(page);
-    await setStock(page, "MS-I-50", 2);
-
-    // Product page shows the low-stock hint and the quantity stepper caps at 2.
-    await page.goto("/en/product/i/");
-    await expect(page.getByTestId("pdp-low-stock")).toHaveText("Only 2 left");
-    const qty = page.getByRole("group", { name: "Quantity for I" }).first();
-    await qty.getByRole("button", { name: "Increase quantity" }).click(); // 1 → 2
-    await expect(qty.getByRole("button", { name: "Maximum quantity reached" })).toBeDisabled();
-
-    // Add 2 to the bag; the bag line also caps at 2.
-    await page.getByTestId("pdp-add-to-bag").click();
-    const drawer = page.getByRole("dialog");
-    await expect(drawer.getByTestId("bag-line")).toHaveCount(1);
-    await expect(
-      drawer.getByRole("group", { name: "Quantity for I" }).getByRole("button", { name: "Maximum quantity reached" }),
-    ).toBeDisabled();
-
-    // Quick add beyond the cap is refused, with the "max reached" toast.
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(700); // clear the double-tap guard
-    await page.getByTestId("pdp-add-to-bag").click();
-    await expect(page.getByText("You can add up to 2 of this item.")).toBeVisible();
-
-    // Buy the 2 with KNET.
+  test("Approve decrements variants.stock; refreshing the result never decrements twice", async ({ page }) => {
+    const before = await readVariantStock("MS-I-50");
+    await addToBag(page, "i");
     await page.goto("/en/checkout/");
     await fillCheckout(page);
-    await payWithKnet(page);
+    await paySandbox(page, "approve");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
 
-    // I is now sold out on its page and card, and cannot be added.
-    await page.goto("/en/product/i/");
-    await expect(page.getByRole("button", { name: "Sold out", exact: true }).first()).toBeVisible();
-    await expect(page.getByTestId("pdp-add-to-bag")).toHaveCount(0);
+    expect((await readLatestOrder())?.status).toBe("paid");
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1);
 
-    await page.goto("/en/shop/perfumes/");
-    const card = page.locator('article:has(a[href$="/product/i/"])');
-    await expect(card.getByText("Sold out")).toBeVisible();
-    await expect(card.getByTestId("quick-add-i")).toHaveCount(0);
-
-    // The Stock page shows available 0 with 2 sold since set.
-    await page.goto("/en/admin/stock/");
-    const row = page.locator('[data-testid="stock-row"][data-sku="MS-I-50"]');
-    await expect(row).toHaveAttribute("data-available", "0");
-    await expect(row).toHaveAttribute("data-sold", "2");
-
-    // "+" raises available to 1 (and clears the sold counter) — buyable again.
-    await row.getByTestId("stock-inc").click();
-    await expect(row).toHaveAttribute("data-available", "1");
-    await expect(row).toHaveAttribute("data-sold", "0");
-
-    await page.goto("/en/product/i/");
-    await expect(page.getByTestId("pdp-low-stock")).toHaveText("Only 1 left");
-    await expect(page.getByTestId("pdp-add-to-bag")).toBeEnabled();
-  });
-
-  test("a multi-size product with one size at 0 keeps the other size buyable", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 5 for stock.");
-    await signIn(page);
-    await setStock(page, "MS-OUDCHIPS-3T", 0);
-
-    await page.goto("/en/product/oud-chips/");
-    // The sold-out size is shown, disabled; the in-stock size is selectable and buyable.
-    await expect(page.getByRole("radio", { name: /3 Tola/ })).toBeDisabled();
-    await expect(page.getByRole("radio", { name: /1 Tola/ })).toBeEnabled();
-    await expect(page.getByTestId("pdp-add-to-bag")).toBeEnabled();
-    await page.getByTestId("pdp-add-to-bag").click();
-    await expect(page.getByRole("dialog").getByTestId("bag-line")).toHaveCount(1);
-
-    // The card still offers "Choose size" (the product is not sold out).
-    await page.goto("/en/shop/oud/");
-    const card = page.locator('article:has(a[href$="/product/oud-chips/"])');
-    await expect(card.getByRole("link", { name: "Choose size" }).first()).toBeVisible();
-  });
-
-  test("an over-stock bag is clamped to the available quantity with a notice", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 5 for stock.");
-    // I's base stock is 24; 22 sold → available 2. Bag holds 5.
-    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 22 } }, 1);
-    await seedStore(page, "ms-bag", { lines: [{ sku: "MS-I-50", qty: 5 }], promo: null }, 2);
-
-    await page.goto("/en/cart/");
-    const line = page.getByTestId("bag-line");
-    await expect(line).toHaveCount(1);
-    await expect(line.getByTestId("bag-line-clamped")).toBeVisible();
-    await expect(line.locator("output")).toHaveText("2");
-  });
-
-  test("an out-of-stock line in the bag blocks checkout until removed", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 5 for stock.");
-    // I's base stock is 24; 24 sold → available 0.
-    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 24 } }, 1);
-    await seedStore(page, "ms-bag", { lines: [{ sku: "MS-I-50", qty: 2 }], promo: null }, 2);
-
-    await page.goto("/en/cart/");
-    await expect(page.getByTestId("bag-line-oos")).toBeVisible();
-    await expect(page.getByTestId("bag-checkout")).toHaveAttribute("aria-disabled", "true");
-
-    // Checkout itself refuses too.
-    await page.goto("/en/checkout/");
-    await expect(page.getByText("Some items in your bag are no longer available.")).toBeVisible();
-  });
-
-  test("refreshing the result page does not decrement stock twice", async ({ page }) => {
-    await page.goto("/en/product/i/");
-    await page.getByTestId("pdp-add-to-bag").click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await page.goto("/en/checkout/");
-    await fillCheckout(page);
-    await payWithKnet(page);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
-
-    expect((await readSold(page))["MS-I-50"]).toBe(1);
+    // Re-rendering the result page re-settles (idempotent): the order is already paid, so the guarded
+    // decrement never runs again.
     await page.reload();
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
-    expect((await readSold(page))["MS-I-50"]).toBe(1); // still 1, never 2
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1); // still −1, never −2
   });
 
-  test("an Apple Pay express purchase decrements stock", async ({ page }) => {
-    await page.goto("/en/product/i/");
-    await page.getByTestId("pdp-add-to-bag").click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+  test("a Decline leaves the order unpaid and stock unchanged", async ({ page }) => {
+    const before = await readVariantStock("MS-I-50");
+    await addToBag(page, "i");
+    await page.goto("/en/checkout/");
+    await fillCheckout(page);
+    await paySandbox(page, "decline");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/not completed/i);
 
-    await page.goto("/en/checkout/?express=applepay");
+    expect((await readLatestOrder())?.status).toBe("failed");
+    expect(await readVariantStock("MS-I-50")).toBe(before);
+  });
+
+  test("an Apple Pay purchase decrements stock", async ({ page }) => {
+    const before = await readVariantStock("MS-I-50");
+    await addToBag(page, "i");
+    await page.goto("/en/checkout/");
+    await fillCheckout(page);
+    // Apple Pay routes through the same confirm sheet → initiateCheckout → sandbox flow.
+    await page.getByRole("radio", { name: /Apple Pay/ }).check();
+    await page.getByTestId("checkout-pay").first().click();
     await page.getByTestId("applepay-confirm").click();
+    await page.waitForURL(/\/sandbox\/pay\//, { timeout: 15_000 });
+    await page.getByRole("button", { name: "Approve payment" }).click();
     await page.waitForURL(/\/checkout\/result\//, { timeout: 15_000 });
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
 
-    expect((await readSold(page))["MS-I-50"]).toBe(1);
+    expect((await readLatestOrder())?.status).toBe("paid");
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1);
   });
 
-  test("sample orders never touch the stock ledger", async ({ page }) => {
-    await signIn(page);
-    await page.goto("/en/admin/");
-    await expect
-      .poll(async () => (await page.getByTestId("orders-count").innerText()).replace(/[^\d]/g, ""))
-      .toBe("31");
-    expect(Object.keys(await readSold(page))).toHaveLength(0);
+  test("a sold-out item cannot be purchased — the server reprice refuses it, no order is created", async ({ page }) => {
+    await setVariantStock("MS-I-50", 0);
+    try {
+      // The storefront catalog is cached, so the product page may still show it in stock and let it
+      // into the bag — but initiateCheckout reads LIVE variants.stock (0) and refuses before any order.
+      await addToBag(page, "i");
+      await page.goto("/en/checkout/");
+      await fillCheckout(page);
+      await page.getByTestId("checkout-pay").first().click();
+
+      await expect(page.getByText(/no longer available in the quantity you chose/i)).toBeVisible();
+      await expect(page).not.toHaveURL(/\/sandbox\/pay\//);
+      expect(await readLatestOrder()).toBeNull(); // the stock check runs BEFORE the order insert
+      expect(await readVariantStock("MS-I-50")).toBe(0);
+    } finally {
+      await setVariantStock("MS-I-50", 24); // restore the seed stock for later specs
+    }
   });
 
-  // ── Capture-time guard: never sell out of stock, or more than the stock ──
-  // A stored order in the ms-checkout shape, for seeding a pay/result page directly.
-  const STORED_ORDER = (id: string, status: string, qty: number) => ({
-    id,
-    createdAt: new Date(Date.now() - 3_600_000).toISOString(),
-    locale: "en",
-    lines: [{ sku: "MS-I-50", slug: "i", qty, priceFils: 19000, name: "I", size: { en: "50 ml", ar: "50 مل" }, image: "renders/i" }],
-    totals: { itemCount: qty, subtotalFils: 19000 * qty, discountFils: 0, deliveryFils: 1000, totalFils: 19000 * qty + 1000 },
-    details: {
-      name: "Stock Tester", phone: "99887766", email: "", areaId: "salmiya", housing: "house",
-      block: "1", street: "Street 1", avenue: "", building: "5", floor: "", apartment: "",
-      mapsLink: "", notes: "", deliveryMethod: "standard", paymentMethod: "knet", saveDetails: true,
-    },
-    promoCode: null,
-    bagKey: `MS-I-50x${qty}|standard|`,
-    method: "knet",
-    status,
-    attempts:
-      status === "failed"
-        ? [{ method: "knet", result: "NOT CAPTURED", paymentId: "100000000000000001", trackId: id, postDate: "1009", amountFils: 19000 * qty + 1000, at: new Date().toISOString() }]
-        : [],
-    finalizedAt: null,
+  test("a captured payment that can no longer be fulfilled is paid+oversold, never negative stock", async ({ page }) => {
+    await setVariantStock("MS-I-50", 1);
+    try {
+      await addToBag(page, "i");
+      await page.goto("/en/checkout/");
+      await fillCheckout(page);
+      // initiate passes (1 >= 1); we reach the sandbox with a pending order.
+      await page.getByTestId("checkout-pay").first().click();
+      await page.waitForURL(/\/sandbox\/pay\//, { timeout: 15_000 });
+
+      // Another sale drains the last unit before we approve: the settle-time guarded decrement now fails.
+      await setVariantStock("MS-I-50", 0);
+      await page.getByRole("button", { name: "Approve payment" }).click();
+      await page.waitForURL(/\/checkout\/result\//, { timeout: 15_000 });
+
+      // Captured but unfulfillable → paid + oversold (we cannot un-charge), stock stays 0 (never −1),
+      // and no sale move was written for the unfulfilled line.
+      const order = await readLatestOrder();
+      expect(order?.status).toBe("paid");
+      expect(order?.oversold).toBe(true);
+      expect(await readVariantStock("MS-I-50")).toBe(0);
+      expect(await countSaleMoves(order!.id)).toBe(0);
+
+      // The oversold flag must reach a HUMAN: it surfaces as a badge on the admin orders dashboard so
+      // an admin can act (refund / restock). Without this the paid-but-unfulfillable order looks normal.
+      await signIn(page);
+      await page.goto("/en/admin/");
+      const row = page.locator(`[data-testid="order-row"][data-order-id="${order!.id}"]`);
+      await expect(row).toBeVisible();
+      await expect(row.getByTestId("order-oversold")).toBeVisible();
+    } finally {
+      await setVariantStock("MS-I-50", 24);
+    }
   });
 
-  test("opening the pay page for an order that now exceeds stock is refused", async ({ page }) => {
-    // I's base stock is 24; 24 sold → available 0. The stored pending order asks for 1.
-    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 24 } }, 1);
-    await seedStore(page, "ms-checkout", { draft: {}, remembered: null, lastOrderId: null, orders: { "MS-90001": STORED_ORDER("MS-90001", "pending", 1) } }, 2);
-
-    await page.goto("/en/checkout/pay/?order=MS-90001&method=knet");
-    await page.waitForURL(/\/cart\//);
-    await expect(page.getByTestId("gateway")).toHaveCount(0);
-    expect((await readSold(page))["MS-I-50"]).toBe(24); // never captured
-  });
-
-  test("Try again is refused when stock dropped below the order", async ({ page }) => {
-    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 24 } }, 1);
-    await seedStore(page, "ms-checkout", { draft: {}, remembered: null, lastOrderId: null, orders: { "MS-90002": STORED_ORDER("MS-90002", "failed", 1) } }, 2);
-
-    await page.goto("/en/checkout/result/?order=MS-90002");
-    await expect(page.getByTestId("result-failed")).toBeVisible();
-    await page.getByTestId("retry-payment").click();
-    await page.waitForURL(/\/cart\//);
-    await expect(page.getByTestId("gateway")).toHaveCount(0);
-    expect((await readSold(page))["MS-I-50"]).toBe(24);
-  });
-
-  test("two tabs cannot both sell the last unit", async ({ page, context }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 5 for stock.");
-    await signIn(page);
-    await setStock(page, "MS-I-50", 1);
-
-    // Tab A buys the last unit through KNET.
-    await page.goto("/en/product/i/");
-    await page.getByTestId("pdp-add-to-bag").click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+  test("a provider webhook after the return URL re-settles idempotently — stock never decrements twice", async ({ page }) => {
+    const before = await readVariantStock("MS-I-50");
+    await addToBag(page, "i");
     await page.goto("/en/checkout/");
     await fillCheckout(page);
-    await payWithKnet(page);
+    await paySandbox(page, "approve"); // the return URL settles it first (paid, stock −1, one sale move)
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
-    expect((await readSold(page))["MS-I-50"]).toBe(1);
 
-    // Tab B holds an older pending order for the same SKU; capturing it is refused.
-    const tabB = await context.newPage();
-    await tabB.goto("/en/");
-    await tabB.evaluate((order) => {
-      const raw = JSON.parse(localStorage.getItem("ms-checkout") || "{}");
-      const state = raw.state ?? { draft: {}, remembered: null, orders: {}, lastOrderId: null };
-      state.orders[order.id] = order;
-      localStorage.setItem("ms-checkout", JSON.stringify({ state, version: 2 }));
-    }, STORED_ORDER("MS-90003", "pending", 1));
+    const order = await readLatestOrder();
+    expect(order?.status).toBe("paid");
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1);
+    expect(await countSaleMoves(order!.id)).toBe(1);
 
-    await tabB.goto("/en/checkout/pay/?order=MS-90003&method=knet");
-    await tabB.waitForURL(/\/cart\//);
-    await expect(tabB.getByTestId("gateway")).toHaveCount(0);
-    expect((await readSold(tabB))["MS-I-50"]).toBe(1); // still 1, never 2
-    await tabB.close();
+    // The signed webhook for the SAME payment now arrives (a real provider sends both). The route
+    // authenticates it, settles again, and returns 200 — but the order is already paid, so nothing moves.
+    const providerPaymentId = new URL(page.url()).searchParams.get("providerPaymentId");
+    expect(providerPaymentId).toBeTruthy();
+    const body = JSON.stringify({ providerPaymentId });
+    const res = await page.request.post("/api/payments/sandbox/webhook/", {
+      headers: { "x-sandbox-signature": signWebhook(body), "content-type": "application/json" },
+      data: body,
+    });
+    expect(res.status()).toBe(200);
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1); // still −1
+    expect(await countSaleMoves(order!.id)).toBe(1); // still exactly one sale move
+
+    // A forged webhook (bad signature) is rejected but still 200 (so the provider stops retrying).
+    const forged = await page.request.post("/api/payments/sandbox/webhook/", {
+      headers: { "x-sandbox-signature": "deadbeef", "content-type": "application/json" },
+      data: body,
+    });
+    expect(forged.status()).toBe(200);
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1);
   });
 
-  test("Apple Pay with no stock is refused", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 5 for stock.");
-    await seedStore(page, "ms-stock", { sold: { "MS-I-50": 24 } }, 1);
-    await seedStore(page, "ms-bag", { lines: [{ sku: "MS-I-50", qty: 1 }], promo: null }, 2);
+  test("a signed webhook ALONE settles a pending order (no return-URL visit) and decrements stock", async ({ page, browser }) => {
+    const before = await readVariantStock("MS-I-50");
+    const providerPaymentId = await approveWithoutReturnVisit(page, browser);
+    // The order is pending and the stock is untouched — nothing has settled it yet.
+    expect(await readVariantStock("MS-I-50")).toBe(before);
 
-    await page.goto("/en/checkout/?express=applepay");
-    await page.waitForTimeout(700);
-    // The sheet never captures: no confirm button appears and nothing is sold.
-    await expect(page.getByTestId("applepay-confirm")).toHaveCount(0);
-    await expect(page).toHaveURL(/\/en\/checkout\//);
-    expect((await readSold(page))["MS-I-50"]).toBe(24);
+    // The provider's signed webhook arrives server-to-server. It must pay the order and decrement stock
+    // entirely on its own — proving the webhook is a complete settle path, not just an idempotency echo.
+    const body = JSON.stringify({ providerPaymentId });
+    const res = await page.request.post("/api/payments/sandbox/webhook/", {
+      headers: { "x-sandbox-signature": signWebhook(body), "content-type": "application/json" },
+      data: body,
+    });
+    expect(res.status()).toBe(200);
+
+    const order = await readLatestOrder();
+    expect(order?.status).toBe("paid");
+    expect(order?.oversold).toBe(false);
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1);
+    expect(await countSaleMoves(order!.id)).toBe(1);
   });
 
-  test("quick add and the stepper never exceed the available stock", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now; restore at Phase 5 for stock.");
-    await signIn(page);
-    await setStock(page, "MS-I-50", 1);
+  test("a forged or unsigned webhook is rejected and does NOT settle a pending order", async ({ page, browser }) => {
+    const before = await readVariantStock("MS-I-50");
+    const providerPaymentId = await approveWithoutReturnVisit(page, browser);
+    const body = JSON.stringify({ providerPaymentId });
 
-    await page.goto("/en/product/i/");
-    await expect(page.getByTestId("pdp-low-stock")).toHaveText("Only 1 left");
-    const qty = page.getByRole("group", { name: "Quantity for I" }).first();
-    await expect(qty.getByRole("button", { name: "Maximum quantity reached" })).toBeDisabled();
+    // A forged signature: the body is authentic but the HMAC is wrong. Rejected (200 so the provider
+    // stops retrying) and the order stays PENDING with stock untouched — no settle on a bad signature.
+    const forged = await page.request.post("/api/payments/sandbox/webhook/", {
+      headers: { "x-sandbox-signature": "deadbeef", "content-type": "application/json" },
+      data: body,
+    });
+    expect(forged.status()).toBe(200);
+    expect((await readLatestOrder())?.status).toBe("pending");
+    expect(await readVariantStock("MS-I-50")).toBe(before);
 
-    await page.getByTestId("pdp-add-to-bag").click();
-    await expect(page.getByRole("dialog").getByTestId("bag-line")).toHaveCount(1);
+    // An UNSIGNED webhook (no signature header at all) is likewise rejected and does not settle.
+    const unsigned = await page.request.post("/api/payments/sandbox/webhook/", {
+      headers: { "content-type": "application/json" },
+      data: body,
+    });
+    expect(unsigned.status()).toBe(200);
+    expect((await readLatestOrder())?.status).toBe("pending");
+    expect(await readVariantStock("MS-I-50")).toBe(before);
 
-    // A second quick add is capped with the "max reached" toast; the bag still holds 1.
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(700); // clear the double-tap guard
-    await page.getByTestId("pdp-add-to-bag").click();
-    await expect(page.getByText("You can add up to 1 of this item.")).toBeVisible();
-    const lineQty = await page.evaluate(() => JSON.parse(localStorage.getItem("ms-bag") || "{}").state?.lines?.[0]?.qty);
-    expect(lineQty).toBe(1);
+    // The SAME body with a VALID signature now settles it — proving the signature was the only thing
+    // standing between the (identical) payload and a settle, i.e. the rejection above was real auth.
+    const signed = await page.request.post("/api/payments/sandbox/webhook/", {
+      headers: { "x-sandbox-signature": signWebhook(body), "content-type": "application/json" },
+      data: body,
+    });
+    expect(signed.status()).toBe(200);
+    const order = await readLatestOrder();
+    expect(order?.status).toBe("paid");
+    expect(await readVariantStock("MS-I-50")).toBe(before - 1);
   });
 
   test("the admin set-value writes variants.stock and shows on the row", async ({ page }) => {
-    // Phase 3c's only stock write: the admin set-value calls setVariantStock → variants.stock. (The
-    // once-only purchase decrement stays on the client ms-stock path until Phase 5.)
     await signIn(page);
+    const original = await readVariantStock("MS-DUNE-250");
     try {
       await page.goto("/en/admin/stock/");
       const row = page.locator('[data-testid="stock-row"][data-sku="MS-DUNE-250"]');
@@ -342,17 +317,14 @@ test.describe("stock system", () => {
       // The authoritative DB column reflects the write.
       expect(await readVariantStock("MS-DUNE-250")).toBe(7);
     } finally {
-      // Restore the seed stock via the products-list Reset (rewrites the variant rows from src/data).
-      await page.goto("/en/admin/products/");
-      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
-      const reset = page
-        .locator('[data-testid="product-row"][data-slug="dune"]')
-        .getByRole("button", { name: "Reset Dune", exact: true });
-      if (await reset.count()) {
-        await reset.click();
-        await page.getByTestId("confirm-accept").click();
-        await expect(reset).toHaveCount(0);
-      }
+      // A stock-only change no longer flags the product "Edited", so there is no Reset button now:
+      // restore the original value through the stock input (the admin action, which revalidates).
+      await page.goto("/en/admin/stock/");
+      const row = page.locator('[data-testid="stock-row"][data-sku="MS-DUNE-250"]');
+      await expect(row).toBeVisible();
+      await row.getByTestId("stock-input").fill(String(original));
+      await row.getByTestId("stock-save").click();
+      await expect(row).toHaveAttribute("data-set", String(original));
     }
   });
 

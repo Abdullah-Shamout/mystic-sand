@@ -90,6 +90,11 @@
       "done": "Done",
       "pending": "Pending"
     },
+    "oversold": {
+      "badge": "Oversold",
+      "hint": "Paid but could not be fulfilled from stock.",
+      "notice": "This order was paid but a line could not be fulfilled from stock. The customer was charged — refund or restock and contact them."
+    },
     "source": {
       "site": "Website",
       "sample": "Sample"
@@ -352,6 +357,8 @@
       "price": "Price (KWD)",
       "priceHint": "For example 9.500",
       "stock": "In stock",
+      "stockManaged": "Managed on the Stock page",
+      "manageStock": "Stock page",
       "sku": "SKU",
       "skuNew": "Generated on save",
       "add": "Add size",

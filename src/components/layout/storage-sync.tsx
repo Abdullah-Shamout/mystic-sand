@@ -5,18 +5,16 @@ import { useEffect } from "react";
 import { STORAGE_FULL_EVENT } from "@/lib/storage";
 import { useBag } from "@/store/bag";
 import { useCheckout } from "@/store/checkout";
-import { useStockStore } from "@/store/stock";
 import { useUi } from "@/store/ui";
 
 // Keeps this tab's browser-persisted stores in step with another tab, and turns a full-storage event
 // into a toast. Mounted once, in Providers. The catalog, settings and the home-page CMS live in the
 // DB now (saved via the catalog / settings / home Server Actions), so there is no ms-catalog,
-// ms-settings or ms-home store to sync, and uploaded images are served from the server, so there is
-// no ms-img cache to drop.
+// ms-settings or ms-home store to sync; uploaded images are served from the server, so there is no
+// ms-img cache to drop; and stock lives in Postgres now (Phase 5b), so there is no ms-stock either.
 const PERSISTED = {
   "ms-bag": useBag,
   "ms-checkout": useCheckout,
-  "ms-stock": useStockStore,
 } as const;
 
 // The admin store is loaded lazily so storefront pages never statically import it (nor the

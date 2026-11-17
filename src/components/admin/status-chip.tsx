@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Clock, type LucideIcon } from "lucide-react";
+import { CircleCheck, Clock, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import type { StatusKind } from "@/lib/admin/orders";
@@ -20,6 +20,27 @@ export function StatusChip({ kind, className }: { kind: StatusKind; className?: 
     >
       <Icon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
       {t(`orders.status.${kind}`)}
+    </span>
+  );
+}
+
+/**
+ * A loud flag for a captured-but-unfulfillable (oversold) order: the payment was taken but a line
+ * could not be fulfilled from stock, so a human must act (refund / restock / contact the customer).
+ */
+export function OversoldTag({ className }: { className?: string }) {
+  const t = useTranslations("admin");
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 border border-danger/40 bg-danger/10 px-2 py-0.5 text-[12px] text-danger whitespace-nowrap",
+        className,
+      )}
+      data-testid="order-oversold"
+      title={t("orders.oversold.hint")}
+    >
+      <TriangleAlert className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+      {t("orders.oversold.badge")}
     </span>
   );
 }

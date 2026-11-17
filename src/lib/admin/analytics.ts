@@ -2,8 +2,7 @@ import type { CategorySlug, Localized, Product } from "@/data/types";
 import type { Locale } from "@/i18n/routing";
 import { isCustomSlug, type Catalog } from "@/lib/catalog";
 import { normalizeSearch } from "@/lib/search";
-import { availableFromStock } from "@/lib/stock";
-import type { SoldMap } from "@/store/stock";
+import { availableFromStock, type SoldMap } from "@/lib/stock";
 import { inDateRange, type RangeFilter, type AdminOrder } from "./orders";
 
 // Pure, React-free product analytics. From the paid + confirming orders of both sources and the

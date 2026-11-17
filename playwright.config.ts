@@ -42,6 +42,9 @@ export default defineConfig({
       APP_ENV: "test",
       PAYMENT_PROVIDER: "sandbox",
       PAYMENT_SANDBOX_OK: "true",
+      // Lets the /api/payments/sandbox/webhook path authenticate signed test webhooks (the sandbox
+      // gateway's parseWebhook rejects when no secret is configured).
+      SANDBOX_WEBHOOK_SECRET: "test-sandbox-webhook-secret",
       UPLOADS_DIR: "test-results/uploads",
     },
   },

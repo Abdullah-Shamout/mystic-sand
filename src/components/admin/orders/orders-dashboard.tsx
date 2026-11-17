@@ -22,7 +22,7 @@ import {
 import { useMounted, useNow } from "@/lib/hooks";
 import { formatKWD } from "@/lib/money";
 import { useAdminStore } from "@/store/admin";
-import { useCheckout } from "@/store/checkout";
+import type { Order } from "@/store/checkout";
 import { useUi } from "@/store/ui";
 import { KpiTile } from "../kpi-tile";
 import { OrderCards } from "./order-cards";
@@ -32,7 +32,7 @@ import { OrdersTable } from "./orders-table";
 
 const PAGE = 25;
 
-export function OrdersDashboard() {
+export function OrdersDashboard({ siteOrders }: { siteOrders: Order[] }) {
   const t = useTranslations("admin");
   const locale = useLocale() as Locale;
   const mounted = useMounted();
@@ -41,7 +41,8 @@ export function OrdersDashboard() {
   const pushToast = useUi((s) => s.pushToast);
   const search = useSearchParams();
 
-  const siteOrdersMap = useCheckout((s) => s.orders);
+  // Site orders are server-authoritative now (read from Postgres, passed in from the server page);
+  // the generated demo samples + fulfilment flags still come from the client ms-admin store.
   const samples = useAdminStore((s) => s.samples);
   const fulfillment = useAdminStore((s) => s.fulfillment);
 
@@ -53,8 +54,8 @@ export function OrdersDashboard() {
   const [exporting, setExporting] = useState(false);
 
   const allOrders = useMemo(
-    () => collectOrders(Object.values(siteOrdersMap), samples, fulfillment),
-    [siteOrdersMap, samples, fulfillment],
+    () => collectOrders(siteOrders, samples, fulfillment),
+    [siteOrders, samples, fulfillment],
   );
 
   const kpiList = useMemo(

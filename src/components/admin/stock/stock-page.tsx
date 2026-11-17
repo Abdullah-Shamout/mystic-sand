@@ -15,9 +15,8 @@ import { toLatinDigits } from "@/lib/digits";
 import { useMounted, useNow } from "@/lib/hooks";
 import { useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
-import { availableFromStock, LOW_STOCK } from "@/lib/stock";
+import { availableFromStock, LOW_STOCK, NO_SOLD, type SoldMap } from "@/lib/stock";
 import { setVariantStock } from "@/server/actions/catalog";
-import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { KpiTile } from "../kpi-tile";
 
@@ -67,8 +66,10 @@ export function StockPage() {
 
   const router = useRouter();
   const catalog = useLiveCatalog();
-  const sold = useStockStore((s) => s.sold);
-  const resetSold = useStockStore((s) => s.resetSold);
+  // Stock lives in Postgres now (settleOrder decrements variants.stock), so "available" IS the DB set
+  // value and "sold since set" is always 0 — the client ledger is gone. `sold` stays as a stable empty
+  // map so the pure helpers keep their signatures.
+  const sold = NO_SOLD;
 
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<CatFilter>("all");
@@ -78,7 +79,7 @@ export function StockPage() {
   const catName = (slug: CategorySlug): string =>
     catalog.categories.find((c) => c.slug === slug)?.name[locale] ?? slug;
 
-  /** Set a SKU's stock to an exact value (writes variants.stock) and clear its "sold since set" counter. */
+  /** Set a SKU's stock to an exact value (writes the authoritative variants.stock). */
   const applyStock = async (sku: string, value: number, name: string) => {
     try {
       await setVariantStock(sku, Math.max(0, value));
@@ -86,9 +87,6 @@ export function StockPage() {
       pushToast({ title: t("settings.saveError") });
       return;
     }
-    // Clear the local "sold since set" counter only after the DB write succeeds. ms-stock stays until
-    // Phase 5 swaps the client purchase-decrement for a server-side one.
-    resetSold(sku);
     router.refresh();
     pushToast({ title: t("stock.saved", { name }) });
   };

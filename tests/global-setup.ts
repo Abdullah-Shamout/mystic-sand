@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 
-import { clearAdmins, clearCustomProducts, clearHome, clearImages } from "./db";
+import { clearAdmins, clearCustomProducts, clearHome, clearImages, clearOrders } from "./db";
 
 // Playwright globalSetup: ensure the test DB is migrated + seeded before the run.
 //
@@ -41,4 +41,8 @@ export default async function globalSetup() {
   // Start every run with the built-in home defaults (no overrides row), so the default-home specs
   // and the storefront see the built-ins. Home-mutating specs reset through the editor in a finally.
   await clearHome();
+  // Real site orders persist across specs/runs now (they live in Postgres). Clear them so the admin
+  // "N samples" counts (which expect zero DB site orders) are deterministic; the purchase specs also
+  // clear after themselves. Requires the migrate above (orders/order_lines/payment_attempts exist).
+  await clearOrders();
 }

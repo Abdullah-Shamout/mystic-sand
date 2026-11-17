@@ -217,6 +217,9 @@ const COMPARE_FIELDS = [
  * the Reset affordance. Compares only the editable fields, key-order-insensitively (Postgres jsonb
  * reorders object keys on read), treating alsoIn undefined/[] and hidden undefined/false as equal.
  * Custom (c-…) products have no seed, so they are never "edited" by this measure.
+ *
+ * `variants.stock` is EXCLUDED from the comparison: stock is live inventory that settleOrder decrements
+ * on every sale (Phase 5b), so a product that merely sold a unit must not light up as "Edited".
  */
 export function isProductEdited(product: Product): boolean {
   const base = baseCatalog.bySlug.get(product.slug);
@@ -224,6 +227,7 @@ export function isProductEdited(product: Product): boolean {
   const norm = (p: Product, field: (typeof COMPARE_FIELDS)[number]): unknown => {
     if (field === "alsoIn") return (p.alsoIn ?? []).filter((c) => c !== p.category);
     if (field === "hidden") return p.hidden ?? false;
+    if (field === "variants") return p.variants.map((v) => ({ sku: v.sku, size: v.size, priceFils: v.priceFils }));
     return p[field];
   };
   return COMPARE_FIELDS.some((field) => canon(norm(base, field)) !== canon(norm(product, field)));

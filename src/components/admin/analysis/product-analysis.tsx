@@ -18,9 +18,9 @@ import {
 import { collectOrders, type RangeFilter } from "@/lib/admin/orders";
 import { useLiveCatalog } from "@/lib/live";
 import { useMounted, useNow } from "@/lib/hooks";
+import { NO_SOLD } from "@/lib/stock";
 import { useAdminStore } from "@/store/admin";
-import { useCheckout } from "@/store/checkout";
-import { useStockStore } from "@/store/stock";
+import type { Order } from "@/store/checkout";
 import { useUi } from "@/store/ui";
 import { KpiTile } from "../kpi-tile";
 import { CategorySectionView } from "./category-section";
@@ -89,7 +89,7 @@ function RemovedSection({ removed }: { removed: RemovedStat[] }) {
   );
 }
 
-export function ProductAnalysis() {
+export function ProductAnalysis({ siteOrders }: { siteOrders: Order[] }) {
   const t = useTranslations("admin");
   const locale = useLocale() as Locale;
   const mounted = useMounted();
@@ -97,8 +97,9 @@ export function ProductAnalysis() {
   const pushToast = useUi((s) => s.pushToast);
 
   const catalog = useLiveCatalog();
-  const sold = useStockStore((s) => s.sold);
-  const siteOrdersMap = useCheckout((s) => s.orders);
+  // Stock is server-authoritative (variants.stock), so there is no client "sold" ledger — availability
+  // comes straight from the catalog; `siteOrders` are the paid DB orders, passed from the server page.
+  const sold = NO_SOLD;
   const samples = useAdminStore((s) => s.samples);
   const fulfillment = useAdminStore((s) => s.fulfillment);
 
@@ -106,8 +107,8 @@ export function ProductAnalysis() {
   const [exporting, setExporting] = useState<string | null>(null);
 
   const allOrders = useMemo(
-    () => collectOrders(Object.values(siteOrdersMap), samples, fulfillment),
-    [siteOrdersMap, samples, fulfillment],
+    () => collectOrders(siteOrders, samples, fulfillment),
+    [siteOrders, samples, fulfillment],
   );
 
   const analysis = useMemo(

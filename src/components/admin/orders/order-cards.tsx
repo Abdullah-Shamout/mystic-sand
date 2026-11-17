@@ -7,7 +7,7 @@ import type { Locale } from "@/i18n/routing";
 import { statusKind, type AdminOrder } from "@/lib/admin/orders";
 import { formatDateTime } from "@/lib/delivery";
 import { formatKuwaitPhone } from "@/lib/phone";
-import { SampleTag, StatusChip } from "../status-chip";
+import { OversoldTag, SampleTag, StatusChip } from "../status-chip";
 import { useFulfillment } from "./use-fulfillment";
 
 /** Phone layout: a card per order instead of the desktop table. */
@@ -37,7 +37,10 @@ export function OrderCards({ rows, onOpen }: { rows: AdminOrder[]; onOpen: (id: 
                   <bdi>{formatDateTime(item.placedAt, locale)}</bdi>
                 </span>
               </button>
-              <StatusChip kind={statusKind(item)} />
+              <div className="flex flex-col items-end gap-1">
+                <StatusChip kind={statusKind(item)} />
+                {item.oversold && <OversoldTag />}
+              </div>
             </div>
 
             <div className="mt-3 text-[14px]">

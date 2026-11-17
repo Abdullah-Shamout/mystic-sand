@@ -53,6 +53,106 @@ export async function readVariantStock(sku: string): Promise<number> {
   return rows[0]?.stock ?? -1;
 }
 
+/** Sets variants.stock directly (bypasses the admin action — the storefront catalog cache may lag). */
+export async function setVariantStock(sku: string, value: number): Promise<void> {
+  await dbQuery("UPDATE variants SET stock = $1 WHERE sku = $2", [value, sku]);
+}
+
+export type OrderRow = { id: string; status: string; oversold: boolean; total_fils: number };
+
+/** One order row (status + oversold flag + total), or null. */
+export async function readOrder(id: string): Promise<OrderRow | null> {
+  const rows = await dbQueryRows<OrderRow>(
+    "SELECT id, status, oversold, total_fils FROM orders WHERE id = $1",
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** The most recently created order row, or null — used after a purchase flow whose id is server-minted. */
+export async function readLatestOrder(): Promise<OrderRow | null> {
+  const rows = await dbQueryRows<OrderRow>(
+    "SELECT id, status, oversold, total_fils FROM orders ORDER BY created_at DESC LIMIT 1",
+    [],
+  );
+  return rows[0] ?? null;
+}
+
+/** How many inventory_moves rows an order produced (one per fulfilled line on a captured order). */
+export async function countSaleMoves(orderId: string): Promise<number> {
+  const rows = await dbQueryRows<{ n: string }>(
+    "SELECT count(*)::text AS n FROM inventory_moves WHERE order_id = $1 AND reason = 'sale'",
+    [orderId],
+  );
+  return Number(rows[0]?.n ?? "0");
+}
+
+/**
+ * Wipes every site order (and its lines / attempts / moves). payment_attempts has no ON DELETE to
+ * orders, so it is deleted FIRST; order_lines cascade from orders, inventory_moves are removed
+ * outright. Called at globalSetup and by the purchase specs' afterEach so the admin "N samples"
+ * counts (which expect zero DB site orders) stay deterministic. Does NOT restore variants.stock —
+ * specs assert stock as before/after deltas.
+ */
+export async function clearOrders(): Promise<void> {
+  await dbQuery("DELETE FROM payment_attempts");
+  await dbQuery("DELETE FROM inventory_moves");
+  await dbQuery("DELETE FROM orders");
+}
+
+const SAMPLE_DETAILS = {
+  name: "Website Tester",
+  phone: "99887766",
+  email: "",
+  areaId: "salmiya",
+  housing: "house",
+  block: "1",
+  street: "Street 1",
+  avenue: "",
+  building: "5",
+  floor: "",
+  apartment: "",
+  mapsLink: "",
+  notes: "",
+  deliveryMethod: "standard",
+  paymentMethod: "knet",
+  saveDetails: true,
+};
+
+/**
+ * Inserts a fully-paid site order (order + one line + a CAPTURED attempt) directly, for the admin
+ * dashboard specs that just need a real Website order present without driving the whole purchase flow.
+ */
+export async function insertPaidOrder(opts: {
+  id: string;
+  sku?: string;
+  slug?: string;
+  name?: string;
+}): Promise<void> {
+  const sku = opts.sku ?? "MS-I-50";
+  const slug = opts.slug ?? "i";
+  const name = opts.name ?? "I";
+  const paymentId = `sbx_${opts.id.replace(/\W/g, "")}`;
+  await dbQuery(
+    `INSERT INTO orders
+       (id, status, oversold, locale, method, subtotal_fils, discount_fils, delivery_fils, total_fils,
+        promo_code, bag_key, details, phone_e164, checkout_token, provider, provider_payment_id,
+        created_at, paid_at, finalized_at)
+     VALUES ($1,'paid',false,'en','knet',19000,0,1000,20000,NULL,$2,$3::jsonb,$4,$5,'sandbox',$6, now(), now(), now())`,
+    [opts.id, `${sku}x1|standard|`, JSON.stringify(SAMPLE_DETAILS), "+96599887766", `tok_${opts.id}`, paymentId],
+  );
+  await dbQuery(
+    `INSERT INTO order_lines (order_id, sku, slug, qty, price_fils, name, size, image)
+     VALUES ($1,$2,$3,1,19000,$4,$5::jsonb,'products/i/bottle')`,
+    [opts.id, sku, slug, name, JSON.stringify({ en: "50 ml", ar: "50 مل" })],
+  );
+  await dbQuery(
+    `INSERT INTO payment_attempts (order_id, provider, provider_payment_id, result, amount_fils, verified_at)
+     VALUES ($1,'sandbox',$2,'CAPTURED',20000, now())`,
+    [opts.id, paymentId],
+  );
+}
+
 /**
  * Inserts a bare image row so the library lists `u:<id>` without an actual upload. No file is
  * written, so the served thumbnail 404s — fine for tests that only check the row is listed/deleted.

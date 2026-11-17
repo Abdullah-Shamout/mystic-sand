@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  pgSequence,
   pgTable,
   smallint,
   text,
@@ -116,6 +117,23 @@ export const variants = pgTable(
 
 // --- Orders & inventory --------------------------------------------------------------
 
+/**
+ * Order-number source. An order id is `'MS-' || nextval('ms_order_seq')`, starting the real-order band
+ * at MS-20000 (sample orders reserve 10000..19999). The band is WIDE on purpose: every initiateCheckout
+ * — including abandoned / failed attempts — burns a nextval, so a 5-digit ceiling (99999) could be
+ * exhausted by ~80k public checkouts and, with `NO CYCLE`, permanently break checkout (nextval would
+ * throw) — a store-wide DoS. The 10-digit MAXVALUE puts exhaustion out of practical reach (a per-IP
+ * checkout rate-limit is a separate, deferred hardening). `NO CYCLE` still guarantees ids are never
+ * recycled. The number comes from Postgres, so two concurrent checkouts can never collide.
+ */
+export const orderSeq = pgSequence("ms_order_seq", {
+  startWith: 20000,
+  minValue: 20000,
+  maxValue: 9999999999,
+  increment: 1,
+  cycle: false,
+});
+
 export const orders = pgTable(
   "orders",
   {
@@ -134,6 +152,12 @@ export const orders = pgTable(
     details: jsonb("details").notNull().$type<Omit<CheckoutForm, "acceptTerms">>(),
     phoneE164: text("phone_e164").notNull(),
     checkoutToken: text("checkout_token").notNull(),
+    // The active provider + its payment id for this order, written at initiate so settleOrder(orderId)
+    // can call getGateway().verify without trusting the (client-visible) return-URL query. Nullable:
+    // the order row exists only after the gateway call succeeds, but the columns stay loose so a future
+    // retry that re-initiates with a new provider payment id is a plain UPDATE.
+    provider: text("provider"),
+    providerPaymentId: text("provider_payment_id"),
     createdAt: timestamptz("created_at").notNull().defaultNow(),
     paidAt: timestamptz("paid_at"),
     finalizedAt: timestamptz("finalized_at"),
@@ -177,9 +201,12 @@ export const inventoryMoves = pgTable(
   "inventory_moves",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    variantId: uuid("variant_id")
-      .notNull()
-      .references(() => variants.id),
+    // ON DELETE SET NULL + nullable: the catalog admin (deleteProduct / resetProduct / resetAllCatalog
+    // via writeVariants) deletes or replaces variant rows, and a sale leaves an inventory_moves row
+    // pointing at the variant. SET NULL lets those deletes proceed while PRESERVING the ledger row
+    // (delta / reason / orderId) as an orphaned-but-intact audit record; RESTRICT would instead block
+    // deleting any variant that has ever sold. The move's orderId still ties it to the sale.
+    variantId: uuid("variant_id").references(() => variants.id, { onDelete: "set null" }),
     // Signed quantity delta (sale is negative, restock positive) — NOT money, no CHECK.
     delta: integer("delta").notNull(),
     reason: text("reason").notNull().$type<InventoryReason>(),
@@ -293,12 +320,18 @@ export const sessions = pgTable(
 
 // --- Promotions & contact ------------------------------------------------------------
 
-export const promoCodes = pgTable("promo_codes", {
-  code: text("code").primaryKey(),
-  percent: integer("percent").notNull(),
-  expiresAt: timestamptz("expires_at"),
-  active: boolean("active").notNull().default(true),
-});
+export const promoCodes = pgTable(
+  "promo_codes",
+  {
+    code: text("code").primaryKey(),
+    percent: integer("percent").notNull(),
+    expiresAt: timestamptz("expires_at"),
+    active: boolean("active").notNull().default(true),
+  },
+  // A percent outside 1..100 would drive a negative or nonsensical discount (and total). The DB
+  // enforces the bound so a bad promo row can never produce an odd order total.
+  (t) => [check("promo_codes_percent_range", sql`${t.percent} between 1 and 100`)],
+);
 
 export const contactMessages = pgTable("contact_messages", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -28,9 +28,8 @@ import { toLatinDigits } from "@/lib/digits";
 import { useMounted } from "@/lib/hooks";
 import { getLiveCatalog, useLiveCatalog } from "@/lib/live";
 import { normalizeSearch } from "@/lib/search";
-import { availableFromStock } from "@/lib/stock";
+import { availableFromStock, NO_SOLD, type SoldMap } from "@/lib/stock";
 import { createProduct, saveProduct } from "@/server/actions/catalog";
-import { useStockStore, type SoldMap } from "@/store/stock";
 import { useUi } from "@/store/ui";
 import { ImageLibraryDialog } from "./image-library-dialog";
 
@@ -239,7 +238,7 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
   const router = useRouter();
   const pushToast = useUi((s) => s.pushToast);
 
-  const [defaults] = useState(() => toForm(existing, useStockStore.getState().sold));
+  const [defaults] = useState(() => toForm(existing, NO_SOLD));
 
   const form = useForm<EditorForm>({
     resolver: zodResolver(schema),
@@ -335,10 +334,8 @@ function EditorForm({ existing, isNew, slug }: { existing: Product | undefined; 
       return;
     }
 
-    // The stock field held AVAILABLE and is now the catalog's set value: zero "sold since set" for
-    // every saved variant so available equals exactly what was typed. (ms-stock stays until Phase 5.)
-    const stockStore = useStockStore.getState();
-    for (const v of variants) stockStore.resetSold(v.sku);
+    // Stock is owned by the Stock page (setVariantStock), not this form: saveProduct writes the opening
+    // stock only for a brand-new sku and leaves an existing variant's live count untouched on update.
 
     // Uploaded photos stay in the reusable photo library on save; they can be deleted there (from
     // the library dialog) when no longer needed.
@@ -603,6 +600,10 @@ function VariantsSection({ control }: { control: Control<EditorForm> }) {
       <ul className="space-y-4">
         {fa.fields.map((f, i) => {
           const err = errors.variants?.[i];
+          // An existing variant (it already has a sku) owns a LIVE stock count the Stock page / sales
+          // manage; the product editor must not present that as an editable field that silently no-ops
+          // on save. Only a brand-new, sku-less variant takes its opening stock from this form.
+          const isExisting = Boolean(f.sku);
           return (
             <li key={f.id} className="border border-line bg-paper p-4">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -644,19 +645,43 @@ function VariantsSection({ control }: { control: Control<EditorForm> }) {
                     />
                   )}
                 </Field>
-                <Field label={t("editor.variants.stock")} error={et(err?.stock?.message)}>
-                  {({ id, invalid }) => (
-                    <TextInput
-                      id={id}
-                      dir="ltr"
-                      inputMode="numeric"
-                      aria-invalid={invalid || undefined}
-                      className="h-11"
-                      data-testid={`editor-variant-stock-${i}`}
-                      {...register(`variants.${i}.stock` as const)}
-                    />
-                  )}
-                </Field>
+                {isExisting ? (
+                  <Field label={t("editor.variants.stock")} hint={t("editor.variants.stockManaged")}>
+                    {({ id }) => (
+                      <div
+                        id={id}
+                        className="flex h-11 items-center justify-between gap-2 border border-line bg-tile px-3 text-[14px]"
+                      >
+                        <bdi dir="ltr" className="figures" data-testid={`editor-variant-stock-${i}`}>
+                          {f.stock}
+                        </bdi>
+                        <Link
+                          href="/admin/stock/"
+                          className="caps text-[12px] text-muted underline-offset-4 hover:text-ink hover:underline"
+                        >
+                          {t("editor.variants.manageStock")}
+                        </Link>
+                        {/* Keep the form value (so validation passes) but submit it hidden: saveProduct
+                            never writes stock for an existing sku, so the live count is untouched. */}
+                        <input type="hidden" {...register(`variants.${i}.stock` as const)} />
+                      </div>
+                    )}
+                  </Field>
+                ) : (
+                  <Field label={t("editor.variants.stock")} error={et(err?.stock?.message)}>
+                    {({ id, invalid }) => (
+                      <TextInput
+                        id={id}
+                        dir="ltr"
+                        inputMode="numeric"
+                        aria-invalid={invalid || undefined}
+                        className="h-11"
+                        data-testid={`editor-variant-stock-${i}`}
+                        {...register(`variants.${i}.stock` as const)}
+                      />
+                    )}
+                  </Field>
+                )}
               </div>
               <div className="mt-3 flex items-center justify-between gap-4">
                 <p className="text-[12px] text-muted">

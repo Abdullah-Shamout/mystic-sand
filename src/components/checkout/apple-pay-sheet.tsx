@@ -1,22 +1,14 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ApplePayLogo } from "@/components/brand/brand-icons";
 import { Modal } from "@/components/ui/modal";
 import { Price } from "@/components/ui/price";
-import { useRouter } from "@/i18n/navigation";
-import { clampBagToStock, orderExceedsStock } from "@/lib/capture";
-import { newPaymentFields } from "@/lib/order";
-import { mockGateway } from "@/lib/payments/mock";
-import type { PaymentRecord } from "@/lib/payments/types";
 import { useLiveCatalog, useLiveSettings } from "@/lib/live";
-import { getLiveAvailable } from "@/lib/live-stock";
 import { formatKuwaitPhone } from "@/lib/phone";
-import { computeTotals, priceLines } from "@/lib/pricing";
+import { computeTotals } from "@/lib/pricing";
 import { useBag } from "@/store/bag";
-import { useCheckout } from "@/store/checkout";
 import { useUi } from "@/store/ui";
 import { useAddressFormatter } from "./address-format";
 import { iso } from "./form-helpers";
@@ -25,46 +17,37 @@ import { TotalsList } from "./order-summary";
 import { useInstagramBrowser } from "./use-device";
 
 /*
- * Simulated Apple Pay sheet — neutral styling inspired by (not copying) Apple's sheet,
- * clearly labelled "Simulation". Confirming records a CAPTURED attempt and replaces the
- * page with the result URL, exactly like a KNET return.
+ * Apple Pay confirm sheet — neutral styling inspired by (not copying) Apple's sheet, clearly labelled
+ * "Simulation". For now it routes through the SAME server initiateCheckout → sandbox flow as KNET and
+ * card (method "applepay"): confirming hands off to onConfirm, which reprices on the server and
+ * redirects to the hosted sandbox page. There is no in-page capture and no card/PIN/OTP input here.
  *
- * Production:
- *  - Offer Apple Pay only when `window.ApplePaySession?.canMakePayments()` is true (Safari
- *    on an Apple device with a card in Wallet; KNET debit cards work in Apple Pay).
- *  - Instagram's in-app browser has no Apple Pay — most visitors arrive from @mystic.sand,
- *    so we show "Open in Safari to use Apple Pay" when navigator.userAgent has "Instagram".
- *  - Start an ApplePaySession with the merchant validation done by YOUR server (or the
- *    provider: MyFatoorah / Tap / UPayments / Hesabe / Ottu); send the payment token to the
- *    server and mark the order paid only after the provider confirms it server-side.
- *  - Wallet addresses have no Block / Avenue / Floor. Ask for the Kuwaiti address on the
- *    page (or confirm it by phone/WhatsApp right after payment) before dispatching.
+ * Production (Phase 9, gated on domain verification): start an ApplePaySession with merchant
+ * validation done by YOUR server (or the provider), send the payment token server-side, and mark the
+ * order paid only after the provider confirms it. Instagram's in-app browser has no Apple Pay, so we
+ * show "Open in Safari to use Apple Pay" there.
  */
 
 const CARD_LAST4 = "4821";
 
-type Phase = "idle" | "busy" | "done";
+type Phase = "idle" | "busy";
 
 export function ApplePaySheet({
   open,
   onOpenChange,
   details,
-  createOrder,
+  onConfirm,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Contact + address shown on the sheet (the form's, or the wallet's when the form is incomplete). */
+  /** Contact + address shown on the sheet (the form's values). */
   details: OrderDetails;
-  /** Creates (or reuses) the pending order and returns its track ID. */
-  createOrder: () => string;
+  /** Reprices on the server and redirects to the sandbox; resolves (without navigating) only on error. */
+  onConfirm: () => Promise<void>;
 }) {
   const t = useTranslations("checkout.applePay");
   const te = useTranslations("checkout.express");
-  const tc = useTranslations("common");
-  const router = useRouter();
   const announce = useUi((s) => s.announce);
-  const openBag = useUi((s) => s.openBag);
-  const pushToast = useUi((s) => s.pushToast);
   const format = useAddressFormatter();
   const inInstagram = useInstagramBrowser();
   const lines = useBag((s) => s.lines);
@@ -72,60 +55,19 @@ export function ApplePaySheet({
   const catalog = useLiveCatalog();
   const settings = useLiveSettings();
   const [phase, setPhase] = useState<Phase>("idle");
-  const timers = useRef<number[]>([]);
-
-  useEffect(() => {
-    const pending = timers.current;
-    return () => pending.forEach((id) => window.clearTimeout(id));
-  }, []);
 
   const totals = computeTotals({ lines, promo, deliveryMethod: details.deliveryMethod, catalog, settings });
   const address = format(details);
 
-  /** Refuses the capture: clamp the bag, tell the shopper, and send them back to it. */
-  const refuse = () => {
-    clampBagToStock();
-    setPhase("idle");
-    onOpenChange(false);
-    pushToast({ title: tc("stockRefused") });
-    openBag();
-  };
-
-  const confirm = () => {
+  const confirm = async () => {
     if (phase !== "idle") return;
-    // Final stock check: if a line sold out or went short, stop and send the shopper to the bag.
-    const { priced, missing } = priceLines(useBag.getState().lines, catalog);
-    const short = priced.some((l) => getLiveAvailable(l.sku) < l.qty);
-    if (priced.length === 0 || missing.length > 0 || short) {
-      refuse();
-      return;
-    }
     setPhase("busy");
     announce(t("processing"));
-    timers.current.push(
-      window.setTimeout(() => {
-        const orderId = createOrder();
-        const order = useCheckout.getState().orders[orderId];
-        // Capture-time re-check (covers the last unit being taken in another tab meanwhile).
-        if (!order || orderExceedsStock(order)) {
-          refuse();
-          return;
-        }
-        const now = new Date();
-        const record: PaymentRecord = {
-          method: "applepay",
-          result: "CAPTURED",
-          trackId: orderId,
-          amountFils: order?.totals.totalFils ?? totals.totalFils,
-          at: now.toISOString(),
-          ...newPaymentFields(now),
-        };
-        useCheckout.getState().recordAttempt(orderId, record);
-        setPhase("done");
-        announce(t("done"));
-        timers.current.push(window.setTimeout(() => router.replace(mockGateway.resultPath(record, orderId)), 450));
-      }, 1200),
-    );
+    await onConfirm();
+    // Success navigates to the sandbox (this code never runs). If we are still here, initiate failed —
+    // the caller already surfaced the error, so just reopen the sheet for another try.
+    setPhase("idle");
+    onOpenChange(false);
   };
 
   return (
@@ -213,25 +155,18 @@ export function ApplePaySheet({
           className="mt-6 flex h-14 w-full items-center justify-center gap-3 bg-ink text-[15px] text-paper transition-opacity hover:opacity-90 aria-busy:cursor-progress"
           data-testid="applepay-confirm"
         >
-          {phase === "idle" && (
+          {phase === "idle" ? (
             <>
               <SideButtonGlyph />
               {t("confirm")}
             </>
-          )}
-          {phase === "busy" && (
+          ) : (
             <>
               <span
                 aria-hidden
                 className="size-5 animate-spin-slow rounded-full border-2 border-paper border-t-transparent"
               />
               {t("processing")}
-            </>
-          )}
-          {phase === "done" && (
-            <>
-              <Check className="size-5" strokeWidth={1.75} aria-hidden />
-              {t("done")}
             </>
           )}
         </button>
