@@ -35,8 +35,15 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120_000,
     // DATABASE_URL is inherited from the Playwright process env; APP_ENV marks the sandbox-safe env.
+    // PAYMENT_PROVIDER + PAYMENT_SANDBOX_OK let `next start` boot under the instrumentation payment
+    // assertion (src/instrumentation.ts): sandbox only boots in a sandbox-safe env with the opt-in.
     // Uploaded test images go to a throwaway dir under test-results (gitignored), not the repo root.
-    env: { APP_ENV: "test", UPLOADS_DIR: "test-results/uploads" },
+    env: {
+      APP_ENV: "test",
+      PAYMENT_PROVIDER: "sandbox",
+      PAYMENT_SANDBOX_OK: "true",
+      UPLOADS_DIR: "test-results/uploads",
+    },
   },
   projects: [
     { name: "desktop", use: { viewport: { width: 1440, height: 900 } } },

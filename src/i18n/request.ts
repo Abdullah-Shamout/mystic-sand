@@ -13,6 +13,7 @@ export const namespaces = [
   "payment",
   "content",
   "legal",
+  "sandbox",
   "admin",
 ] as const;
 

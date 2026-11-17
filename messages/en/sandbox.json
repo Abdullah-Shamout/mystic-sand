@@ -1,0 +1,14 @@
+{
+  "title": "Secure payment (sandbox)",
+  "subtitle": "Test payment page — no card details are collected.",
+  "order": "Order",
+  "amount": "Amount",
+  "note": "Choose how this test payment ends. A real bank page would ask for your card here — this one never does.",
+  "approve": "Approve payment",
+  "decline": "Decline payment",
+  "cancel": "Cancel payment",
+  "notFound": {
+    "title": "Payment session not found",
+    "text": "This payment link is invalid or has expired. Please return to the store and start checkout again."
+  }
+}
