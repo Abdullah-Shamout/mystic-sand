@@ -23,6 +23,18 @@ describe("ipRateLimitKey", () => {
     expect(ipRateLimitKey("::ffff:203.0.113.5")).not.toBe(ipRateLimitKey("::ffff:203.0.113.6"));
   });
 
+  it("maps a dotted-quad directly after '::' to its correct /64 (not 'unknown')", () => {
+    // These are all isIP-valid IPv6. The quad sits right after "::", so the hextet "head" must keep the
+    // second "::" colon to expand; the old slice-at-last-colon stranded a ":" and returned "unknown".
+    expect(ipRateLimitKey("2001:db8::1.2.3.4")).toBe("2001:db8:0:0::/64");
+    expect(ipRateLimitKey("::1.2.3.4")).toBe("0:0:0:0::/64");
+    expect(ipRateLimitKey("64:ff9b::1.2.3.4")).toBe("64:ff9b:0:0::/64");
+    // A spelling variant now buckets with its canonical hextet form, not a stray "unknown".
+    expect(ipRateLimitKey("2001:db8::1.2.3.4")).toBe(ipRateLimitKey("2001:db8::102:304"));
+    // The IPv4-MAPPED form is unaffected — it still resolves to the embedded IPv4 (not a /64).
+    expect(ipRateLimitKey("::ffff:1.2.3.4")).toBe("1.2.3.4");
+  });
+
   it("collapses a genuine IPv6 to its /64 prefix (rotation inside a /64 can't dodge the limit)", () => {
     const a = ipRateLimitKey("2001:db8:1:2:aaaa:bbbb:cccc:dddd");
     const b = ipRateLimitKey("2001:db8:1:2:1111:2222:3333:4444");

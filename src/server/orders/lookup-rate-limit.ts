@@ -24,15 +24,22 @@ import "server-only";
 //     keys per window before being shut out, ONE IP can no longer slow-fill the 24h phone/id axes to
 //     MAX_KEYS (the old store-wide guest-lookup denial). An ADMITTED request (IP under cap) still records
 //     + checks EVERY axis, so a DISTRIBUTED attack on one victim phone/id still trips those axes.
-//   • CAREFUL CAPACITY EVICTION replaces the old fail-closed-at-capacity behaviour on EVERY axis. At
-//     capacity we evict the lowest-live-count, oldest-first key, but NEVER a key at or over its limit, so
-//     a flood of fresh count-1 keys evicts itself while a throttled victim/attacker key is never reset
-//     (blind LRU would reset it — a bypass of the per-target sweep control). If every key is protected,
-//     the new key fails closed (memory stays bounded, cap never exceeded). The target axes CANNOT be
-//     single-IP-flooded (IP-first admission) but a spoofed-IP/botnet fill remains the tracked Phase-9
-//     residual; careful eviction keeps that residual from denying fresh legit keys, and the at/over-limit
-//     guard still protects an actively-swept victim (a key under active sweep is climbing, not the global
-//     minimum, so it is not the eviction candidate).
+//   • HYBRID CAPACITY EVICTION (per-axis mode) replaces the old fail-closed-at-capacity behaviour.
+//     - TARGET axes (phone / id / phoneDay / idDay): DEAD-ONLY. At capacity we evict ONLY DEAD keys (live
+//       count 0 — every timestamp already outside the window, exactly what pruneAxis would drop). A key
+//       with ANY live hit is NEVER evicted, because evicting a live key RESETS its throttle counter: a key
+//       CLIMBING toward its limit is a sweep victim, and resetting it re-opens the per-target enumeration
+//       bypass (pin every other key one notch ABOVE the victim's count → the victim is the global minimum →
+//       evicted → reset to absent → re-inserted at 1 → it never reaches the throttle). Full of live keys →
+//       the new key FAILS CLOSED. IP-first admission already stops a single IP from filling these axes, so
+//       dead-only + fail-closed cannot reintroduce the old single-IP lockout; a distributed/spoofed
+//       live-key flood that fills a target axis → fail-closed is the tracked Phase-9 residual.
+//     - IP axis: CAREFUL (lowest-live-count, oldest-first), never evicting a key AT/OVER its limit. There
+//       is NO per-target victim on the IP axis, so resetting a CLIMBING ip key via eviction is harmless —
+//       an attacker who can fill the IP axis is spoofing XFF and already evades their own IP throttle (⊆
+//       the tracked Phase-9 XFF residual, no NEW bypass). Careful eviction keeps a count-1 flood from
+//       locking out fresh IPs (the availability cost dead-only-on-the-IP-axis would add), while the
+//       at/over-limit guard still means an already-throttled IP is never reset.
 
 export type LimiterConfig = {
   windowMs: number; // short burst window
@@ -60,31 +67,38 @@ const DEFAULTS: LimiterConfig = {
   now: Date.now,
 };
 
-// Evict ~1/16 of the ceiling per O(n) reclaim pass so the scan is amortized across that many inserts
-// (a per-insert scan would swap the lockout DoS for a CPU DoS). At least one key, for tiny test caps.
+// Evict ~1/16 of the ceiling per CAREFUL reclaim pass (IP axis only) so the O(n) scan is amortized across
+// that many inserts. At least one key, for tiny test caps. (The dead-only target axes evict all dead keys
+// per pass and gate rescans on time instead.)
 const EVICT_BATCH_DIVISOR = 16;
+
+/** Per-axis capacity-eviction mode (see the HYBRID note above): "dead" = evict only dead keys, never a
+ * live/climbing key (TARGET axes, where a reset would be a per-target sweep bypass); "careful" = evict the
+ * lowest-live-count key but never one at/over its limit (IP axis, where a reset is harmless). */
+type EvictMode = "dead" | "careful";
 
 type Axis = {
   map: Map<string, number[]>;
   windowMs: number;
   max: number;
+  evict: EvictMode;
   /** Bookkeeping for the amortized capacity reclaim: when it last ran and how many keys it freed. */
   prune: { at: number; freed: number };
 };
 
-function newAxis(windowMs: number, max: number): Axis {
-  return { map: new Map(), windowMs, max, prune: { at: 0, freed: 1 } };
+function newAxis(windowMs: number, max: number, evict: EvictMode): Axis {
+  return { map: new Map(), windowMs, max, evict, prune: { at: 0, freed: 1 } };
 }
 
 type Store = { phone: Axis; id: Axis; ip: Axis; phoneDay: Axis; idDay: Axis };
 
 function createStore(cfg: LimiterConfig): Store {
   return {
-    phone: newAxis(cfg.windowMs, cfg.phoneMax),
-    id: newAxis(cfg.windowMs, cfg.idMax),
-    ip: newAxis(cfg.windowMs, cfg.ipMax),
-    phoneDay: newAxis(cfg.dayMs, cfg.phoneDayMax),
-    idDay: newAxis(cfg.dayMs, cfg.idDayMax),
+    phone: newAxis(cfg.windowMs, cfg.phoneMax, "dead"),
+    id: newAxis(cfg.windowMs, cfg.idMax, "dead"),
+    ip: newAxis(cfg.windowMs, cfg.ipMax, "careful"),
+    phoneDay: newAxis(cfg.dayMs, cfg.phoneDayMax, "dead"),
+    idDay: newAxis(cfg.dayMs, cfg.idDayMax, "dead"),
   };
 }
 
@@ -128,16 +142,37 @@ function createLimiter(store: Store, cfg: LimiterConfig): LookupLimiter {
   }
 
   /**
-   * Make room in an axis at capacity by CAREFUL eviction. One pass in Map order (which is oldest-first —
-   * an in-place set() on an existing key does NOT reorder it): find the lowest-live-count bucket among
-   * UNPROTECTED keys (live count < max; dead count-0 keys are the lowest, so they go first) and evict a
-   * batch of its oldest keys. A key at or over its limit (live count >= max) is PROTECTED and never
-   * evicted. AMORTIZED: when the previous pass freed nothing (everything protected) we don't rescan on
-   * every insert within the cooldown — we fail closed for the new key, keeping memory bounded.
+   * Make room in an axis at capacity. Two modes (see the HYBRID note at the top of the file):
+   *
+   * "dead" (TARGET axes) — evict ONLY DEAD keys (live count 0; exactly what pruneAxis would drop). A key
+   * with ANY live hit is NEVER evicted: evicting a live key resets its throttle counter, and a key
+   * climbing toward its limit is a sweep victim — resetting it re-opens the per-target enumeration bypass.
+   * Full of live keys → nothing safe to reclaim → the new key FAILS CLOSED. Hard-bounded: at most one O(n)
+   * scan per pruneCooldownMs, gated on TIME SINCE THE LAST SCAN alone — NOT "rescan whenever the last scan
+   * freed something", which a trickle of one-key-per-insert expiries would defeat into a per-insert O(n)
+   * scan (a CPU DoS). Within the cooldown a new key fails closed.
+   *
+   * "careful" (IP axis) — evict the lowest-live-count, oldest-first key, but NEVER one AT/OVER its limit
+   * (an already-throttled IP is never reset). There is no per-target victim here, so resetting a climbing
+   * ip key is harmless, and this keeps a count-1 flood from locking out fresh IPs. Rescan is allowed right
+   * after a productive pass (freed > 0) so a sustained flood keeps admitting fresh IPs; it backs off for a
+   * cooldown only once a pass frees nothing (every key at/over limit) — then the new key fails closed.
    */
   function makeRoom(axis: Axis, now: number): boolean {
-    if (now - axis.prune.at < cfg.pruneCooldownMs && axis.prune.freed === 0) return false;
+    if (axis.evict === "dead") {
+      if (now - axis.prune.at < cfg.pruneCooldownMs) return false;
+      const victims: string[] = [];
+      for (const [key, times] of axis.map) {
+        if (liveCount(times, now, axis.windowMs) === 0) victims.push(key); // ONLY dead keys are evictable
+      }
+      for (const key of victims) axis.map.delete(key);
+      axis.prune = { at: now, freed: victims.length }; // freed 0 ⇒ nothing reclaimable (fail closed)
+      return victims.length > 0;
+    }
 
+    // "careful": skip the rescan only while the LAST pass freed nothing (everything at/over limit) and the
+    // cooldown is unexpired — so a productive flood keeps admitting, but an all-protected axis backs off.
+    if (now - axis.prune.at < cfg.pruneCooldownMs && axis.prune.freed === 0) return false;
     const batch = Math.max(1, Math.floor(cfg.maxKeys / EVICT_BATCH_DIVISOR));
     let minCount = Infinity;
     let victims: string[] = [];
@@ -151,13 +186,9 @@ function createLimiter(store: Store, cfg: LimiterConfig): LookupLimiter {
         victims.push(key); // oldest-first within the lowest bucket (Map iteration order)
       }
     }
-    if (victims.length === 0) {
-      axis.prune = { at: now, freed: 0 }; // everything is at/over limit — fail closed, cap not exceeded
-      return false;
-    }
     for (const key of victims) axis.map.delete(key);
-    axis.prune = { at: now, freed: victims.length };
-    return true;
+    axis.prune = { at: now, freed: victims.length }; // freed 0 ⇒ all protected (fail closed)
+    return victims.length > 0;
   }
 
   /**

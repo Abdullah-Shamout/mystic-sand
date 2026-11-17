@@ -38,7 +38,12 @@ function expandIpv6(addr: string): number[] | null {
     const o = afterColon.split(".").map((n) => Number(n));
     if (o.length !== 4 || o.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return null;
     tail = [(o[0] << 8) | o[1], (o[2] << 8) | o[3]];
-    head = addr.slice(0, lastColon); // the hextet portion, up to (not including) the quad's colon
+    // Drop the dotted-quad to leave the hextet portion. The colon BEFORE the quad is normally a plain
+    // separator, but when the quad sits DIRECTLY after "::" (e.g. "2001:db8::1.2.3.4", "::1.2.3.4",
+    // "64:ff9b::1.2.3.4") that colon is the SECOND colon of the "::". Slicing at lastColon unconditionally
+    // would strand a dangling single ":" so the "::" split below misses it and the whole parse returns
+    // null (bucketing a valid address as "unknown"). Keep that colon when it closes a "::".
+    head = addr[lastColon - 1] === ":" ? addr.slice(0, lastColon + 1) : addr.slice(0, lastColon);
   }
 
   const parts = head.split("::");
