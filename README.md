@@ -30,6 +30,8 @@ A built-in, browser-only back office for running the demo store. Open it with **
 
 **Default sign-in:** username `admin`, password `MysticSand@2026`. Change them in **Settings** — a separate **Change username** card and **Change password** card, each asking for the current password. A new password must be at least 8 characters with a capital letter, a number and a special character (a live checklist shows the rules). Credentials are kept only as a SHA-256 hash in this browser.
 
+**Reset the admin (recovery, backend build):** on the launch branch the admin lives in the database. If the password is lost, set `ADMIN_USERNAME` and `ADMIN_PASSWORD` (strong) and run `npm run admin:reset` — it resets (or recreates) that admin's password and signs out its existing sessions.
+
 **What each tab does**
 
 - **Orders** — every order, with KPIs (revenue from completed orders, completed and pending counts, average order), filters (date, status, payment method) and search by customer name or order number (Latin or Arabic digits). Open an order to see all its details, **mark it done** (paid orders only), or **download a PDF receipt** or print it. **Export to Excel** downloads the filtered orders.

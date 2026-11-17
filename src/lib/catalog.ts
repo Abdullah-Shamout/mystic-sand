@@ -20,13 +20,15 @@ export type Catalog = {
   categories: Category[];
 };
 
-// --- validation helpers ---------------------------------------------------------------
+// --- validation + sanitising helpers --------------------------------------------------
 // These are the injection boundary for an admin edit: the Server Actions run a candidate product
-// through normalizeAdded (and the field cleaners) before writing a row, so a bad value is repaired
-// or rejected rather than persisted.
+// through normalizeAdded (and the field cleaners) before writing a row, so a bad value is repaired or
+// rejected rather than persisted. Every jsonb field is cleaned FIELD BY FIELD — extra keys INSIDE a
+// Localized / Notes / Images value are stripped (a plain `isLocalized` copies them as-is), and every
+// string/array is length/count bounded (A03) — so an authenticated but malformed or oversized payload
+// can never bloat a row.
 
 const isString = (v: unknown): v is string => typeof v === "string";
-const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const isCategory = (v: unknown): v is CategorySlug =>
   typeof v === "string" && (CATEGORY_SLUGS as readonly string[]).includes(v);
 
@@ -38,50 +40,138 @@ export const isLocalized = (v: unknown): v is Localized =>
 export const isNonEmptyLocalized = (v: unknown): v is Localized =>
   isLocalized(v) && v.en.trim().length > 0 && v.ar.trim().length > 0;
 
-const isLocalizedList = (v: unknown): v is Localized[] => Array.isArray(v) && v.every(isLocalized);
+/**
+ * Per-field input bounds. Each cap sits COMFORTABLY ABOVE the longest value in the src/data seed, so a
+ * seed / reset / legit edit is never rejected, while an oversized authenticated payload still is.
+ * Seed maxima (chars / count): name 17, type 26, tagline 47, description 162, howTo 118, family 16,
+ * note item 20, notes per list 3, image key 24, gallery 5, related 4×(≤9), aliases 9×(≤8), variants 2,
+ * sku 14, size 19.
+ */
+export const CATALOG_LIMITS = {
+  slug: 80,
+  name: 80,
+  type: 60,
+  tagline: 120,
+  description: 400,
+  howTo: 400,
+  family: 60,
+  noteItem: 60,
+  notesPerList: 12,
+  imageKey: 120,
+  gallery: 20,
+  relatedItem: 80,
+  related: 24,
+  aliasItem: 80,
+  aliases: 24,
+  variants: 12,
+  sku: 64,
+  size: 60,
+} as const;
 
-const isNotes = (v: unknown): v is Notes =>
-  !!v &&
-  typeof v === "object" &&
-  isLocalizedList((v as Notes).top) &&
-  isLocalizedList((v as Notes).heart) &&
-  isLocalizedList((v as Notes).base);
+// A lone/unpaired UTF-16 surrogate throws "URI malformed" in encodeURIComponent, so a value that is
+// not well-formed is rejected. Duplicated from src/lib/home.ts's cleaner, to keep this module self-
+// contained (the brief sanctioned duplicating rather than a shared extraction).
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+const isWellFormed = (value: string): boolean =>
+  typeof (value as { isWellFormed?: () => boolean }).isWellFormed === "function"
+    ? (value as unknown as { isWellFormed: () => boolean }).isWellFormed()
+    : !LONE_SURROGATE.test(value);
 
-const isVariant = (v: unknown): v is Variant => {
-  if (!v || typeof v !== "object") return false;
-  const variant = v as Variant;
-  return (
-    isNonEmptyString(variant.sku) &&
-    typeof variant.priceFils === "number" &&
-    Number.isInteger(variant.priceFils) &&
-    variant.priceFils >= 0 &&
-    typeof variant.stock === "number" &&
-    Number.isInteger(variant.stock) &&
-    variant.stock >= 0 &&
-    isLocalized(variant.size)
-  );
-};
+/**
+ * Extracts ONLY { en, ar } (dropping any extra keys), trims each, and requires both to be well-formed
+ * and within `limit`; returns null otherwise. `allowBlank` keeps the "present-but-maybe-blank" rule of
+ * the optional copy fields (tagline / howTo / family): both languages must still be PRESENT as strings,
+ * but either may be empty. An over-limit or malformed language rejects the whole value (null).
+ */
+export function cleanLocalized(raw: unknown, limit: number, allowBlank = false): Localized | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const out = { en: "", ar: "" };
+  for (const lang of ["en", "ar"] as const) {
+    const value = r[lang];
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (trimmed.length > limit || !isWellFormed(trimmed)) return null;
+    if (!allowBlank && trimmed.length < 1) return null;
+    out[lang] = trimmed;
+  }
+  return { en: out.en, ar: out.ar };
+}
 
-export const isVariants = (v: unknown): v is Variant[] =>
-  Array.isArray(v) && v.length >= 1 && v.every(isVariant);
+/** A single trimmed, non-empty, within-limit, well-formed string, else null. */
+function cleanPlainString(raw: unknown, limit: number): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed.length >= 1 && trimmed.length <= limit && isWellFormed(trimmed) ? trimmed : null;
+}
+
+/** Valid strings only, each within `limit`, the list capped to `maxCount` (order preserved). */
+function cleanStringListBounded(raw: unknown, limit: number, maxCount: number): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const value of raw) {
+    const s = cleanPlainString(value, limit);
+    if (s) out.push(s);
+    if (out.length >= maxCount) break;
+  }
+  return out;
+}
 
 type Images = Product["images"];
 
-/** Images with a string card, an optional hover and a gallery that is never empty. */
-const cleanImages = (v: unknown): Images | null => {
-  if (!v || typeof v !== "object") return null;
-  const img = v as Images;
-  if (!isNonEmptyString(img.card)) return null;
-  const gallery = Array.isArray(img.gallery) ? img.gallery.filter(isNonEmptyString) : [];
+/** Images with a string card, an optional hover and a gallery that is never empty — every image-key
+ * string length-capped and the gallery count-capped. */
+function cleanImages(raw: unknown): Images | null {
+  if (!raw || typeof raw !== "object") return null;
+  const img = raw as Record<string, unknown>;
+  const card = cleanPlainString(img.card, CATALOG_LIMITS.imageKey);
+  if (!card) return null;
+  const hover = cleanPlainString(img.hover, CATALOG_LIMITS.imageKey);
+  const gallery = cleanStringListBounded(img.gallery, CATALOG_LIMITS.imageKey, CATALOG_LIMITS.gallery);
   return {
-    card: img.card,
-    ...(isNonEmptyString(img.hover) ? { hover: img.hover } : {}),
-    gallery: gallery.length > 0 ? gallery : [img.card],
+    card,
+    ...(hover ? { hover } : {}),
+    gallery: gallery.length > 0 ? gallery : [card],
   };
-};
+}
 
-const cleanStringList = (v: unknown): string[] | null =>
-  Array.isArray(v) ? v.filter(isNonEmptyString) : null;
+/** Variants capped to CATALOG_LIMITS.variants, each rebuilt to exactly { sku, size, priceFils, stock }
+ * (extra keys stripped; sku length-capped, size key-stripped + length-capped). Null if any is invalid. */
+function cleanVariants(raw: unknown): Variant[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out: Variant[] = [];
+  for (const value of raw.slice(0, CATALOG_LIMITS.variants)) {
+    if (!value || typeof value !== "object") return null;
+    const v = value as Record<string, unknown>;
+    const sku = cleanPlainString(v.sku, CATALOG_LIMITS.sku);
+    const size = cleanLocalized(v.size, CATALOG_LIMITS.size);
+    if (!sku || !size) return null;
+    if (typeof v.priceFils !== "number" || !Number.isInteger(v.priceFils) || v.priceFils < 0) return null;
+    if (typeof v.stock !== "number" || !Number.isInteger(v.stock) || v.stock < 0) return null;
+    out.push({ sku, size, priceFils: v.priceFils, stock: v.stock });
+  }
+  return out.length >= 1 ? out : null;
+}
+
+/** Notes: each of top / heart / base capped to CATALOG_LIMITS.notesPerList and every item key-stripped
+ * + length-capped via cleanLocalized. Null (→ notes omitted) if the shape is wrong or an item invalid. */
+function cleanNotes(raw: unknown): Notes | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const result = {} as Notes;
+  for (const group of ["top", "heart", "base"] as const) {
+    const list = r[group];
+    if (!Array.isArray(list)) return null;
+    const items: Localized[] = [];
+    for (const item of list.slice(0, CATALOG_LIMITS.notesPerList)) {
+      const clean = cleanLocalized(item, CATALOG_LIMITS.noteItem);
+      if (!clean) return null;
+      items.push(clean);
+    }
+    result[group] = items;
+  }
+  return result;
+}
 
 /** alsoIn kept to valid slugs that are not the product's own (final) category. */
 export const cleanAlsoIn = (v: unknown, category: CategorySlug): CategorySlug[] => {
@@ -91,38 +181,49 @@ export const cleanAlsoIn = (v: unknown, category: CategorySlug): CategorySlug[] 
   return [...seen];
 };
 
-// --- sanitising -----------------------------------------------------------------------
-
-/** Turns an admin-submitted product into a safe Product, or null when it is unusable. */
+/**
+ * Turns an admin-submitted product into a safe, FULLY-BOUNDED Product, or null when it is unusable.
+ * Every field is cleaned field-by-field, so the written jsonb carries only known keys within their
+ * caps — which also keeps isProductEdited's seed comparison accurate (the cleaned shape matches the
+ * seed's). type + description are required non-blank; tagline + howTo are present-but-maybe-blank
+ * (optional in the editor); family + notes are omitted when absent.
+ */
 export function normalizeAdded(input: Product): Product | null {
   if (!input || typeof input !== "object") return null;
-  if (!isNonEmptyString(input.slug) || !isNonEmptyString(input.name)) return null;
-  if (!isCategory(input.category)) return null;
-  if (!isVariants(input.variants)) return null;
+  const slug = cleanPlainString(input.slug, CATALOG_LIMITS.slug);
+  const name = cleanPlainString(input.name, CATALOG_LIMITS.name);
+  if (!slug || !name || !isCategory(input.category)) return null;
+
+  const type = cleanLocalized(input.type, CATALOG_LIMITS.type);
+  const description = cleanLocalized(input.description, CATALOG_LIMITS.description);
+  const tagline = cleanLocalized(input.tagline, CATALOG_LIMITS.tagline, true);
+  const howTo = cleanLocalized(input.howTo, CATALOG_LIMITS.howTo, true);
+  if (!type || !description || !tagline || !howTo) return null;
+
+  const variants = cleanVariants(input.variants);
+  if (!variants) return null;
   const images = cleanImages(input.images);
   if (!images) return null;
-  // type + description are required (the editor enforces non-empty); tagline + howTo are optional in
-  // the editor, so they stay at isLocalized (present, may be blank) — requiring them non-empty would
-  // reject editor-valid products.
-  if (!isNonEmptyLocalized(input.type) || !isLocalized(input.tagline)) return null;
-  if (!isNonEmptyLocalized(input.description) || !isLocalized(input.howTo)) return null;
+
+  const family = cleanLocalized(input.family, CATALOG_LIMITS.family, true); // optional → omit if null
+  const notes = cleanNotes(input.notes); // optional → omit if null
 
   return {
-    slug: input.slug,
-    name: input.name,
+    slug,
+    name,
     category: input.category,
     alsoIn: cleanAlsoIn(input.alsoIn, input.category),
-    type: input.type,
-    ...(isLocalized(input.family) ? { family: input.family } : {}),
-    tagline: input.tagline,
-    description: input.description,
-    ...(isNotes(input.notes) ? { notes: input.notes } : {}),
-    howTo: input.howTo,
-    variants: input.variants,
+    type,
+    ...(family ? { family } : {}),
+    tagline,
+    description,
+    ...(notes ? { notes } : {}),
+    howTo,
+    variants,
     images,
     ...(input.badge === "new" ? { badge: "new" as const } : {}),
-    related: cleanStringList(input.related) ?? [],
-    aliases: cleanStringList(input.aliases) ?? [],
+    related: cleanStringListBounded(input.related, CATALOG_LIMITS.relatedItem, CATALOG_LIMITS.related),
+    aliases: cleanStringListBounded(input.aliases, CATALOG_LIMITS.aliasItem, CATALOG_LIMITS.aliases),
     ...(typeof input.hidden === "boolean" ? { hidden: input.hidden } : {}),
     todo: [],
   };
