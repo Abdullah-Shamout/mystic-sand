@@ -71,6 +71,15 @@ jobs:
       # a runner image without system Chrome is ever used, switch this to `--with-deps chrome`.
       - run: npx playwright install --with-deps chromium
 
+      # Migrate + seed the service DB BEFORE Playwright starts the webServer. Playwright starts the
+      # webServer before globalSetup, and `next start`'s readiness render of "/" → "/[locale]" reads the
+      # DB (home_overrides / products); on a cold CI runner that render 500s against an un-migrated DB,
+      # so the webServer never reports ready and globalSetup (which would migrate) never runs — a
+      # deadlock that times out at 120s. Pre-migrating here breaks it; globalSetup re-runs migrate+seed
+      # (idempotent) and then clears, so the test-start state is unchanged. Both read DATABASE_URL above.
+      - run: npm run db:migrate
+      - run: npm run db:seed
+
       # `npm run build` ran above, so `next start` (launched by the Playwright webServer) serves the
       # production build against the migrated + seeded Postgres service.
       - run: npm run test
