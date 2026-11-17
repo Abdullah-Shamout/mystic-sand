@@ -265,6 +265,44 @@ export async function insertPaidOrder(opts: {
 }
 
 /**
+ * Bulk-inserts `count` fully-paid orders (id = `${prefix}<n>`) in three statements via generate_series,
+ * each with a long, UNIQUE customer name so the Orders Excel export's string file (shared-strings or
+ * worksheet) crosses fflate's 160000-byte async-zip threshold — above which write-excel-file's browser
+ * build deflates in a Web Worker created from a blob: URL (the CSP `worker-src 'self' blob:` case). The
+ * unique suffix defeats shared-string de-duplication, so the string DATA (not just the row count) drives
+ * the file size. Clean up with clearOrders().
+ */
+export async function insertManyPaidOrders(count: number, prefix = "MS-BULK-"): Promise<void> {
+  const details = JSON.stringify(SAMPLE_DETAILS);
+  await dbQuery(
+    `INSERT INTO orders
+       (id, status, oversold, locale, method, subtotal_fils, discount_fils, delivery_fils, total_fils,
+        promo_code, bag_key, details, phone_e164, checkout_token, provider, provider_payment_id,
+        created_at, paid_at, finalized_at)
+     SELECT $2 || g, 'paid', false, 'en', 'knet', 19000, 0, 1000, 20000, NULL, 'MS-I-50x1|standard|',
+            ($3::jsonb || jsonb_build_object('name', repeat('X', 1000) || g::text)),
+            '+96599887766', 'tok_' || $2 || g, 'sandbox', 'sbx_' || $2 || g,
+            now(), now(), now()
+       FROM generate_series(1, $1) AS g`,
+    [count, prefix, details],
+  );
+  await dbQuery(
+    `INSERT INTO order_lines (order_id, sku, slug, qty, price_fils, name, size, image)
+     SELECT $2 || g, 'MS-I-50', 'i', 1, 19000, 'I', '{"en":"50 ml","ar":"50 مل"}'::jsonb, 'products/i/bottle'
+       FROM generate_series(1, $1) AS g`,
+    [count, prefix],
+  );
+  await dbQuery(
+    `INSERT INTO payment_attempts
+       (order_id, provider, provider_payment_id, result, amount_fils, track_id, tran_id, ref, auth, bank_id, verified_at)
+     SELECT $2 || g, 'sandbox', 'sbx_' || $2 || g, 'CAPTURED', 20000, $2 || g,
+            '582104739162', '604218', '481032957610423', 'nbk', now()
+       FROM generate_series(1, $1) AS g`,
+    [count, prefix],
+  );
+}
+
+/**
  * Inserts a bare image row so the library lists `u:<id>` without an actual upload. No file is
  * written, so the served thumbnail 404s — fine for tests that only check the row is listed/deleted.
  */
