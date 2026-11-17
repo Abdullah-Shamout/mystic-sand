@@ -40,6 +40,13 @@ export async function clearCustomProducts(): Promise<void> {
   await dbQuery("DELETE FROM products WHERE slug LIKE 'c-%'");
 }
 
+/** Deletes every admin row (sessions cascade). The seed is create-only (production-safe: a re-seed
+ * never overwrites a rotated password), so globalSetup clears admins first and lets the seed re-create
+ * the known test admin — deterministic even on a reused DB whose admin password diverged. */
+export async function clearAdmins(): Promise<void> {
+  await dbQuery("DELETE FROM admin_users");
+}
+
 /** The authoritative variants.stock for a sku (what the admin set-stock action writes), or -1 if none. */
 export async function readVariantStock(sku: string): Promise<number> {
   const rows = await dbQueryRows<{ stock: number }>("SELECT stock FROM variants WHERE sku = $1", [sku]);

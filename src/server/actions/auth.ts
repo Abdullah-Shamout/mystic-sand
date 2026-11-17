@@ -1,5 +1,7 @@
 "use server";
 
+import { isIP } from "node:net";
+
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -7,7 +9,13 @@ import { z } from "zod";
 
 import { passwordIsStrong } from "@/lib/password-policy";
 import { dummyHash, hashPassword, verifyPassword } from "@/server/auth/password";
-import { clearFailures, isLockedOut, recordFailure } from "@/server/auth/rate-limit";
+import {
+  clearFailures,
+  isLockedOut,
+  recordFailure,
+  releaseVerifySlot,
+  tryAcquireVerifySlot,
+} from "@/server/auth/rate-limit";
 import {
   createSession,
   destroySession,
@@ -42,12 +50,21 @@ const changePasswordSchema = z.object({
   next: z.string().min(1).max(200),
 });
 
-/** First client IP from the proxy headers, for the rate-limit key. */
+/** The client IP for the rate-limit key. In production the reverse proxy sets a trusted header named
+ * by TRUSTED_IP_HEADER (e.g. "cf-connecting-ip", or an x-real-ip the proxy OVERWRITES); trust ONLY
+ * that. The inbound X-Forwarded-For is attacker-controlled — its leftmost hop is whatever the client
+ * sent — so without a configured trusted header we fall back to the RIGHTMOST XFF hop (the one the
+ * nearest proxy appended) purely to bucket attempts; that is not a security boundary (the robust
+ * per-source limit is the Phase 9 reverse-proxy cap). The value is validated as an IP and length-
+ * capped so a crafted header can't bloat the key or the in-memory store. */
 async function clientIp(): Promise<string> {
   const h = await headers();
-  const forwarded = h.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]!.trim();
-  return h.get("x-real-ip") ?? "unknown";
+  const trustedHeader = process.env.TRUSTED_IP_HEADER?.trim().toLowerCase();
+  const candidate = trustedHeader
+    ? h.get(trustedHeader)
+    : (h.get("x-forwarded-for")?.split(",").pop() ?? h.get("x-real-ip"));
+  const ip = candidate?.trim() ?? "";
+  return ip.length <= 45 && isIP(ip) !== 0 ? ip : "unknown";
 }
 
 /** A safe post-login path: a same-site admin route under the right locale, else the admin home.
@@ -81,27 +98,45 @@ export async function login(input: {
   const user = username.trim().toLowerCase();
   const key = `${user}|${await clientIp()}`;
   if (isLockedOut(key)) return { ok: false, error: "locked" };
+  // Bound concurrent argon2 verifications so unauthenticated volume can't amplify into CPU/thread-pool
+  // exhaustion. Acquire BEFORE reserving the attempt, so hitting the cap isn't counted as a failed
+  // login. When the cap is reached the attempt is rejected cheaply, before any hashing.
+  if (!tryAcquireVerifySlot()) return { ok: false, error: "locked" };
 
-  const [row] = await getDb()
-    .select()
-    .from(schema.adminUsers)
-    .where(eq(schema.adminUsers.username, user))
-    .limit(1);
-
-  // Always run a full verify — against the row's hash, or a dummy hash on a miss — so the response
-  // time is the same whether or not the username exists.
-  const hashToCheck = row?.passwordHash ?? (await dummyHash());
-  const passwordOk = await verifyPassword(hashToCheck, password);
-
-  if (!row || !passwordOk || row.role !== "admin") {
+  try {
+    // Reserve the attempt BEFORE the awaited work (synchronously, right after isLockedOut + the sync
+    // acquire) so a burst of concurrent logins can't all pass isLockedOut() before any records a
+    // failure (check-then-act race). A success clears it; a DB/infra error undoes it (below).
     recordFailure(key);
-    return { ok: false, error: "invalid" };
-  }
 
-  clearFailures(key);
-  const userAgent = (await headers()).get("user-agent");
-  await createSession(row.id, { remember: remember ?? false, userAgent });
-  return { ok: true, redirect: safeNext(parsed.data.next, locale) };
+    let row: typeof schema.adminUsers.$inferSelect | undefined;
+    try {
+      [row] = await getDb()
+        .select()
+        .from(schema.adminUsers)
+        .where(eq(schema.adminUsers.username, user))
+        .limit(1);
+    } catch (error) {
+      clearFailures(key); // a DB/infra failure is not an authentication failure — undo the reservation
+      throw error;
+    }
+
+    // Always run a full verify — against the row's hash, or a dummy hash on a miss — so the response
+    // time is the same whether or not the username exists.
+    const hashToCheck = row?.passwordHash ?? (await dummyHash());
+    const passwordOk = await verifyPassword(hashToCheck, password);
+
+    if (!row || !passwordOk || row.role !== "admin") {
+      return { ok: false, error: "invalid" }; // the attempt is already recorded above
+    }
+
+    clearFailures(key);
+    const userAgent = (await headers()).get("user-agent");
+    await createSession(row.id, { remember: remember ?? false, userAgent });
+    return { ok: true, redirect: safeNext(parsed.data.next, locale) };
+  } finally {
+    releaseVerifySlot();
+  }
 }
 
 /** Clears the session and sends the browser to the login page. */
@@ -135,6 +170,10 @@ export async function changePassword(input: {
     .limit(1);
   if (!row) return { ok: false, error: "unauthorized" };
 
+  // Note: the current-password check is intentionally NOT lockout-throttled. It already requires a live
+  // admin session (httpOnly + SameSite), and a hard lock here would let a stolen session block the real
+  // admin from rotating the password — i.e. defeat incident response. Step-up re-auth is the right
+  // control if this is ever hardened further (tracked for a later phase).
   if (!(await verifyPassword(row.passwordHash, current))) return { ok: false, error: "current" };
   if (!passwordIsStrong(next)) return { ok: false, error: "weak" };
   if (await verifyPassword(row.passwordHash, next)) return { ok: false, error: "same" };

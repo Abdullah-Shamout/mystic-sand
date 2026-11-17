@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 
-import { clearCustomProducts, clearHome, clearImages } from "./db";
+import { clearAdmins, clearCustomProducts, clearHome, clearImages } from "./db";
 
 // Playwright globalSetup: ensure the test DB is migrated + seeded before the run.
 //
@@ -23,10 +23,14 @@ export default async function globalSetup() {
   }
   // Seed a known admin so specs can perform the REAL login (argon2 + session cookie). Defaults are
   // used only when the environment hasn't set them.
-  process.env.ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? "admin";
-  process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "Test-Admin-2026!";
+  process.env.ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+  process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Test-Admin-2026!";
   const opts = { stdio: "inherit" as const, env: process.env };
   execSync("npm run db:migrate", opts);
+  // admin_users is create-only in the seed (a re-seed never overwrites a rotated password). Clear it
+  // first so the seed deterministically re-creates the known test admin, even on a reused DB whose
+  // admin password diverged (e.g. a changePassword spec). Requires the migrate above (table exists).
+  await clearAdmins();
   execSync("npm run db:seed", opts);
   // Seed doesn't touch the images table; clear leftover uploads from a previous run so the image
   // library starts empty (specs assert on their own uploaded keys, not a global count).
