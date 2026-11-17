@@ -21,22 +21,23 @@ import * as t from "@/server/db/schema";
 async function main() {
   const db = getDb();
 
-  // The first admin, from ADMIN_USERNAME / ADMIN_PASSWORD. Validate BEFORE opening the transaction so a
-  // weak/misconfigured password fails fast WITHOUT rolling back an otherwise-good catalog seed. Skipped
-  // (with a warning) when either is unset, so we never create a blank/guessable admin.
+  // The first admin, from ADMIN_USERNAME / ADMIN_PASSWORD. Decided BEFORE opening the transaction (no
+  // partial writes to undo). A weak or unset credential is SKIPPED with a warning — never created and
+  // never aborts the rest of the seed — so we never provision a weak admin, yet `db:seed` / `db:reset`
+  // still seed the catalog. The strength rule matches the in-app password change, so it rejects blank/
+  // whitespace and placeholders like "change-me".
   const adminUsername = process.env.ADMIN_USERNAME?.trim().toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD;
-  if (adminUsername && adminPassword) {
-    // Enforce the SAME strength policy the app applies to a password change, so the longest-lived
-    // credential isn't the weakest. This rejects blank/whitespace and placeholders like "change-me".
-    if (!passwordIsStrong(adminPassword)) {
-      throw new Error(
-        "ADMIN_PASSWORD is too weak: it needs >= 10 characters with an uppercase letter, a number and " +
-          "a symbol (the committed placeholder is rejected on purpose). Set a strong ADMIN_PASSWORD and re-run.",
-      );
-    }
-  } else {
+  let adminToSeed: { username: string; password: string } | null = null;
+  if (!adminUsername || !adminPassword) {
     console.warn("Admin NOT seeded: set ADMIN_USERNAME and ADMIN_PASSWORD to create the first admin.");
+  } else if (!passwordIsStrong(adminPassword)) {
+    console.warn(
+      "Admin NOT seeded: ADMIN_PASSWORD is too weak — it needs >= 10 characters with an uppercase " +
+        "letter, a number and a symbol. Set a strong value and re-run (the rest of the seed still ran).",
+    );
+  } else {
+    adminToSeed = { username: adminUsername, password: adminPassword };
   }
 
   await db.transaction(async (tx) => {
@@ -106,16 +107,16 @@ async function main() {
       await tx.insert(t.promoCodes).values(prow).onConflictDoUpdate({ target: t.promoCodes.code, set: prow });
     }
 
-    // Admin account (argon2id). Validated above the transaction. CREATE-ONLY: never overwrite an
-    // existing admin's hash — a re-seed on deploy must not silently revert a password the admin
-    // rotated in-app (which would also leave old sessions live); an intentional reset is a separate,
-    // explicit step that also revokes sessions. Uses @node-rs/argon2 directly (ARGON2_OPTIONS matches
-    // the app hasher + login timing pad) because the app's password module is "server-only".
-    if (adminUsername && adminPassword) {
-      const passwordHash = await hash(adminPassword, ARGON2_OPTIONS);
+    // Admin account (argon2id). Decided above the transaction. CREATE-ONLY: never overwrite an existing
+    // admin's hash — a re-seed on deploy must not silently revert a password the admin rotated in-app
+    // (which would also leave old sessions live); an intentional reset is a separate, explicit step
+    // that also revokes sessions. Uses @node-rs/argon2 directly (ARGON2_OPTIONS matches the app hasher
+    // + login timing pad) because the app's password module is "server-only".
+    if (adminToSeed) {
+      const passwordHash = await hash(adminToSeed.password, ARGON2_OPTIONS);
       await tx
         .insert(t.adminUsers)
-        .values({ username: adminUsername, passwordHash, role: "admin" })
+        .values({ username: adminToSeed.username, passwordHash, role: "admin" })
         .onConflictDoNothing({ target: t.adminUsers.username });
     }
   });
