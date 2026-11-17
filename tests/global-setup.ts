@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 
-import { clearAdmins, clearCustomProducts, clearHome, clearImages, clearOrders } from "./db";
+import { clearAdmins, clearContactMessages, clearCustomProducts, clearHome, clearImages, clearOrders } from "./db";
 
 // Playwright globalSetup: ensure the test DB is migrated + seeded before the run.
 //
@@ -45,4 +45,7 @@ export default async function globalSetup() {
   // "N samples" counts (which expect zero DB site orders) are deterministic; the purchase specs also
   // clear after themselves. Requires the migrate above (orders/order_lines/payment_attempts exist).
   await clearOrders();
+  // Contact messages persist in Postgres too; start empty so the contact specs' row-count assertions
+  // are deterministic. Requires the migrate above (contact_messages exists).
+  await clearContactMessages();
 }

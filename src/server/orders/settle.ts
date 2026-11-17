@@ -4,6 +4,8 @@ import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { getDb, schema } from "@/server/db";
 import { logger } from "@/server/log";
+import { getNotifier, safeNotify } from "@/server/notify/registry";
+import type { OrderNotification } from "@/server/notify/types";
 import { getGateway } from "@/server/payments/registry";
 
 // Settles a payment against its order. Called from BOTH the /checkout/result render (the only settle
@@ -19,6 +21,11 @@ import { getGateway } from "@/server/payments/registry";
 //      could not be fulfilled — a captured payment cannot be un-charged, so we page a human instead).
 //   5. Insert the payment_attempts row with onConflictDoNothing(provider, providerPaymentId).
 //
+// The transaction returns the OUTCOME plus — on a transitioning capture only — the minimal payload a
+// notification needs. The notification is fired AFTER the commit (never inside the tx: a rolled-back
+// settle must not notify), exactly once per order (a later settle returns "already" before the tx body,
+// so it carries no payload).
+//
 // It deliberately does NOT invalidate the "catalog" cache: updateTag is Server-Action-only and
 // revalidateTag throws during a page render. The webhook route handler revalidates after a capture;
 // the render path lets the storefront stock lag to the CATALOG_REVALIDATE backstop (documented).
@@ -33,6 +40,9 @@ export type SettleOutcome =
   | "mismatch" // payment disagreed with the order (amount / currency / binding) — alert; attempt recorded, no stock move
   | "notfound"; // unknown order id
 
+/** The transaction's result: the outcome, plus the notification payload on a transitioning capture. */
+type SettleResult = { outcome: SettleOutcome; notify?: OrderNotification };
+
 /** True when the outcome moved stock (the webhook should then expire the storefront catalog cache). */
 export function settleChangedStock(outcome: SettleOutcome): boolean {
   return outcome === "paid" || outcome === "oversold";
@@ -43,21 +53,21 @@ export async function settleOrder(orderId: string): Promise<SettleOutcome> {
   const gateway = getGateway();
   const db = getDb();
 
-  return db.transaction(async (tx) => {
+  const result: SettleResult = await db.transaction(async (tx): Promise<SettleResult> => {
     const [order] = await tx
       .select()
       .from(schema.orders)
       .where(eq(schema.orders.id, orderId))
       .limit(1)
       .for("update");
-    if (!order) return "notfound";
+    if (!order) return { outcome: "notfound" };
     // Idempotency anchor: once the order has left "pending" it is settled. A concurrent second settle
     // blocks on FOR UPDATE until the first commits, then reads the updated status here and returns.
-    if (order.status !== "pending") return "already";
-    if (!order.providerPaymentId) return "pending"; // no payment was ever initiated
+    if (order.status !== "pending") return { outcome: "already" };
+    if (!order.providerPaymentId) return { outcome: "pending" }; // no payment was ever initiated
 
     const verify = await gateway.verify({ providerPaymentId: order.providerPaymentId });
-    if (!verify) return "pending"; // the provider has not decided yet (or the session is gone)
+    if (!verify) return { outcome: "pending" }; // the provider has not decided yet (or the session is gone)
 
     // Build the attempt row up front and record it on EVERY path that has a verified payment — including
     // a binding or amount/currency MISMATCH. A captured-but-mismatched payment must leave a reconcilable
@@ -96,7 +106,7 @@ export async function settleOrder(orderId: string): Promise<SettleOutcome> {
         { event: "payment_binding_mismatch", orderId: order.id, providerPaymentId: order.providerPaymentId, boundOrderId },
         "settleOrder: payment does not bind to this order",
       );
-      return "mismatch";
+      return { outcome: "mismatch" };
     }
 
     // Declined / canceled is terminal: record the attempt, set the status, never touch stock.
@@ -104,7 +114,7 @@ export async function settleOrder(orderId: string): Promise<SettleOutcome> {
       await insertAttempt();
       const status = verify.result === "CANCELED" ? "canceled" : "failed";
       await tx.update(schema.orders).set({ status, finalizedAt: now }).where(eq(schema.orders.id, order.id));
-      return status;
+      return { outcome: status };
     }
 
     // CAPTURED — money moved. The amount + currency MUST match the server-repriced total. Record the
@@ -115,7 +125,7 @@ export async function settleOrder(orderId: string): Promise<SettleOutcome> {
         { event: "payment_amount_mismatch", orderId: order.id, expectedFils: order.totalFils, gotFils: verify.amountFils, currency: verify.currency },
         "settleOrder: captured amount/currency does not match order total",
       );
-      return "mismatch";
+      return { outcome: "mismatch" };
     }
 
     await insertAttempt();
@@ -168,13 +178,33 @@ export async function settleOrder(orderId: string): Promise<SettleOutcome> {
       .set({ status: "paid", oversold, paidAt: now, finalizedAt: now })
       .where(eq(schema.orders.id, order.id));
 
+    // The notification payload is built from the POST-settle LOCAL `oversold` — order.oversold is the
+    // stale pre-settle value (false). Name comes from the frozen checkout details snapshot.
+    const notify: OrderNotification = {
+      id: order.id,
+      phoneE164: order.phoneE164,
+      name: order.details.name,
+      totalFils: order.totalFils,
+      oversold,
+      locale: order.locale,
+    };
+
     if (oversold) {
       logger.error(
         { event: "order_oversold", orderId: order.id },
         "settleOrder: captured payment could not be fully fulfilled — marked paid+oversold (cannot un-charge)",
       );
-      return "oversold";
+      return { outcome: "oversold", notify };
     }
-    return "paid";
+    return { outcome: "paid", notify };
   });
+
+  // Fire the notification AFTER the commit, never inside the tx — a rolled-back settle must not notify.
+  // Only a transitioning capture ("paid"/"oversold") attaches a payload, and a later settle returns
+  // "already" before the tx body runs, so this fires EXACTLY once per order. safeNotify swallows any
+  // channel error: a notification must never break the (already-committed) settle.
+  if (result.notify && (result.outcome === "paid" || result.outcome === "oversold")) {
+    await safeNotify(() => getNotifier().orderPaid(result.notify!));
+  }
+  return result.outcome;
 }

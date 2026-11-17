@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { WhatsAppIcon } from "@/components/brand/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Field, TextArea, TextInput } from "@/components/ui/form";
 import { useLiveSettings } from "@/lib/live";
 import { phoneStatus } from "@/lib/phone";
 import { whatsappHref } from "@/lib/settings";
+import { submitContact } from "@/server/actions/contact";
 import { useUi } from "@/store/ui";
 
 type ErrorKey = "nameRequired" | "phoneRequired" | "phoneInvalid" | "phoneLandline" | "messageRequired" | "messageShort" | "tooLong";
+/** Server-side outcomes the form surfaces inline (the client validation handles the field-level ones). */
+type ServerErrorKey = "throttled" | "invalid" | "generic";
 
 // Labels come from the server page (messages/*/content.json), so the large `content`
 // namespace never has to be shipped to the browser.
@@ -29,6 +32,7 @@ export type ContactFormLabels = {
   whatsappGreeting: string;
   another: string;
   newTab: string;
+  serverErrors: Record<ServerErrorKey, string>;
 };
 
 type Values = { name: string; phone: string; message: string };
@@ -58,17 +62,20 @@ function validate(v: Values): Errors {
 }
 
 /**
- * Contact form with client-side validation (on blur and on submit). There is no backend
- * in the prototype: a valid message is confirmed in place and announced, with a one-tap
- * hand-off of the same message to WhatsApp.
+ * Contact form with client-side validation (on blur and on submit). A valid submission is sent to the
+ * `submitContact` server action (persisted + a best-effort notification); on success it is confirmed in
+ * place and announced, with a one-tap hand-off of the same message to WhatsApp. A server rejection
+ * (throttled / invalid / generic) shows an inline error and keeps the WhatsApp fallback usable.
  */
-export function ContactForm({ labels }: { labels: ContactFormLabels }) {
+export function ContactForm({ labels, locale }: { labels: ContactFormLabels; locale: "en" | "ar" }) {
   const announce = useUi((s) => s.announce);
   const settings = useLiveSettings();
   const [values, setValues] = useState<Values>(empty);
   const [touched, setTouched] = useState<Partial<Record<keyof Values, boolean>>>({});
   const [attempted, setAttempted] = useState(false);
   const [sent, setSent] = useState<Values | null>(null);
+  const [serverError, setServerError] = useState<ServerErrorKey | null>(null);
+  const [pending, startTransition] = useTransition();
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
@@ -95,14 +102,31 @@ export function ContactForm({ labels }: { labels: ContactFormLabels }) {
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (pending) return;
     setAttempted(true);
     const first = FIELDS.find((f) => errors[f]);
     if (first) {
       ({ name: nameRef, phone: phoneRef, message: messageRef })[first].current?.focus();
       return;
     }
-    setSent({ name: values.name.trim(), phone: values.phone, message: values.message.trim() });
-    announce(labels.successAnnounce);
+    const payload: Values = { name: values.name.trim(), phone: values.phone, message: values.message.trim() };
+    setServerError(null);
+    startTransition(async () => {
+      try {
+        const res = await submitContact({ ...payload, locale });
+        if (res.ok) {
+          setSent(payload);
+          announce(labels.successAnnounce);
+        } else {
+          // throttled / invalid / generic — show the error inline; the WhatsApp fallback stays usable.
+          setServerError(res.reason);
+        }
+      } catch {
+        // A network / transport failure must not escape to the error boundary (it would take the
+        // WhatsApp fallback with it) — degrade to the generic inline error.
+        setServerError("generic");
+      }
+    });
   };
 
   if (sent) {
@@ -196,7 +220,26 @@ export function ContactForm({ labels }: { labels: ContactFormLabels }) {
           />
         )}
       </Field>
-      <Button type="submit" size="lg" block>
+      {serverError && (
+        <div
+          role="alert"
+          data-testid="contact-server-error"
+          className="border-s-2 border-danger bg-danger/5 px-4 py-3 text-[14px] text-danger"
+        >
+          <p>{labels.serverErrors[serverError]}</p>
+          <a
+            href={whatsappHref(settings, `${labels.whatsappGreeting}\n\n${values.message.trim()}\n\n— ${values.name.trim()}`)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex min-h-11 items-center gap-2 font-medium underline decoration-1 underline-offset-4 hover:decoration-2"
+          >
+            <WhatsAppIcon className="size-4" />
+            {labels.whatsappCta}
+            <span className="sr-only">({labels.newTab})</span>
+          </a>
+        </div>
+      )}
+      <Button type="submit" size="lg" block busy={pending}>
         {labels.submit}
       </Button>
     </form>

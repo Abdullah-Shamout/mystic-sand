@@ -145,6 +145,33 @@ export async function clearOrders(): Promise<void> {
   await dbQuery("DELETE FROM orders");
 }
 
+// --- Contact messages (the submitContact server action) ------------------------------
+
+/** Wipes every contact_messages row. Called at globalSetup so the contact specs start from empty. */
+export async function clearContactMessages(): Promise<void> {
+  await dbQuery("DELETE FROM contact_messages");
+}
+
+export type ContactRow = { name: string; phone: string; message: string; locale: string; ip: string | null };
+
+/** The most recently created contact_messages row, or null — the submitted details are server-stored. */
+export async function readLatestContactMessage(): Promise<ContactRow | null> {
+  const rows = await dbQueryRows<ContactRow>(
+    "SELECT name, phone, message, locale, ip FROM contact_messages ORDER BY created_at DESC LIMIT 1",
+    [],
+  );
+  return rows[0] ?? null;
+}
+
+/** How many contact_messages rows were stored for one client IP (the rate-limit spec keys on its IP). */
+export async function countContactMessagesForIp(ip: string): Promise<number> {
+  const rows = await dbQueryRows<{ n: string }>(
+    "SELECT count(*)::text AS n FROM contact_messages WHERE ip = $1",
+    [ip],
+  );
+  return Number(rows[0]?.n ?? "0");
+}
+
 const SAMPLE_DETAILS = {
   name: "Website Tester",
   phone: "99887766",

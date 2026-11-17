@@ -48,6 +48,11 @@ export default async function ContactPage({ params }: Props) {
     whatsappGreeting: t("contact.form.whatsappGreeting"),
     another: t("contact.form.another"),
     newTab: t("newTab"),
+    serverErrors: {
+      throttled: t("contact.form.serverErrors.throttled"),
+      invalid: t("contact.form.serverErrors.invalid"),
+      generic: t("contact.form.serverErrors.generic"),
+    },
   };
 
   type Channel = { icon: ReactNode; label: string; value?: string; href?: string; external?: boolean; tel?: boolean };
@@ -151,7 +156,7 @@ export default async function ContactPage({ params }: Props) {
             {t("contact.form.title")}
           </h2>
           <p className="mt-3 mb-8 text-[15px] leading-relaxed text-ink/80">{t("contact.form.intro")}</p>
-          <ContactForm labels={labels} />
+          <ContactForm labels={labels} locale={locale === "ar" ? "ar" : "en"} />
         </section>
       </div>
     </>

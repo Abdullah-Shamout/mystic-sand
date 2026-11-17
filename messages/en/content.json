@@ -51,7 +51,12 @@
       "successAnnounce": "Message sent. Thank you.",
       "whatsappCta": "Also send on WhatsApp",
       "whatsappGreeting": "Hello Mystic Sand,",
-      "another": "Send another message"
+      "another": "Send another message",
+      "serverErrors": {
+        "throttled": "You’ve sent several messages in a short time. Please wait a little, or reach us on WhatsApp.",
+        "invalid": "Please check your details and try again.",
+        "generic": "Something went wrong sending your message. Please try again, or reach us on WhatsApp."
+      }
     }
   },
   "faq": {
