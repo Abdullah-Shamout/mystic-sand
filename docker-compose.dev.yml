@@ -6,8 +6,10 @@
 services:
   postgres:
     image: postgres:17
+    # restart: "no" — do not auto-start on boot/daemon-restart (per the owner's preference); start it
+    # explicitly with `npm run db:up` when needed.
     container_name: mystic-sand-postgres-dev
-    restart: unless-stopped
+    restart: "no"
     environment:
       POSTGRES_USER: mystic
       POSTGRES_PASSWORD: mystic
