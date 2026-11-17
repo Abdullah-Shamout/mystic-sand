@@ -13,6 +13,8 @@
     "media:logo": "node scripts/trace-logo.mjs",
     "screens": "node scripts/screens.mjs",
     "test": "playwright test",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "db:up": "docker compose -f docker-compose.dev.yml up -d",
     "db:down": "docker compose -f docker-compose.dev.yml down",
     "db:generate": "drizzle-kit generate",
@@ -62,6 +64,7 @@
     "serve": "14.2.6",
     "tailwindcss": "^4",
     "tsx": "4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "4.1.12"
   }
 }

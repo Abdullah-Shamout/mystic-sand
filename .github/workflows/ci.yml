@@ -1,0 +1,86 @@
+name: CI
+
+# Static checks, unit tests and the Playwright E2E for the launch build. Separate from the GitHub
+# Pages demo deploy (deploy.yml), which stays until the explicit cutover.
+on:
+  push:
+    branches: [launch, main]
+  pull_request:
+    branches: [launch, main]
+
+# Cancel an in-progress run when the same ref is pushed again.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    # Ephemeral Postgres for the Playwright E2E — the suite's globalSetup migrates + seeds it. No real
+    # secrets: every value in this workflow is a throwaway test credential defined inline.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: mystic
+          POSTGRES_PASSWORD: mystic
+          POSTGRES_DB: mystic
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mystic -d mystic"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # `next build` is DB-free (lazy pool), but the Playwright webServer (next start) and globalSetup
+      # (migrate + seed) read these. The webServer also inherits APP_ENV / PAYMENT_PROVIDER /
+      # PAYMENT_SANDBOX_OK / SANDBOX_WEBHOOK_SECRET / RECONCILE_SECRET / UPLOADS_DIR from
+      # playwright.config.ts, so only these are added here.
+      DATABASE_URL: postgres://mystic:mystic@127.0.0.1:5432/mystic
+      # Throwaway, >= 32 chars. The app signs the session cookie with this (src/server/auth/jwt.ts).
+      SESSION_SECRET: test-secret-not-for-production-aaaaaaaaaaaaaaaaaaaaaaaa
+      # global-setup.ts defaults these, but pin known throwaway values for reproducibility. The
+      # password meets the seed's strong-password policy (>= 10 chars, upper + digit + symbol).
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: Test-Admin-2026!
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test:unit
+
+      # The Playwright config uses `channel: "chrome"`; GitHub's ubuntu-latest image ships
+      # google-chrome-stable, and `--with-deps chromium` installs the shared OS libraries it needs. If
+      # a runner image without system Chrome is ever used, switch this to `--with-deps chrome`.
+      - run: npx playwright install --with-deps chromium
+
+      # `npm run build` ran above, so `next start` (launched by the Playwright webServer) serves the
+      # production build against the migrated + seeded Postgres service.
+      - run: npm run test
+
+      # On a failed run the `retain-on-failure` traces land in test-results/; upload them for triage.
+      # (The list reporter writes no HTML report, and test-results/ is empty on a green run — ignored.)
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore

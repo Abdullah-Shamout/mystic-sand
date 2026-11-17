@@ -15,7 +15,8 @@ export default defineConfig({
   // singleton (e.g. the delivery fee → 1500, held live across a ~20s reload-until-pass loop, plus
   // whatsapp/phone) and updateTag purges the cache process-wide, while e2e.spec asserts the DEFAULT
   // fee / delivery / footer with no tolerance — under parallel workers that is a cross-file flake, not
-  // a product bug. Phase 8 adds per-worker DB isolation to restore parallelism.
+  // a product bug. workers:1 keeps the single shared `next start` + one DB serialized; true per-worker
+  // DB isolation (a DB + webServer per worker) would restore parallelism but is deferred, not this phase.
   workers: 1,
   reporter: [["list"]],
   // Migrate + seed the test DB before the run (requires DATABASE_URL).
