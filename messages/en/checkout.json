@@ -158,7 +158,28 @@
       "title": "My orders"
     },
     "title": "My orders",
-    "note": "Orders placed on this device are listed here.",
+    "note": "Enter your order number and the mobile number you placed it with to view your order.",
+    "lookup": {
+      "numberLabel": "Order number",
+      "numberPlaceholder": "e.g. MS-20000",
+      "phoneLabel": "Mobile number",
+      "phoneHint": "The number you entered at checkout.",
+      "submit": "Find my order",
+      "qty": "Qty {qty}",
+      "totals": {
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "delivery": "Delivery",
+        "total": "Total"
+      },
+      "notfoundTitle": "We couldn’t find that order",
+      "notfoundText": "Please check the order number and the mobile number and try again, or message us on WhatsApp and we’ll help.",
+      "throttledTitle": "Too many attempts",
+      "throttledText": "You’ve tried a few times just now. Please wait a little and try again, or message us on WhatsApp and we’ll look it up for you.",
+      "whatsapp": "WhatsApp us",
+      "whatsappText": "Hello Mystic Sand, I’d like to check my order {id}.",
+      "whatsappTextNoId": "Hello Mystic Sand, I need help finding my order."
+    },
     "emptyTitle": "No orders yet",
     "emptyText": "Once you check out, your orders and their receipts will be waiting for you here.",
     "cta": "Discover the collection",

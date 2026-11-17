@@ -69,6 +69,20 @@ export async function readOrder(id: string): Promise<OrderRow | null> {
   return rows[0] ?? null;
 }
 
+/** An order's internal secrets (never exposed by the guest lookup projection) — for no-leak assertions. */
+export async function readOrderSecrets(
+  id: string,
+): Promise<{ checkoutToken: string; providerPaymentId: string | null }> {
+  const rows = await dbQueryRows<{ checkout_token: string; provider_payment_id: string | null }>(
+    "SELECT checkout_token, provider_payment_id FROM orders WHERE id = $1",
+    [id],
+  );
+  return {
+    checkoutToken: rows[0]?.checkout_token ?? "",
+    providerPaymentId: rows[0]?.provider_payment_id ?? null,
+  };
+}
+
 /** The most recently created order row, or null — used after a purchase flow whose id is server-minted. */
 export async function readLatestOrder(): Promise<OrderRow | null> {
   const rows = await dbQueryRows<OrderRow>(
@@ -76,6 +90,37 @@ export async function readLatestOrder(): Promise<OrderRow | null> {
     [],
   );
   return rows[0] ?? null;
+}
+
+/** Backdates an order's created_at by N minutes, so the stale-pending reconcile selects it. */
+export async function backdateOrder(id: string, minutes: number): Promise<void> {
+  await dbQuery("UPDATE orders SET created_at = now() - ($1 * interval '1 minute') WHERE id = $2", [minutes, id]);
+}
+
+/**
+ * Rewinds a settled order to the "pending, nothing-settled" state: clears its payment attempts and
+ * inventory moves and resets the status flags. Used to model a provider capture that our own settle
+ * never persisted (the scenario the reconciler recovers) — the live provider session is unaffected.
+ */
+export async function resetOrderToPendingUnsettled(id: string): Promise<void> {
+  await dbQuery("DELETE FROM payment_attempts WHERE order_id = $1", [id]);
+  await dbQuery("DELETE FROM inventory_moves WHERE order_id = $1", [id]);
+  await dbQuery(
+    "UPDATE orders SET status = 'pending', oversold = false, paid_at = NULL, finalized_at = NULL WHERE id = $1",
+    [id],
+  );
+}
+
+/**
+ * Inserts a payment_attempts row for a (pending) order — DURABLE evidence of a possibly-captured
+ * payment. The reconciler must SKIP (never auto-cancel) a still-pending order that has such a row.
+ */
+export async function insertMismatchAttempt(orderId: string): Promise<void> {
+  await dbQuery(
+    `INSERT INTO payment_attempts (order_id, provider, provider_payment_id, result, amount_fils, verified_at)
+     VALUES ($1, 'sandbox', $2, 'CAPTURED', 1, now())`,
+    [orderId, `sbx_mismatch_${orderId.replace(/\W/g, "")}`],
+  );
 }
 
 /** How many inventory_moves rows an order produced (one per fulfilled line on a captured order). */

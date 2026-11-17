@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { clearOrders, readLatestOrder, readVariantStock } from "./db";
+import { clearOrders, readLatestOrder, readOrderSecrets, readVariantStock } from "./db";
 
 // Core shopping flows against the `next start` production server (run `npm run build` first). The
 // purchase flow is REAL now: add to bag → checkout → the hosted /sandbox/pay page → Approve/Decline →
@@ -33,6 +33,16 @@ async function paySandbox(page: Page, outcome: "approve" | "decline" | "cancel")
   const label = { approve: "Approve payment", decline: "Decline payment", cancel: "Cancel payment" }[outcome];
   await page.getByRole("button", { name: label }).click();
   await page.waitForURL(/\/checkout\/result\//, { timeout: 15_000 });
+}
+
+/** Submit the guest order-lookup form and wait for its server-action POST to settle. */
+async function lookupGuestOrder(page: Page, number: string, phone: string) {
+  await page.getByLabel("Order number").fill(number);
+  await page.getByLabel("Mobile number").fill(phone);
+  await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/orders")),
+    page.getByTestId("lookup-submit").click(),
+  ]);
 }
 
 test.describe("shopping flows", () => {
@@ -88,33 +98,101 @@ test.describe("shopping flows", () => {
     await expect(page.getByRole("button", { name: /Try again/i }).or(page.getByRole("link", { name: /Try again/i }))).toBeVisible();
   });
 
-  test("My orders is empty until a paid order, then lists it as Confirmed", async ({ page }) => {
-    await page.goto("/en/orders/");
-    await expect(page.getByText("No orders yet")).toBeVisible();
-    await expect(page.getByTestId("order-history")).toHaveCount(0);
-
+  test("a paid order is looked up by id + checkout phone; a wrong phone and an unknown id both say not found", async ({ page }) => {
     await addFromProductPage(page, "i");
     await page.goto("/en/checkout/");
-    await fillCheckout(page);
+    await fillCheckout(page); // checkout phone normalises to 99123456
     await paySandbox(page, "approve");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
+    const order = await readLatestOrder();
+    expect(order?.status).toBe("paid");
+    const id = order!.id;
 
     await page.goto("/en/orders/");
-    await expect(page.getByTestId("order-history")).toBeVisible();
-    await expect(page.getByText("No orders yet")).toHaveCount(0);
-    await expect(page.getByText("Confirmed").first()).toBeVisible();
+
+    // Correct id + phone → the inline receipt showing the order.
+    await lookupGuestOrder(page, id, "99123456");
+    await expect(page.getByTestId("lookup-result")).toBeVisible();
+    await expect(page.getByTestId("lookup-result")).toContainText(id);
+
+    // A wrong (but valid) phone → the generic not-found; no receipt leaks.
+    await lookupGuestOrder(page, id, "99999999");
+    await expect(page.getByTestId("lookup-notfound")).toBeVisible();
+    await expect(page.getByTestId("lookup-result")).toHaveCount(0);
+    const wrongPhoneNotice = await page.getByTestId("lookup-notfound").innerText();
+
+    // An unknown id + the real phone → the IDENTICAL not-found (no existence oracle).
+    await lookupGuestOrder(page, "MS-99999", "99123456");
+    await expect(page.getByTestId("lookup-notfound")).toBeVisible();
+    expect(await page.getByTestId("lookup-notfound").innerText()).toBe(wrongPhoneNotice);
   });
 
-  test("a failed payment leaves My orders empty", async ({ page }) => {
-    await addFromProductPage(page, "aura");
+  test("the looked-up receipt carries no name and no address, and leaks no token / payment id", async ({ page }) => {
+    await addFromProductPage(page, "i");
     await page.goto("/en/checkout/");
-    await fillCheckout(page);
-    await paySandbox(page, "decline");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(/not completed/i);
+    await fillCheckout(page, "99222222"); // name "Fatma Al-Kandari", street "Baghdad Street"
+    await paySandbox(page, "approve");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Thank you");
+    const id = (await readLatestOrder())!.id;
+    const secrets = await readOrderSecrets(id);
 
     await page.goto("/en/orders/");
-    await expect(page.getByText("No orders yet")).toBeVisible();
-    await expect(page.getByTestId("order-history")).toHaveCount(0);
+    await page.getByLabel("Order number").fill(id);
+    await page.getByLabel("Mobile number").fill("99222222");
+    const [resp] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/orders")),
+      page.getByTestId("lookup-submit").click(),
+    ]);
+
+    // The action's serialized response carries ONLY the reduced projection.
+    const body = await resp.text();
+    expect(body).not.toContain("Fatma"); // customer name
+    expect(body).not.toContain("Baghdad"); // street / address
+    expect(body).not.toContain("sbx_"); // provider payment id prefix
+    expect(body).not.toContain(secrets.checkoutToken);
+    if (secrets.providerPaymentId) expect(body).not.toContain(secrets.providerPaymentId);
+
+    // And nothing renders the PII either.
+    await expect(page.getByTestId("lookup-result")).toBeVisible();
+    const rendered = await page.getByTestId("lookup-result").innerText();
+    expect(rendered).not.toContain("Fatma");
+    expect(rendered).not.toContain("Baghdad");
+  });
+
+  test("a non-paid (declined) order cannot be looked up", async ({ page }) => {
+    await addFromProductPage(page, "aura");
+    await page.goto("/en/checkout/");
+    await fillCheckout(page, "99333333");
+    await paySandbox(page, "decline");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/not completed/i);
+    const order = await readLatestOrder();
+    expect(order?.status).toBe("failed");
+
+    await page.goto("/en/orders/");
+    await lookupGuestOrder(page, order!.id, "99333333");
+    await expect(page.getByTestId("lookup-notfound")).toBeVisible();
+    await expect(page.getByTestId("lookup-result")).toHaveCount(0);
+  });
+
+  test("too many lookups for one phone are throttled", async ({ page }) => {
+    await page.goto("/en/orders/");
+    // Randomize the phone + id band per run so a retry / re-run within 15 min against the same server's
+    // in-memory counter starts fresh (the throttle has no clear-on-success), and so this test never
+    // poisons the fixed phones the other lookup tests use.
+    const phone = `9${String(Math.floor(1_000_000 + Math.random() * 8_999_999))}`; // valid KW mobile
+    const idBase = 2_000_000 + Math.floor(Math.random() * 1_000_000);
+
+    // Each attempt uses a UNIQUE IP (via XFF) and a UNIQUE unknown id, so only the per-phone counter
+    // can ever trip. After the ~10 threshold the next lookup is throttled.
+    for (let i = 0; i < 10; i++) {
+      await page.setExtraHTTPHeaders({ "x-forwarded-for": `203.0.113.${i + 1}` });
+      await lookupGuestOrder(page, `MS-${idBase + i}`, phone);
+      await expect(page.getByTestId("lookup-notfound")).toBeVisible();
+    }
+    await page.setExtraHTTPHeaders({ "x-forwarded-for": "203.0.113.200" });
+    await lookupGuestOrder(page, `MS-${idBase + 10}`, phone);
+    await expect(page.getByTestId("lookup-throttled")).toBeVisible();
+    await expect(page.getByTestId("lookup-notfound")).toHaveCount(0);
   });
 
   test("landline numbers are rejected with a clear message", async ({ page }) => {

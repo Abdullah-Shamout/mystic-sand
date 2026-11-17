@@ -1,7 +1,7 @@
 import { revalidateTag } from "next/cache";
 
 import { settleChangedStock, settleOrder } from "@/server/orders/settle";
-import { logger } from "@/server/log";
+import { logger, redactError } from "@/server/log";
 import { getGateway } from "@/server/payments/registry";
 
 // POST /api/payments/<provider>/webhook/ — the provider's server-to-server settlement callback.
@@ -41,7 +41,7 @@ export async function POST(
     parsed = await gateway.parseWebhook(request);
   } catch (error) {
     // Could not even read/parse the request — not a settle failure, and not retryable. Ack.
-    logger.warn({ event: "webhook_parse_error", provider, err: String(error) }, "payment webhook could not be parsed");
+    logger.warn({ event: "webhook_parse_error", provider, err: redactError(error) }, "payment webhook could not be parsed");
     return ack();
   }
   if (!parsed.ok) {
@@ -62,7 +62,7 @@ export async function POST(
     const outcome = await settleOrder(orderId);
     if (settleChangedStock(outcome)) revalidateTag("catalog", { expire: 0 });
   } catch (error) {
-    logger.error({ event: "webhook_settle_error", provider, orderId, err: String(error) }, "payment webhook settle failed");
+    logger.error({ event: "webhook_settle_error", provider, orderId, err: redactError(error) }, "payment webhook settle failed");
     return new Response(null, { status: 500 });
   }
   return ack();

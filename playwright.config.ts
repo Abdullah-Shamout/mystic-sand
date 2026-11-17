@@ -45,6 +45,8 @@ export default defineConfig({
       // Lets the /api/payments/sandbox/webhook path authenticate signed test webhooks (the sandbox
       // gateway's parseWebhook rejects when no secret is configured).
       SANDBOX_WEBHOOK_SECRET: "test-sandbox-webhook-secret",
+      // Lets reconcile.spec POST the /api/orders/reconcile route (it 404s without a configured secret).
+      RECONCILE_SECRET: "test-reconcile-secret",
       UPLOADS_DIR: "test-results/uploads",
     },
   },

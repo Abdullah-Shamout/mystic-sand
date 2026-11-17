@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 
 import { settleOrder } from "@/server/orders/settle";
 import { checkoutCookieName } from "@/server/orders/cookie";
-import { logger } from "@/server/log";
+import { logger, redactError } from "@/server/log";
 import { getOrderForResult } from "@/server/read/orders";
 import ResultView from "./result-view";
 
@@ -38,7 +38,7 @@ export default async function ResultPage({ params, searchParams }: Props) {
     try {
       await settleOrder(orderId);
     } catch (error) {
-      logger.error({ event: "result_settle_failed", orderId, err: String(error) }, "result page settleOrder threw");
+      logger.error({ event: "result_settle_failed", orderId, err: redactError(error) }, "result page settleOrder threw");
     }
   }
 

@@ -64,9 +64,22 @@ export type WebhookResult =
 export interface PaymentGateway {
   /** Stable provider key, stored in `payment_attempts.provider`. */
   readonly provider: string;
+  /**
+   * How long (ms) a payment session can still be verified after it is created. The stale-pending
+   * reconciler uses this as the HARD FLOOR on its cutoff: an order younger than this may still have a
+   * shopper on the provider's page (verify returns null meanwhile), so force-cancelling it could drop
+   * a capture that is about to land.
+   */
+  readonly sessionLifetimeMs: number;
   /** Create the payment with the provider and return where to send the shopper. */
   initiate(input: InitiateInput): Promise<InitiateResult>;
-  /** Confirm an outcome with the provider. `null` when the payment is unknown or not yet decided. */
+  /**
+   * Confirm an outcome with the provider. Returns `null` ONLY when the provider positively confirms
+   * there is NO decision yet (the payment was never decided) — never on a transport/API error. A
+   * network failure, timeout, HTTP 404 or any other transient/ambiguous error MUST THROW, not return
+   * null: the stale-pending reconciler treats null as "no capture, safe to cancel" but SKIPS on a
+   * throw, so an adapter that returned null on a 404/timeout would make reconcile cancel a paid order.
+   */
   verify(ref: { providerPaymentId: string }): Promise<VerifyResult | null>;
   /** Authenticate + parse a provider webhook. Treat the request as untrusted. */
   parseWebhook(request: Request): Promise<WebhookResult>;

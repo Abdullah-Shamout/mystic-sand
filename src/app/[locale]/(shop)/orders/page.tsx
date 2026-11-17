@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { OrderHistory } from "@/components/checkout/order-history";
+import { OrderLookup } from "@/components/checkout/order-lookup";
 import { SectionTitle } from "@/components/ui/section-title";
 
 type Props = { params: Promise<{ locale: string }> };
@@ -19,7 +19,7 @@ export default async function OrdersPage({ params }: Props) {
     <div className="pb-24 md:pb-32">
       <SectionTitle as="h1" title={t("title")} subtitle={t("note")} />
       <div className="mx-auto max-w-[1040px] px-4 md:px-6">
-        <OrderHistory />
+        <OrderLookup />
       </div>
     </div>
   );

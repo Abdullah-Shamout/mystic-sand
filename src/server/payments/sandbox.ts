@@ -22,7 +22,13 @@ import type {
 // Edge). node:crypto would break that Edge bundle; Web Crypto works in both runtimes.
 
 const PROVIDER = "sandbox";
-const SESSION_TTL_MS = 30 * 60 * 1000; // a session is valid for 30 minutes after it is created
+// An UNDECIDED session (shopper still on the pay page) is valid for 30 minutes — after that it can no
+// longer be decided. A DECIDED session (an outcome was recorded) must stay verifiable FAR longer than
+// the stale-pending reconcile floor (session lifetime + margin) and any plausible cron interval, so
+// that a captured-but-never-persisted order can still be RECOVERED by reconcile instead of canceled.
+// Both are bounded by MAX_SESSIONS eviction, so memory stays capped even with 24h-lived decided ones.
+const SESSION_TTL_MS = 30 * 60 * 1000; // undecided session lifetime (also the reconcile floor basis)
+const DECIDED_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // a decided session stays verifiable for 24 hours
 const MAX_SESSIONS = 5_000; // hard ceiling on tracked sessions (bounds memory under an init flood)
 
 export type SandboxSession = {
@@ -42,7 +48,11 @@ const sessions: Map<string, SandboxSession> = ((
 ).__msSandboxSessions ??= new Map());
 
 function isExpired(session: SandboxSession, now: number): boolean {
-  return now - session.createdAt > SESSION_TTL_MS;
+  // DECIDED sessions live much longer (recovery window); UNDECIDED ones still expire at 30 min — both
+  // getSandboxSession and prune go through here, so an undecided session >30 min old becomes undefined
+  // and can no longer be decided (setSandboxOutcome reads through getSandboxSession at decision time).
+  const ttl = session.outcome ? DECIDED_SESSION_TTL_MS : SESSION_TTL_MS;
+  return now - session.createdAt > ttl;
 }
 
 /** Drop expired sessions. Cheap; called on each initiate. */
@@ -146,6 +156,7 @@ function verifyResultFor(providerPaymentId: string, session: SandboxSession): Ve
 
 export const sandboxGateway: PaymentGateway = {
   provider: PROVIDER,
+  sessionLifetimeMs: SESSION_TTL_MS,
 
   async initiate(input: InitiateInput): Promise<InitiateResult> {
     const now = Date.now();

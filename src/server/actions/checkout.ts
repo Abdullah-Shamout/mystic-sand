@@ -10,7 +10,7 @@ import { normalizeKuwaitPhone } from "@/lib/phone";
 import { bagKey, computeTotals, priceLines, type Promo } from "@/lib/pricing";
 import { checkoutSchema, type CheckoutForm } from "@/lib/validation";
 import { getDb, schema } from "@/server/db";
-import { logger } from "@/server/log";
+import { logger, redactError } from "@/server/log";
 import { checkoutCookieName } from "@/server/orders/cookie";
 import { getGateway } from "@/server/payments/registry";
 import { getCatalogData } from "@/server/read/catalog";
@@ -218,7 +218,7 @@ export async function initiateCheckout(input: InitiateCheckoutInput): Promise<In
 
     return { ok: true, redirectUrl };
   } catch (error) {
-    logger.error({ event: "initiate_checkout_failed", err: String(error) }, "initiateCheckout failed");
+    logger.error({ event: "initiate_checkout_failed", err: redactError(error) }, "initiateCheckout failed");
     return fail("generic");
   }
 }

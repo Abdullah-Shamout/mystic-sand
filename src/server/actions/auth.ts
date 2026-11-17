@@ -1,7 +1,5 @@
 "use server";
 
-import { isIP } from "node:net";
-
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -24,6 +22,7 @@ import {
   verifySession,
 } from "@/server/auth/session";
 import { getDb, schema } from "@/server/db";
+import { clientIp } from "@/server/net/client-ip";
 
 // Auth Server Actions. login + changePassword RETURN a result object (never throw): the suite runs a
 // production build, where a thrown action's message is redacted to a generic string the client can't
@@ -49,23 +48,6 @@ const changePasswordSchema = z.object({
   current: z.string().min(1).max(200),
   next: z.string().min(1).max(200),
 });
-
-/** The client IP for the rate-limit key. In production the reverse proxy sets a trusted header named
- * by TRUSTED_IP_HEADER (e.g. "cf-connecting-ip", or an x-real-ip the proxy OVERWRITES); trust ONLY
- * that. The inbound X-Forwarded-For is attacker-controlled — its leftmost hop is whatever the client
- * sent — so without a configured trusted header we fall back to the RIGHTMOST XFF hop (the one the
- * nearest proxy appended) purely to bucket attempts; that is not a security boundary (the robust
- * per-source limit is the Phase 9 reverse-proxy cap). The value is validated as an IP and length-
- * capped so a crafted header can't bloat the key or the in-memory store. */
-async function clientIp(): Promise<string> {
-  const h = await headers();
-  const trustedHeader = process.env.TRUSTED_IP_HEADER?.trim().toLowerCase();
-  const candidate = trustedHeader
-    ? h.get(trustedHeader)
-    : (h.get("x-forwarded-for")?.split(",").pop() ?? h.get("x-real-ip"));
-  const ip = candidate?.trim() ?? "";
-  return ip.length <= 45 && isIP(ip) !== 0 ? ip : "unknown";
-}
 
 /** A safe post-login path: a same-site admin route under the right locale, else the admin home.
  * Rejects absolute URLs, protocol-relative (`//`) and backslash tricks — no open redirect. */

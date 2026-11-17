@@ -173,6 +173,14 @@
     "help": "Need a hand? WhatsApp us",
     "helpText": "Hello Mystic Sand, I need help paying for order {id}."
   },
+  "pending": {
+    "title": "We’re confirming your payment",
+    "text": "This can take a moment. We’ll update your order the instant your bank confirms it — there’s nothing more for you to do right now.",
+    "order": "Order <bdi>{id}</bdi>",
+    "continue": "Continue shopping",
+    "help": "Questions? WhatsApp us",
+    "helpText": "Hello Mystic Sand, I’m checking on the payment for order {id}."
+  },
   "notFound": {
     "title": "We can’t find this order on this device",
     "order": "Order number",
