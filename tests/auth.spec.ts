@@ -26,7 +26,9 @@ test.describe("admin authentication", () => {
     await page.getByTestId("login-username").fill(ADMIN_USERNAME);
     await page.getByTestId("login-password").fill("not-the-password");
     await page.getByTestId("login-submit").click();
-    await expect(page.getByRole("alert")).toBeVisible();
+    // Target the login error by testid, not a bare getByRole("alert"): Next's App Router injects an empty
+    // __next-route-announcer__ div that also has role="alert", so the role query is ambiguous.
+    await expect(page.getByTestId("login-error")).toBeVisible();
     await expect(page).toHaveURL(/\/en\/login/);
 
     // Still gated after a failed attempt.
@@ -167,7 +169,10 @@ test.describe("password-change session revocation", () => {
       // it verified, so it aborts with the generic invalid result — no session row, no cookie.
       await rotation.commit();
 
-      await expect(page.getByRole("alert")).toBeVisible();
+      // Assert the login error by testid, NOT a bare getByRole("alert"): Next injects an empty
+      // __next-route-announcer__ div (role="alert"), so getByRole("alert") can resolve to 2 elements and
+      // strict-mode-fail here even though the login is correctly refused (both CI runs failed exactly this).
+      await expect(page.getByTestId("login-error")).toBeVisible();
       await expect(page).toHaveURL(/\/en\/login/);
       const sessionCookie = (await context.cookies()).find((c) => c.name === "ms_session");
       expect(sessionCookie, "no session cookie should be set after a refused login").toBeFalsy();

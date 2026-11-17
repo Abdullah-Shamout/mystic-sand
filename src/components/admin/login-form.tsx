@@ -110,7 +110,7 @@ export function LoginForm({
       <Checkbox label={t("login.keep")} checked={remember} onChange={(e) => setRemember(e.target.checked)} />
 
       {error && (
-        <p id={errorId} role="alert" className="text-[13px] leading-snug text-danger">
+        <p id={errorId} role="alert" data-testid="login-error" className="text-[13px] leading-snug text-danger">
           {t("login.error")}
         </p>
       )}
