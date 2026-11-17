@@ -22,7 +22,7 @@ import {
   verifySession,
 } from "@/server/auth/session";
 import { getDb, schema } from "@/server/db";
-import { clientIp } from "@/server/net/client-ip";
+import { clientIp, ipRateLimitKey } from "@/server/net/client-ip";
 
 // Auth Server Actions. login + changePassword RETURN a result object (never throw): the suite runs a
 // production build, where a thrown action's message is redacted to a generic string the client can't
@@ -78,7 +78,11 @@ export async function login(input: {
   const locale: AppLocale = parsed.data.locale ?? "en";
 
   const user = username.trim().toLowerCase();
-  const key = `${user}|${await clientIp()}`;
+  // Bucket the lockout on the NORMALIZED IP key: an IPv4-mapped/socket-backfilled IPv6 collapses to its
+  // IPv4 (so an attacker can't dodge the per-key lockout by rotating textual IP variants, and a shared
+  // IPv6 /64 can't dodge it by rotating the host bits) — without collapsing distinct IPv4 clients into
+  // one bucket (which would let anyone lock the admin out).
+  const key = `${user}|${ipRateLimitKey(await clientIp())}`;
   if (isLockedOut(key)) return { ok: false, error: "locked" };
   // Bound concurrent argon2 verifications so unauthenticated volume can't amplify into CPU/thread-pool
   // exhaustion. Acquire BEFORE reserving the attempt, so hitting the cap isn't counted as a failed

@@ -3,7 +3,7 @@
 import { toLatinDigits } from "@/lib/digits";
 import { normalizeKuwaitPhone, phoneStatus } from "@/lib/phone";
 import { logger, redactError } from "@/server/log";
-import { clientIp } from "@/server/net/client-ip";
+import { clientIp, ipRateLimitKey } from "@/server/net/client-ip";
 import { recordAndCheckLookup } from "@/server/orders/lookup-rate-limit";
 import { lookupPaidOrder, type LookupOrderView } from "@/server/read/order-lookup";
 
@@ -51,7 +51,7 @@ export async function lookupOrder(input: unknown): Promise<LookupOrderResult> {
     const throttled = recordAndCheckLookup({
       phone: phoneValid ? normalizedPhone : undefined,
       orderId: numberValid ? number : undefined,
-      ip,
+      ip: ipRateLimitKey(ip),
     });
     if (throttled) return { ok: false, reason: "throttled" };
 

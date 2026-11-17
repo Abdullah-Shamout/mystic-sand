@@ -5,7 +5,7 @@ import { z } from "zod";
 import { normalizeKuwaitPhone, phoneStatus } from "@/lib/phone";
 import { getDb, schema } from "@/server/db";
 import { logger, redactError } from "@/server/log";
-import { clientIp } from "@/server/net/client-ip";
+import { clientIp, ipRateLimitKey } from "@/server/net/client-ip";
 import { recordAndCheckContact } from "@/server/notify/contact-rate-limit";
 import { getNotifier, safeNotify } from "@/server/notify/registry";
 
@@ -39,8 +39,10 @@ export async function submitContact(input: unknown): Promise<SubmitContactResult
   try {
     const ip = await clientIp();
 
-    // Record + decide in one call, BEFORE validation, so every attempt counts (fail-closed).
-    if (recordAndCheckContact(ip)) return { ok: false, reason: "throttled" };
+    // Record + decide in one call, BEFORE validation, so every attempt counts (fail-closed). Bucket on
+    // the NORMALIZED IP key (so IPv6 rotation inside a /64 can't dodge the limit); the row below still
+    // STORES the full clientIp() for the record.
+    if (recordAndCheckContact(ipRateLimitKey(ip))) return { ok: false, reason: "throttled" };
 
     const parsed = contactSchema.safeParse(input);
     if (!parsed.success) return { ok: false, reason: "invalid" };
