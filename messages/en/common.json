@@ -85,16 +85,6 @@
     "payWith": "Secure payment",
     "whatsapp": "WhatsApp"
   },
-  "demo": {
-    "label": "Demo",
-    "title": "Presenter tools",
-    "fillAddress": "Fill sample Kuwait address",
-    "filled": "Sample address filled in",
-    "reset": "Reset demo data",
-    "resetDone": "Demo data cleared",
-    "outcome": "Next payment result",
-    "hide": "Hide demo tools"
-  },
   "promo": {
     "applied": "Code {code} applied — {percent}% off",
     "invalid": "This code isn’t valid.",

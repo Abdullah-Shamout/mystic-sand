@@ -7,12 +7,11 @@ import { getLiveCatalog, useLiveCatalog } from "@/lib/live";
 import { availableFor } from "@/lib/stock";
 
 /**
- * The live "available stock" per SKU. It now comes straight from the DB's authoritative
- * variants.stock, carried in the catalog data: availableFor(catalog, {}, sku) is the variant's set
- * stock (with hidden/unknown SKUs → 0). The old "catalog stock − ms-stock sold" subtraction is
- * superseded — stock MUTATION (decrement on purchase) stays on the client ms-stock path until
- * Phase 5, but it no longer feeds these reads. Because the server supplies real stock, there is no
- * mounted gate here anymore.
+ * The live "available stock" per SKU. It comes straight from the DB's authoritative variants.stock,
+ * carried in the catalog data: availableFor(catalog, {}, sku) is the variant's set stock (hidden or
+ * unknown SKUs → 0). The old client "catalog stock − ms-stock sold" subtraction is gone — stock is
+ * authoritative in Postgres now (settleOrder decrements variants.stock on a captured payment, Phase
+ * 5b), so these reads pass an empty sold-map and need no mounted gate.
  */
 
 const EMPTY_SOLD: Record<string, number> = {};

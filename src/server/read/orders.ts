@@ -23,6 +23,15 @@ type OrderRow = typeof schema.orders.$inferSelect;
 type OrderLineRow = typeof schema.orderLines.$inferSelect;
 type PaymentAttemptRow = typeof schema.paymentAttempts.$inferSelect;
 
+/** Constant-time equality for the 32-hex checkout tokens, to avoid a token timing oracle on the
+ * ownership gate. A null or length-mismatched presented token is simply not a match. */
+function tokensMatch(stored: string, presented: string | null): boolean {
+  if (!presented || stored.length !== presented.length) return false;
+  let diff = 0;
+  for (let i = 0; i < stored.length; i++) diff |= stored.charCodeAt(i) ^ presented.charCodeAt(i);
+  return diff === 0;
+}
+
 /** MMDD in Kuwait time (the receipt's postDate field). */
 function mmdd(date: Date): string {
   const c = kuwaitClock(date);
@@ -97,7 +106,7 @@ export async function getOrderForResult(orderId: string, token: string | null): 
   if (!orderId || !token) return null;
   const db = getDb();
   const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, orderId)).limit(1);
-  if (!order || order.checkoutToken !== token) return null;
+  if (!order || !tokensMatch(order.checkoutToken, token)) return null;
 
   const lines = await db.select().from(schema.orderLines).where(eq(schema.orderLines.orderId, orderId));
   const attempts = await db

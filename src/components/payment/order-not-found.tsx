@@ -10,7 +10,12 @@ import { whatsappHref } from "@/lib/settings";
 import { isolate } from "./format";
 import { useFocusOnMount } from "./use-focus-on-mount";
 
-/** Orders live in this browser's storage: a link opened elsewhere can't show them. */
+/**
+ * Shown by the cookie-gated result page when the order id can't be resolved against this device's
+ * per-order checkout token — e.g. a receipt link opened on another device/browser. The copy points the
+ * shopper to the cross-device lookup on the My orders page or to WhatsApp (never implies on-device
+ * storage).
+ */
 export function OrderNotFound({ orderId }: { orderId: string }) {
   const t = useTranslations("payment.notFound");
   const settings = useLiveSettings();

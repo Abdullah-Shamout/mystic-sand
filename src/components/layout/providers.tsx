@@ -6,7 +6,6 @@ import { LiveRegion } from "@/components/ui/live-region";
 import { Toaster } from "@/components/ui/toaster";
 import { AdminSessionProvider } from "@/lib/admin-session";
 import { LiveProvider, type LiveData } from "@/lib/live";
-import { DemoHelpers } from "./demo-helpers";
 import { SearchOverlay } from "./search-overlay";
 import { SiteMenu } from "./site-menu";
 import { StorageSync } from "./storage-sync";
@@ -40,7 +39,6 @@ export function Providers({
           <LiveRegion />
           <UrlActions />
           <StorageSync />
-          <DemoHelpers />
         </LiveProvider>
       </AdminSessionProvider>
     </Direction.Provider>

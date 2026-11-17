@@ -182,10 +182,10 @@
     "helpText": "Hello Mystic Sand, I’m checking on the payment for order {id}."
   },
   "notFound": {
-    "title": "We can’t find this order on this device",
+    "title": "We couldn’t find that order",
     "order": "Order number",
-    "text": "Orders are saved in the browser they were placed from. WhatsApp us with the order number and we’ll look it up for you.",
-    "textNoId": "WhatsApp us and we’ll help you find your order.",
+    "text": "Double-check the order number, or look it up on the My orders page with the mobile number you used at checkout. You can also WhatsApp us and we’ll help.",
+    "textNoId": "Look up your order on the My orders page with its number and the mobile number you used at checkout, or WhatsApp us and we’ll help.",
     "whatsapp": "WhatsApp us",
     "whatsappText": "Hello Mystic Sand, I’m asking about order {id}.",
     "whatsappTextNoId": "Hello Mystic Sand, I need help with an order.",

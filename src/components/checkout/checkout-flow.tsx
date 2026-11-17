@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { FormProvider, useForm, type FieldErrors } from "react-hook-form";
-import { DRAFT_UPDATED_EVENT } from "@/components/layout/demo-helpers";
 import type { PaymentMethod } from "@/data/site";
 import type { Locale } from "@/i18n/routing";
 import { getLiveCatalog, getLiveSettings } from "@/lib/live";
@@ -81,7 +80,6 @@ export function CheckoutFlow() {
   });
   const {
     handleSubmit,
-    reset,
     getValues,
     subscribe,
     formState: { errors },
@@ -129,20 +127,6 @@ export function CheckoutFlow() {
       flushDraft();
     };
   }, [subscribe, flushDraft]);
-
-  // Presenter tools ("Fill sample Kuwait address", "Reset demo data") rewrite the draft.
-  useEffect(() => {
-    const reload = () => {
-      window.clearTimeout(saveTimer.current);
-      pendingDraft.current = null;
-      const { draft, remembered } = useCheckout.getState();
-      reset({ ...emptyCheckoutForm, ...draft, acceptTerms: getValues("acceptTerms") });
-      setAttempt(0);
-      setCollapsed(matchesRemembered(draft, remembered));
-    };
-    window.addEventListener(DRAFT_UPDATED_EVENT, reload);
-    return () => window.removeEventListener(DRAFT_UPDATED_EVENT, reload);
-  }, [reset, getValues]);
 
   useEffect(() => {
     const pending = timers.current;
