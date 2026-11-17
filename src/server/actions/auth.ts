@@ -1,7 +1,7 @@
 "use server";
 
-import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
+import { eq, sql } from "drizzle-orm";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -18,7 +18,8 @@ import {
   createSession,
   destroySession,
   getCurrentSessionId,
-  revokeOtherSessions,
+  rotateSessionForPasswordChange,
+  sessionCookieArgs,
   verifySession,
 } from "@/server/auth/session";
 import { getDb, schema } from "@/server/db";
@@ -116,9 +117,26 @@ export async function login(input: {
       return { ok: false, error: "invalid" }; // the attempt is already recorded above
     }
 
-    clearFailures(key);
     const userAgent = (await headers()).get("user-agent");
-    await createSession(row.id, { remember: remember ?? false, userAgent });
+    let created: { ok: true } | { ok: false };
+    try {
+      // Pass the verified hash: createSession re-checks it under a FOR UPDATE lock and aborts if a
+      // concurrent changePassword rotated it between here and the session insert (login TOCTOU).
+      created = await createSession(row.id, {
+        remember: remember ?? false,
+        userAgent,
+        requirePasswordHash: row.passwordHash,
+      });
+    } catch (error) {
+      clearFailures(key); // a DB/infra failure is not an authentication failure — undo the reservation
+      throw error;
+    }
+    if (!created.ok) {
+      // The password was rotated mid-login: treat it as a failed attempt (keep the reserved failure
+      // recorded) and return the generic error — no session was created.
+      return { ok: false, error: "invalid" };
+    }
+    clearFailures(key);
     return { ok: true, redirect: safeNext(parsed.data.next, locale) };
   } finally {
     releaseVerifySlot();
@@ -134,8 +152,11 @@ export async function logout(locale?: AppLocale): Promise<void> {
 
 /**
  * Changes the signed-in admin's password: checks the current password, enforces the strong policy on
- * the new one (and that it differs), rotates the hash + passwordChangedAt, and revokes every OTHER
- * session so other devices are signed out. Generic errors; never throws.
+ * the new one (and that it differs), then rotates the whole credential + session state ATOMICALLY in
+ * one transaction — set passwordHash + passwordChangedAt (DB clock), revoke EVERY session (including
+ * this one), and re-mint a fresh replacement for the current browser. Every pre-change session is thus
+ * invalidated by BOTH the explicit revoke AND verifySession's passwordChangedAt backstop, while the
+ * admin stays signed in on the new session. Generic errors; never throws a readable message.
  */
 export async function changePassword(input: {
   current: string;
@@ -164,13 +185,50 @@ export async function changePassword(input: {
   if (!passwordIsStrong(next)) return { ok: false, error: "weak" };
   if (await verifyPassword(row.passwordHash, next)) return { ok: false, error: "same" };
 
-  const now = new Date();
   const newHash = await hashPassword(next);
-  await db
-    .update(schema.adminUsers)
-    .set({ passwordHash: newHash, passwordChangedAt: now, updatedAt: now })
-    .where(eq(schema.adminUsers.id, session.userId));
+  // Read the request headers + cookie store BEFORE the tx, so the only post-commit step is the
+  // synchronous cookie write (nothing async can fail after the rotation commits and strand the admin).
+  const hdrs = await headers();
+  const userAgent = hdrs.get("user-agent");
+  const proto = hdrs.get("x-forwarded-proto");
+  const cookieStore = await cookies();
+  const currentSid = await getCurrentSessionId();
 
-  await revokeOtherSessions(session.userId, await getCurrentSessionId());
+  const minted = await db.transaction(async (tx) => {
+    // INVARIANT: this SELECT … FOR UPDATE is the FIRST statement — it takes the admin-row lock a racing
+    // login's createSession FOR UPDATE serialises against (the SAME row the UPDATE below locks), BEFORE
+    // the revoke sweep. If the sweep ran first, that login could lock, insert and commit a session in
+    // between that survives both the sweep and the backstop.
+    //
+    // TOCTOU guard (symmetric to login's requirePasswordHash): re-read the hash UNDER LOCK and confirm it
+    // is still the one we authenticated `current` against out-of-tx. If a concurrent changePassword
+    // rotated it in between, abort with NO changes — otherwise this call would overwrite the newer
+    // password and revoke its fresh session. Return a sentinel; it maps to the generic "current" error
+    // below (never reveals the race).
+    const [locked] = await tx
+      .select({ passwordHash: schema.adminUsers.passwordHash })
+      .from(schema.adminUsers)
+      .where(eq(schema.adminUsers.id, session.userId))
+      .limit(1)
+      .for("update");
+    if (!locked || locked.passwordHash !== row.passwordHash) return null;
+
+    await tx
+      .update(schema.adminUsers)
+      .set({ passwordHash: newHash, passwordChangedAt: sql`now()`, updatedAt: sql`now()` })
+      .where(eq(schema.adminUsers.id, session.userId));
+
+    return rotateSessionForPasswordChange(tx, {
+      userId: session.userId,
+      role: session.role,
+      currentSessionId: currentSid,
+      userAgent,
+    });
+  });
+
+  // A since-rotated hash aborted the tx with no changes — generic error, no leak of the race.
+  if (!minted) return { ok: false, error: "current" };
+  const [name, value, options] = sessionCookieArgs(minted.token, minted.maxAgeSeconds, proto);
+  cookieStore.set(name, value, options);
   return { ok: true };
 }

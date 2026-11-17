@@ -408,3 +408,107 @@ export async function readSettingsFee(): Promise<number | null> {
   );
   return rows[0]?.standard_fee_fils ?? null;
 }
+
+// --- Admin auth (password-change session revocation specs) ---------------------------
+
+/** The stored argon2 password_hash for an admin (lowercased username), or "" if none. */
+export async function readAdminHash(username: string): Promise<string> {
+  const rows = await dbQueryRows<{ password_hash: string }>(
+    "SELECT password_hash FROM admin_users WHERE username = $1 LIMIT 1",
+    [username.toLowerCase()],
+  );
+  return rows[0]?.password_hash ?? "";
+}
+
+/** Writes an admin's password_hash directly — used to RESTORE the seeded credential after a spec that
+ * rotates (or deliberately corrupts) it, so every later spec's real login still works. */
+export async function restoreAdminHash(username: string, hash: string): Promise<void> {
+  await dbQuery("UPDATE admin_users SET password_hash = $2 WHERE username = $1", [username.toLowerCase(), hash]);
+}
+
+/** Clears revoked_at on every session, so a session's ONLY remaining disqualifier is the
+ * passwordChangedAt backstop — lets a spec prove the backstop rejects an old session on its own
+ * (independent of the explicit revoke). */
+export async function unrevokeAllSessions(): Promise<void> {
+  await dbQuery("UPDATE sessions SET revoked_at = NULL");
+}
+
+/** A held in-flight admin-row rotation on a dedicated connection. */
+export type AdminRotationHandle = {
+  adminId: string;
+  originalHash: string;
+  /** Commits the rotation (the racing login's FOR UPDATE then re-reads the changed hash). */
+  commit: () => Promise<void>;
+  /** Rolls the rotation back if it was never committed; idempotent, safe in a finally. */
+  dispose: () => Promise<void>;
+};
+
+/**
+ * Opens a dedicated connection, BEGINs a transaction, and rotates the admin's password_hash to a
+ * different value WITHOUT committing — holding the admin-row lock. This models an in-flight
+ * changePassword: a concurrent login verifies the still-committed OLD hash, then blocks on
+ * createSession's `SELECT ... FOR UPDATE` against this held row until commit()/dispose(). After
+ * commit() the stored hash differs from what that login verified, so it must abort (no session).
+ * The hash is left corrupted until the caller restores it via restoreAdminHash(originalHash).
+ */
+export async function beginBlockingHashRotation(username: string): Promise<AdminRotationHandle> {
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL must be set for the DB test helpers.");
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+  const client: PoolClient = await pool.connect();
+  let open = true;
+  const end = async () => {
+    client.release();
+    await pool.end();
+  };
+  try {
+    const { rows } = await client.query(
+      "SELECT id, password_hash FROM admin_users WHERE username = $1 LIMIT 1",
+      [username.toLowerCase()],
+    );
+    const adminId = rows[0].id as string;
+    const originalHash = rows[0].password_hash as string;
+    await client.query("BEGIN");
+    // Rotate the hash and HOLD the row lock (uncommitted). The suffix can't collide with an argon2
+    // PHC string (base64, no '-'), so restoring to originalHash is exact.
+    await client.query("UPDATE admin_users SET password_hash = password_hash || $2 WHERE id = $1", [
+      adminId,
+      "-rotated-by-test",
+    ]);
+    return {
+      adminId,
+      originalHash,
+      commit: async () => {
+        if (!open) return;
+        open = false;
+        try {
+          await client.query("COMMIT");
+        } finally {
+          await end();
+        }
+      },
+      dispose: async () => {
+        if (!open) return;
+        open = false;
+        try {
+          await client.query("ROLLBACK");
+        } finally {
+          await end();
+        }
+      },
+    };
+  } catch (error) {
+    await end();
+    throw error;
+  }
+}
+
+/** How many backends are currently blocked waiting on a lock in this database — used to detect
+ * (deterministically, no sleeps) that the racing login has reached its FOR UPDATE and is parked on the
+ * held admin row. */
+export async function countLockWaiters(): Promise<number> {
+  const rows = await dbQueryRows<{ n: string }>(
+    `SELECT count(*)::text AS n FROM pg_stat_activity
+      WHERE datname = current_database() AND wait_event_type = 'Lock' AND state = 'active'`,
+  );
+  return Number(rows[0]?.n ?? "0");
+}
