@@ -232,6 +232,8 @@ export async function insertPaidOrder(opts: {
     [{ sku: opts.sku ?? "MS-I-50", slug: opts.slug ?? "i", name: opts.lineName ?? "I", qty: 1, priceFils: 19000 }];
 
   const subtotal = lines.reduce((n, l) => n + l.priceFils * l.qty, 0);
+  // A seeded order's delivery is FROZEN at order time: a fixed historical fixture (1 KD),
+  // deliberately decoupled from the current 2 KD live default (defaultSettings.standardFeeFils).
   const delivery = 1000;
   const total = subtotal + delivery;
   const details = { ...SAMPLE_DETAILS, name: customer, phone, paymentMethod: method };

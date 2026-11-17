@@ -14,12 +14,12 @@ export type StoreSettings = {
   ticker: { en: string[]; ar: string[] };
 };
 
-// Must match what src/data/site.ts held before the live layer, so nothing on screen changes
-// until the admin saves an override.
+// The launch defaults the admin can override at runtime: the client's confirmed delivery fee
+// (2 KD, all areas) and the single contact number used for both the phone and WhatsApp.
 export const defaultSettings: StoreSettings = {
-  standardFeeFils: 1000,
-  whatsapp: "96590000000",
-  phone: "90000000",
+  standardFeeFils: 2000,
+  whatsapp: "96599325773",
+  phone: "99325773",
   ticker: { en: [], ar: [] },
 };
 
@@ -83,7 +83,7 @@ export const whatsappHref = (settings: StoreSettings, text: string) => {
 /** "tel:+965…" — identical to the old telHref in src/components/content/values.ts. */
 export const telHref = (settings: StoreSettings) => `tel:+965${settings.phone}`;
 
-/** "+965 9000 0000" — identical to the old site.phoneDisplay. */
+/** Formats the contact phone (a port of the old site.phoneDisplay), e.g. "+965 9932 5773". */
 export const phoneDisplay = (settings: StoreSettings) => formatKuwaitPhone(settings.phone);
 
 /** The WhatsApp number written the way the rest of the site writes numbers. */

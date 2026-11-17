@@ -6,7 +6,7 @@ export const site = {
   instagram: { handle: "mystic.sand", url: "https://www.instagram.com/mystic.sand/" },
   // The WhatsApp and phone numbers now live in src/lib/settings.ts (defaultSettings),
   // so the admin can change them at runtime.
-  email: "hello@mysticsand.com",
+  email: "mysticsandq8@gmail.com",
   // TODO(client): commercial registration details for the footer (Kuwait e-commerce rules).
   trade: {
     name: { en: "Mystic Sand General Trading", ar: "ميستك ساند للتجارة العامة" },

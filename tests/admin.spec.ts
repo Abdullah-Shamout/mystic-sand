@@ -520,7 +520,7 @@ test.describe("admin products", () => {
       await expect(page.getByText("KWD 9.500").first()).toBeVisible();
 
       await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
-      await expect(page.getByRole("dialog").getByText("KWD 10.500")).toBeVisible(); // 9.500 + 1.000 delivery
+      await expect(page.getByRole("dialog").getByText("KWD 11.500")).toBeVisible(); // 9.500 + 2.000 delivery
     } finally {
       // Delete the custom product (exercises deleteProduct) so the shared DB is left clean.
       await page.goto("/en/admin/products/");
@@ -633,7 +633,7 @@ test.describe("admin products", () => {
       await page.goto("/en/product/i/");
       await page.getByRole("button", { name: "Add to bag", exact: true }).first().click();
       await expect(page.getByRole("dialog")).toBeVisible();
-      await expect(page.getByRole("dialog").getByText("KWD 22.000")).toBeVisible(); // 21.000 + 1.000 delivery
+      await expect(page.getByRole("dialog").getByText("KWD 23.000")).toBeVisible(); // 21.000 + 2.000 delivery
       await page.keyboard.press("Escape");
 
       // Reset from the list restores the original price.
@@ -1098,12 +1098,12 @@ test.describe("admin store settings", () => {
     await expect(page.getByTestId("settings-express-fee")).toHaveCount(0);
   });
 
-  test("a delivery fee of 1.500 flows to the bag and FAQ, then resets to 1.000", async ({ page }) => {
+  test("a delivery fee of 1.500 flows to the bag and FAQ, then resets to 2.000", async ({ page }) => {
     await signIn(page);
     try {
       await page.goto("/en/admin/settings/");
       const standard = page.getByTestId("settings-standard-fee");
-      await expect(standard).toHaveValue("1.000");
+      await expect(standard).toHaveValue("2.000");
       await standard.fill("1.500");
       await page.getByTestId("settings-fee-save").click();
       await expect(page.getByText("Saved.").first()).toBeVisible();
@@ -1129,12 +1129,12 @@ test.describe("admin store settings", () => {
       // Reset to default through the admin (saveSettings → updateTag), leaving the shared DB clean.
       await page.goto("/en/admin/settings/");
       await page.getByTestId("settings-standard-reset").click();
-      await expect(page.getByTestId("settings-standard-fee")).toHaveValue("1.000");
+      await expect(page.getByTestId("settings-standard-fee")).toHaveValue("2.000");
     }
     await expect(async () => {
       await page.goto("/en/faq/");
       await page.getByRole("button", { name: "How much does delivery cost?" }).click();
-      await expect(page.getByText("KWD 1.000").first()).toBeVisible({ timeout: 2000 });
+      await expect(page.getByText("KWD 2.000").first()).toBeVisible({ timeout: 2000 });
     }).toPass({ timeout: 20000 });
   });
 
@@ -1173,9 +1173,9 @@ test.describe("admin store settings", () => {
     await expect(page.getByText("Enter a valid Kuwaiti mobile number.")).toBeVisible();
 
     // The client blocks the save (no server call), so the storefront keeps the default numbers
-    // (the default WhatsApp and phone both render as +965 9000 0000, hence .first()).
+    // (the default WhatsApp and phone both render as +965 9932 5773, hence .first()).
     await page.goto("/en/");
-    await expect(page.locator("footer").getByText("+965 9000 0000").first()).toBeVisible();
+    await expect(page.locator("footer").getByText("+965 9932 5773").first()).toBeVisible();
   });
 
   test("a new phone number flows to the footer and the contact page", async ({ page }) => {

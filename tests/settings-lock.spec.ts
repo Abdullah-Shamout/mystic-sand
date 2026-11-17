@@ -34,11 +34,11 @@ test.describe("singleton RMW advisory lock (settings)", () => {
       await signIn(page);
       await page.goto("/en/admin/settings/");
       const standard = page.getByTestId("settings-standard-fee");
-      await expect(standard).toHaveValue("1.000");
+      await expect(standard).toHaveValue("2.000");
 
       // Target 2.500 KWD (2500 fils) — a value no default-data spec asserts as the landed state.
       await standard.fill("2.500");
-      expect(await readSettingsFee()).not.toBe(2500); // seed (1000) or no row yet — never the target
+      expect(await readSettingsFee()).not.toBe(2500); // seed (2000) or no row yet — never the target
 
       // Fire the save. The Server Action runs requireAdmin + the zod parse, then BLOCKS on
       // pg_advisory_xact_lock(SETTINGS_LOCK) — which we hold — before it can upsert. click() returns
@@ -69,9 +69,9 @@ test.describe("singleton RMW advisory lock (settings)", () => {
       const resetBtn = page.getByTestId("settings-standard-reset");
       if (await resetBtn.count()) {
         await resetBtn.click();
-        await expect(page.getByTestId("settings-standard-fee")).toHaveValue("1.000");
+        await expect(page.getByTestId("settings-standard-fee")).toHaveValue("2.000");
       }
-      await expect.poll(() => readSettingsFee(), { timeout: 15_000 }).toBe(1000);
+      await expect.poll(() => readSettingsFee(), { timeout: 15_000 }).toBe(2000);
     }
   });
 });

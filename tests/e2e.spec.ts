@@ -219,7 +219,7 @@ test.describe("shopping flows", () => {
     const bag = page.getByRole("dialog");
     await expect(bag.getByTestId("bag-line")).toHaveCount(2);
     await expect(bag.getByText(/free/i)).toHaveCount(0);
-    await expect(bag.getByText("KWD 39.000")).toBeVisible(); // + KWD 1.000 delivery
+    await expect(bag.getByText("KWD 40.000")).toBeVisible(); // + KWD 2.000 delivery
   });
 
   test("checkout shows one Delivery block with the fee and no choice of method", async ({ page }) => {
@@ -230,7 +230,7 @@ test.describe("shopping flows", () => {
     await expect(deliverySection).toBeVisible();
     // No standard/express choice — the delivery section carries no radios.
     await expect(deliverySection.getByRole("radio")).toHaveCount(0);
-    await expect(deliverySection.getByText("KWD 1.000")).toBeVisible();
+    await expect(deliverySection.getByText("KWD 2.000")).toBeVisible();
     // The old delivery-method wording is gone ("Express checkout", a payment feature, is unrelated).
     await expect(page.getByText(/2-hour express|Standard delivery/i)).toHaveCount(0);
   });
@@ -298,7 +298,7 @@ test.describe("navigation and media", () => {
     await page.goto("/en/");
     const footer = page.locator("footer");
     // Only Instagram and WhatsApp are links; no sign-up form anywhere.
-    await expect(footer.getByRole("link")).toHaveText(["@mystic.sand", "+965 9000 0000"]);
+    await expect(footer.getByRole("link")).toHaveText(["@mystic.sand", "+965 9932 5773"]);
     await expect(page.getByRole("textbox")).toHaveCount(0);
     await expect(page.getByText("Stay in the moment")).toHaveCount(0);
     await expect(footer.getByText("© 2026 Mystic Sand. All rights reserved.")).toBeVisible();

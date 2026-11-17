@@ -78,7 +78,7 @@ test.describe("live catalog & settings", () => {
     await expect(page.getByText("KWD 21.000").first()).toBeVisible();
 
     await addToBagFromPdp(page);
-    await expect(page.getByRole("dialog").getByText("KWD 22.000")).toBeVisible(); // + KWD 1.000 delivery
+    await expect(page.getByRole("dialog").getByText("KWD 23.000")).toBeVisible(); // + KWD 2.000 delivery
   });
 
   test("hiding a product removes it from grids, search and its own page", async ({ page }) => {
@@ -126,7 +126,7 @@ test.describe("live catalog & settings", () => {
     await expect(page.getByText("KWD 9.500").first()).toBeVisible();
 
     await addToBagFromPdp(page);
-    await expect(page.getByRole("dialog").getByText("KWD 10.500")).toBeVisible(); // 9.500 + 1.000 delivery
+    await expect(page.getByRole("dialog").getByText("KWD 11.500")).toBeVisible(); // 9.500 + 2.000 delivery
   });
 
   test("store settings show across the bag, FAQ, footer and ticker", async ({ page }) => {

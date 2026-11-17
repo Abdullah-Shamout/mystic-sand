@@ -19,14 +19,14 @@ export function LiveFee() {
   return <>{isolatedKWD(feeFor(settings), locale)}</>;
 }
 
-/** Contact phone, e.g. "+965 9000 0000". `isolate` wraps it in an LTR isolate for Arabic text. */
+/** Contact phone, e.g. "+965 9932 5773". `isolate` wraps it in an LTR isolate for Arabic text. */
 export function LivePhone({ isolate = false }: { isolate?: boolean }) {
   const settings = useLiveSettings();
   const display = phoneDisplay(settings);
   return <>{isolate ? ltrIsolate(display) : display}</>;
 }
 
-/** WhatsApp number written the way the site writes numbers, e.g. "+965 9000 0000". */
+/** WhatsApp number written the way the site writes numbers, e.g. "+965 9932 5773". */
 export function LiveWhatsAppNumber() {
   const settings = useLiveSettings();
   return <>{whatsappDisplay(settings)}</>;
