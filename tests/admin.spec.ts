@@ -737,6 +737,55 @@ test.describe("admin products", () => {
     }
   });
 
+  test("Reset keeps a hidden base product hidden while restoring its copy and price", async ({ page }) => {
+    await signIn(page);
+    try {
+      // 1. Edit Mist's price away from the seed (7.500) so Reset has copy/price to restore.
+      await page.goto("/en/admin/products/edit/?p=mist");
+      const price = page.getByTestId("editor-variant-price-0");
+      await expect(price).toHaveValue("7.500");
+      await price.fill("8.250");
+      await page.getByTestId("editor-save").click();
+      await page.waitForURL(/\/admin\/products\/$/);
+
+      // 2. Hide Mist from the list.
+      const row = page.locator('[data-testid="product-row"][data-slug="mist"]');
+      await row.getByRole("button", { name: "Hide Mist", exact: true }).click();
+      await expect(row.getByText("Hidden", { exact: true })).toBeVisible();
+
+      // 3. Reset Mist from the list.
+      await row.getByRole("button", { name: "Reset Mist", exact: true }).click();
+      await page.getByTestId("confirm-accept").click();
+
+      // 4a. Reset PRESERVES the admin's hidden: the row still reads Hidden, and the storefront page stays
+      // gone (proves the hidden flag survived the reset end-to-end, not just restored visibility).
+      await expect(row.getByText("Hidden", { exact: true })).toBeVisible();
+      await expect(async () => {
+        await page.goto("/en/product/mist/");
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText("No longer available", { timeout: 2000 });
+      }).toPass({ timeout: 20000 });
+
+      // 4b. Copy/price ARE restored: the editor shows the seed price again.
+      await page.goto("/en/admin/products/edit/?p=mist");
+      await expect(page.getByTestId("editor-variant-price-0")).toHaveValue("7.500");
+    } finally {
+      // Restore Mist to visible + seed values for the other specs.
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible(); // wait for the list to hydrate
+      const row = page.locator('[data-testid="product-row"][data-slug="mist"]');
+      const show = row.getByRole("button", { name: "Show Mist", exact: true });
+      if (await show.count()) {
+        await show.click();
+        await expect(row.getByText("Visible", { exact: true })).toBeVisible();
+      }
+      const reset = row.getByRole("button", { name: "Reset Mist", exact: true });
+      if (await reset.count()) {
+        await reset.click();
+        await page.getByTestId("confirm-accept").click();
+      }
+    }
+  });
+
   test("deleting a custom product removes it from the list and the store", async ({ page }) => {
     test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now (localStorage ms-catalog seeding no longer reaches the storefront).");
     await signIn(page);

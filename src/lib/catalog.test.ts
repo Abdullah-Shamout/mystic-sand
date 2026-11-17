@@ -6,6 +6,7 @@ import type { Product } from "@/data/types";
 import {
   CATALOG_LIMITS,
   cleanAlsoIn,
+  cleanCategoryPatch,
   cleanLocalized,
   isProductEdited,
   normalizeAdded,
@@ -68,6 +69,30 @@ describe("normalizeAdded (A03 input bounds)", () => {
     expect(JSON.stringify(out)).not.toContain("DROP ME");
   });
 
+  it("drops an unresolvable image key from the gallery and rejects a product with an unresolvable card", () => {
+    // A manifest key and a well-formed upload key survive; an unknown ("does-not-exist") or an `in`-only
+    // object key ("constructor") is DROPPED — resolveImage can't resolve it, so it would 500 the shared
+    // storefront render.
+    const out = expectProduct(
+      normalizeAdded({
+        ...VALID,
+        images: {
+          card: "renders/i",
+          gallery: ["renders/i", "does-not-exist", "constructor", "u:abc123_10x10p"],
+        },
+      } as unknown as Product),
+    );
+    expect(out.images.gallery).toEqual(["renders/i", "u:abc123_10x10p"]);
+    expect(JSON.stringify(out)).not.toContain("does-not-exist");
+    expect(JSON.stringify(out)).not.toContain("constructor");
+
+    // An unresolvable CARD makes cleanImages return null → the whole product is rejected, so a product
+    // is never persisted (and shipped to the storefront) carrying an image key it can't render.
+    expect(
+      normalizeAdded({ ...VALID, images: { card: "does-not-exist", gallery: ["renders/i"] } } as unknown as Product),
+    ).toBeNull();
+  });
+
   it("strips extra keys inside Notes items and unknown note groups", () => {
     const input = {
       ...VALID,
@@ -96,7 +121,8 @@ describe("normalizeAdded (A03 input bounds)", () => {
       ...VALID,
       related: strings(CATALOG_LIMITS.related + 20, "r"),
       aliases: strings(CATALOG_LIMITS.aliases + 20, "a"),
-      images: { card: "renders/i", gallery: strings(CATALOG_LIMITS.gallery + 20, "renders/g-") },
+      // Real manifest keys (repeated): the resolvability guard would now drop synthetic "renders/g-N".
+      images: { card: "renders/i", gallery: Array.from({ length: CATALOG_LIMITS.gallery + 20 }, () => "renders/i") },
       notes: {
         top: Array.from({ length: CATALOG_LIMITS.notesPerList + 20 }, (_, i) => ({ en: `t${i}`, ar: `ع${i}` })),
         heart: [{ en: "Heart", ar: "قلب" }],
@@ -138,6 +164,32 @@ describe("cleanLocalized", () => {
   it("rejects a blank language unless allowBlank is set", () => {
     expect(cleanLocalized({ en: "   ", ar: "مرحبا" }, 60)).toBeNull();
     expect(cleanLocalized({ en: "   ", ar: "مرحبا" }, 60, true)).toEqual({ en: "", ar: "مرحبا" });
+  });
+});
+
+describe("cleanCategoryPatch (saveCategory field cleaning)", () => {
+  const current = { name: { en: "Perfumes", ar: "العطور" }, description: { en: "A description.", ar: "وصف." } };
+
+  it("strips unknown keys inside a category name and keeps the clean Localized value", () => {
+    const out = cleanCategoryPatch({ name: { en: "Oud", ar: "عود", evil: "DROP ME" } }, current);
+    expect(Object.keys(out.name).sort()).toEqual(["ar", "en"]);
+    expect(out.name).toEqual({ en: "Oud", ar: "عود" });
+    expect(JSON.stringify(out)).not.toContain("DROP ME");
+    // description absent from the patch → falls back to the current row value.
+    expect(out.description).toEqual(current.description);
+  });
+
+  it("falls back to the current value for an oversized, blank or malformed name", () => {
+    const tooLong = "a".repeat(CATALOG_LIMITS.name + 1);
+    expect(cleanCategoryPatch({ name: { en: tooLong, ar: "عود" } }, current).name).toEqual(current.name);
+    expect(cleanCategoryPatch({ name: { en: "   ", ar: "عود" } }, current).name).toEqual(current.name);
+    expect(cleanCategoryPatch({ name: "not-an-object" }, current).name).toEqual(current.name);
+  });
+
+  it("tolerates a null / non-object patch (both fields fall back to the current row)", () => {
+    expect(cleanCategoryPatch(null, current)).toEqual(current);
+    expect(cleanCategoryPatch(undefined, current)).toEqual(current);
+    expect(cleanCategoryPatch("garbage" as unknown as null, current)).toEqual(current);
   });
 });
 

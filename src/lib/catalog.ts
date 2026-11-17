@@ -1,4 +1,5 @@
 import { categories as baseCategories, type Category } from "@/data/categories";
+import media from "@/data/media.generated.json";
 import { products as baseProducts } from "@/data/products";
 import type { CategorySlug, Localized, Notes, Product, Variant } from "@/data/types";
 
@@ -98,6 +99,24 @@ export function cleanLocalized(raw: unknown, limit: number, allowBlank = false):
   return { en: out.en, ar: out.ar };
 }
 
+/**
+ * Cleans a category patch's localized name/description through the SAME field cleaner the product
+ * writes use (strips unknown jsonb keys, caps length, rejects a malformed or blank value), falling
+ * back to the current row value when the patch field is absent or invalid. Tolerates a null / non-
+ * object patch. This is the injection boundary for the saveCategory Server Action, so an authenticated
+ * but oversized/extra-key category name can never persist into categories.name/description.
+ */
+export function cleanCategoryPatch(
+  patch: { name?: unknown; description?: unknown } | null | undefined,
+  current: { name: Localized; description: Localized },
+): { name: Localized; description: Localized } {
+  const p = patch && typeof patch === "object" ? patch : {};
+  return {
+    name: cleanLocalized(p.name, CATALOG_LIMITS.name) ?? current.name,
+    description: cleanLocalized(p.description, CATALOG_LIMITS.description) ?? current.description,
+  };
+}
+
 /** A single trimmed, non-empty, within-limit, well-formed string, else null. */
 function cleanPlainString(raw: unknown, limit: number): string | null {
   if (typeof raw !== "string") return null;
@@ -117,17 +136,43 @@ function cleanStringListBounded(raw: unknown, limit: number, maxCount: number): 
   return out;
 }
 
+// An image key is RESOLVABLE only when resolveImage() (src/lib/media.ts) can turn it into a source
+// without throwing: a MANIFEST key OR a well-formed upload ("u:<id>") key. Anything else — a stale or
+// mistyped key like "does-not-exist" — would persist and then break the shared-cached storefront
+// render for every anonymous visitor, so cleanImages drops it. `mediaKeys` is an OWN-KEY Set
+// (Object.keys), deliberately NOT `key in media`: "constructor"/"toString" are `in` an object literal
+// but are not real manifest keys. Mirrors home.ts's isHomeImageKey (duplicated, not imported: home.ts
+// imports from this module, so importing it back would be a cycle).
+const mediaKeys = new Set(Object.keys(media as Record<string, unknown>));
+const UPLOAD_KEY = /^u:[A-Za-z0-9_-]{1,64}$/;
+const isImageKey = (key: string): boolean => mediaKeys.has(key) || UPLOAD_KEY.test(key);
+
+/** A trimmed, length-capped, well-formed image key that resolveImage() can resolve, else null. */
+function cleanImageKey(raw: unknown): string | null {
+  const key = cleanPlainString(raw, CATALOG_LIMITS.imageKey);
+  return key && isImageKey(key) ? key : null;
+}
+
 type Images = Product["images"];
 
-/** Images with a string card, an optional hover and a gallery that is never empty — every image-key
- * string length-capped and the gallery count-capped. */
+/** Images with a RESOLVABLE string card, an optional resolvable hover and a gallery that is never
+ * empty — every key length-capped AND resolvable (unresolvable keys dropped), the gallery count-capped.
+ * Null when the card is missing or unresolvable (normalizeAdded then rejects the whole product, so a
+ * product is never left with an image key the storefront can't render). */
 function cleanImages(raw: unknown): Images | null {
   if (!raw || typeof raw !== "object") return null;
   const img = raw as Record<string, unknown>;
-  const card = cleanPlainString(img.card, CATALOG_LIMITS.imageKey);
+  const card = cleanImageKey(img.card);
   if (!card) return null;
-  const hover = cleanPlainString(img.hover, CATALOG_LIMITS.imageKey);
-  const gallery = cleanStringListBounded(img.gallery, CATALOG_LIMITS.imageKey, CATALOG_LIMITS.gallery);
+  const hover = cleanImageKey(img.hover);
+  const gallery: string[] = [];
+  if (Array.isArray(img.gallery)) {
+    for (const value of img.gallery) {
+      const key = cleanImageKey(value);
+      if (key) gallery.push(key);
+      if (gallery.length >= CATALOG_LIMITS.gallery) break;
+    }
+  }
   return {
     card,
     ...(hover ? { hover } : {}),

@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { normalizeKuwaitPhone, phoneStatus } from "@/lib/phone";
+import { noNul } from "@/lib/validation";
 import { getDb, schema } from "@/server/db";
 import { logger, redactError } from "@/server/log";
 import { clientIp, ipRateLimitKey } from "@/server/net/client-ip";
@@ -28,10 +29,12 @@ export type SubmitContactResult =
 
 // Mirrors the form's validate(): trimmed name 2..80, trimmed message 10..1000, locale en|ar. The phone
 // is validated separately (phoneStatus) so a non-mobile is rejected exactly like the client does.
+// name + message are persisted free text, so they also reject a NUL byte (\u0000), which zod passes but
+// Postgres `text` throws on INSERT (noNul). phone is bounded (it was unbounded) before it is normalized.
 const contactSchema = z.object({
-  name: z.string().trim().min(2).max(80),
-  phone: z.string(),
-  message: z.string().trim().min(10).max(1000),
+  name: z.string().trim().min(2).max(80).refine(noNul),
+  phone: z.string().max(32),
+  message: z.string().trim().min(10).max(1000).refine(noNul),
   locale: z.enum(["en", "ar"]),
 });
 

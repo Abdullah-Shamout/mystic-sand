@@ -12,6 +12,15 @@ const phoneField = (requiredKey: string) =>
     else if (status === "invalid") ctx.addIssue({ code: "custom", message: "phoneInvalid" });
   });
 
+/**
+ * Rejects a NUL byte (\u0000): it passes zod's string checks but Postgres `text`/`jsonb` throws on
+ * INSERT, so an un-guarded NUL in a stored free-text field is an insert-time error (and checkout,
+ * unlike contact, has NO rate limiter). Rejecting ONLY \u0000 — not every control character — keeps
+ * legitimate multi-line messages and addresses working. Shared by checkoutSchema (below) and the
+ * contact submission schema (src/server/actions/contact.ts).
+ */
+export const noNul = (value: string): boolean => !value.includes("\u0000");
+
 export const checkoutSchema = z
   .object({
     name: z.string().trim().min(2, { error: "nameRequired" }).max(80, { error: "tooLong" }),
@@ -36,6 +45,14 @@ export const checkoutSchema = z
     if (v.housing !== "house") {
       if (!v.floor) ctx.addIssue({ code: "custom", path: ["floor"], message: "floorRequired" });
       if (!v.apartment) ctx.addIssue({ code: "custom", path: ["apartment"], message: "apartmentRequired" });
+    }
+    // Every string field here is persisted (name/address land in the order's `details` jsonb); a NUL
+    // byte would throw on INSERT. Reject any field carrying one — an attacker-only input the real form
+    // can't produce — reusing the existing "tooLong" message key so no translation is missing.
+    for (const [key, value] of Object.entries(v)) {
+      if (typeof value === "string" && !noNul(value)) {
+        ctx.addIssue({ code: "custom", path: [key], message: "tooLong" });
+      }
     }
   });
 

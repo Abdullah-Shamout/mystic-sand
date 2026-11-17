@@ -91,9 +91,22 @@ async function readCatalogRows(): Promise<{
   );
 }
 
+/** Drops from each product's related[] any slug not present in `products` (the hidden-filtered
+ * storefront set), so a HIDDEN product's slug — which embeds its name — never leaks into the anonymous
+ * payload. Only rebuilds a list that actually carries a stripped slug, keeping identity stable otherwise. */
+function stripRelatedToVisible(products: Product[]): Product[] {
+  const visible = new Set(products.map((p) => p.slug));
+  return products.map((p) =>
+    p.related.every((slug) => visible.has(slug))
+      ? p
+      : { ...p, related: p.related.filter((slug) => visible.has(slug)) },
+  );
+}
+
 /** Shapes the shared rows into a CatalogData. `internal` keeps hidden products + `todo` (admin); the
- * storefront call drops both. The zero-variant filter guards against a momentarily torn read. */
-function buildCatalog(
+ * storefront call drops both. The zero-variant filter guards against a momentarily torn read. Exported
+ * for unit coverage of its storefront-vs-admin shaping. */
+export function buildCatalog(
   rows: Awaited<ReturnType<typeof readCatalogRows>>,
   internal: boolean,
 ): CatalogData {
@@ -106,13 +119,18 @@ function buildCatalog(
     else variantsByProduct.set(v.productId, [toVariant(v)]);
   }
 
-  const products = productRows
+  const shaped = productRows
     .map((row) => toProduct(row, variantsByProduct.get(row.id) ?? [], internal))
     // Belt-and-suspenders: every real product has ≥1 variant, so this never drops a legit product —
     // it just omits a momentarily-torn one instead of crashing the storefront on variants[0].
     .filter((p) => p.variants.length > 0)
     // STOREFRONT ONLY: omit hidden products entirely (A01) — they never reach the anonymous payload.
     .filter((p) => internal || !p.hidden);
+
+  // STOREFRONT ONLY: a visible product's related[] may still name a hidden product's slug (the admin
+  // build keeps every slug); strip those so a hidden product's name never leaks via the related list.
+  const products = internal ? shaped : stripRelatedToVisible(shaped);
+
   const categories = categoryRows.map(toCategory);
   return { products, categories };
 }

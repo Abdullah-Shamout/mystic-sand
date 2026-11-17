@@ -7,7 +7,7 @@ import { z } from "zod";
 import { categories as baseCategories, type Category } from "@/data/categories";
 import { products as baseProducts } from "@/data/products";
 import type { CategorySlug, Product, Variant } from "@/data/types";
-import { cleanAlsoIn, isCustomSlug, isNonEmptyLocalized, normalizeAdded } from "@/lib/catalog";
+import { cleanAlsoIn, cleanCategoryPatch, isCustomSlug, normalizeAdded } from "@/lib/catalog";
 import { requireAdmin } from "@/server/auth/require-admin";
 import { getDb, schema, type Db } from "@/server/db";
 
@@ -63,7 +63,13 @@ function editableProductColumns(safe: Product) {
   };
 }
 
-/** Every product column from a src/data seed product (used to overwrite a row on reset). */
+/**
+ * The seed columns a reset writes over a product row — EXCLUDING `hidden`. A reset restores a base
+ * product's copy / price / media but must KEEP the admin's current visibility (a base product the admin
+ * hid stays hidden). So `hidden` is deliberately not in this set: resetProduct's UPDATE and
+ * resetAllCatalog's conflict SET both leave the row's `hidden` untouched, and resetAllCatalog seeds
+ * `hidden` ONLY in its INSERT values (a brand-new base row).
+ */
 function seedProductColumns(p: Product, index: number) {
   return {
     slug: p.slug,
@@ -81,7 +87,6 @@ function seedProductColumns(p: Product, index: number) {
     badge: p.badge ?? null,
     related: p.related,
     aliases: p.aliases,
-    hidden: p.hidden ?? false,
     todo: p.todo ?? [],
     sort: index,
   };
@@ -272,7 +277,9 @@ export async function setCategory(
  * have no seed); an unknown base slug is a no-op. Replaces the old "drop patch → restore base".
  *
  * Live `variants.stock` is PRESERVED (writeVariants never updates stock for an existing sku): a reset
- * restores copy/price/size but not the inventory count, which is owned by the Stock page.
+ * restores copy/price/size but not the inventory count, which is owned by the Stock page. The admin's
+ * current `hidden` is likewise PRESERVED (seedProductColumns excludes it): a base product the admin hid
+ * stays hidden after a reset — Reset restores the copy/price only.
  */
 export async function resetProduct(slug: string): Promise<void> {
   await requireAdmin();
@@ -327,10 +334,12 @@ export async function saveCategory(slug: CategorySlug, patch: CategoryPatch): Pr
     .limit(1);
   if (!row) throw new Error(`No category with slug "${s}".`);
 
-  // A blank name/description would render as an empty menu item / heading, so fall back to the current
-  // row value unless the patch field is a non-blank Localized value.
-  const name = isNonEmptyLocalized(patch?.name) ? patch.name : row.name;
-  const description = isNonEmptyLocalized(patch?.description) ? patch.description : row.description;
+  // Route name/description through the SAME field cleaner the product writes use (strips unknown jsonb
+  // keys, caps length, rejects a malformed or blank value), falling back to the current row value when a
+  // field is absent or invalid. So a blank menu item / heading never renders, and an oversized or
+  // extra-key value from an authenticated-but-malformed payload never persists into categories and ships
+  // to every anonymous visitor via getCatalogData.
+  const { name, description } = cleanCategoryPatch(patch, row);
   await getDb().update(schema.categories).set({ name, description }).where(eq(schema.categories.slug, s));
   updateTag("catalog");
   return { slug: s, name, description, banner: row.banner };
@@ -345,6 +354,8 @@ export async function saveCategory(slug: CategorySlug, patch: CategoryPatch): Pr
  *
  * Live `variants.stock` is PRESERVED for every existing sku (writeVariants only sets stock on INSERT),
  * so a catalog reset never rewinds inventory the way the standalone db:seed script deliberately does.
+ * Each EXISTING product's `hidden` is likewise PRESERVED (the conflict SET omits it): a base product
+ * the admin hid stays hidden after a reset-all. `hidden` is seeded only when a base row is first created.
  */
 export async function resetAllCatalog(): Promise<void> {
   await requireAdmin();
@@ -360,11 +371,13 @@ export async function resetAllCatalog(): Promise<void> {
     await tx.delete(schema.products).where(like(schema.products.slug, "c-%"));
 
     for (let i = 0; i < baseProducts.length; i++) {
-      const row = seedProductColumns(baseProducts[i], i);
+      const seed = seedProductColumns(baseProducts[i], i);
       const [upserted] = await tx
         .insert(schema.products)
-        .values(row)
-        .onConflictDoUpdate({ target: schema.products.slug, set: { ...row, updatedAt: new Date() } })
+        // Seed `hidden` ONLY on a brand-new base row; the conflict SET omits it, so an existing row
+        // keeps the admin's current visibility (a base product the admin hid stays hidden on reset).
+        .values({ ...seed, hidden: baseProducts[i].hidden ?? false })
+        .onConflictDoUpdate({ target: schema.products.slug, set: { ...seed, updatedAt: new Date() } })
         .returning({ id: schema.products.id });
       await writeVariants(tx, upserted.id, baseProducts[i].variants);
     }
