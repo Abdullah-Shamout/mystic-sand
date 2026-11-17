@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /** The orders dashboard reads ?order= via useSearchParams, so it needs a Suspense boundary. The paid
- *  site orders are read from Postgres here (admin-gated) and merged with the client samples. */
+ *  site orders are read from Postgres here (admin-gated). */
 export default async function AdminOrdersPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);

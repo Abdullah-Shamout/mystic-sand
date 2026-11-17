@@ -49,6 +49,10 @@ export type Product = {
   aliases: string[];
   /** Hidden from the storefront (grids, search, product page) but kept in the catalog. */
   hidden?: boolean;
-  /** Which fields are still placeholders, for the client review list. */
-  todo: Array<"price" | "notes" | "size" | "copy">;
+  /**
+   * Which fields are still placeholders, for the admin review list. INTERNAL/admin-only: the
+   * storefront catalog read (getCatalogData) omits this, so it never crosses into an anonymous RSC
+   * payload (A01). Only the admin read (getAdminCatalogData) and the src/data seed carry it.
+   */
+  todo?: Array<"price" | "notes" | "size" | "copy">;
 };

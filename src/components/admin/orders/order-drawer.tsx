@@ -12,7 +12,7 @@ import { statusKind, type AdminOrder } from "@/lib/admin/orders";
 import { formatDateTime } from "@/lib/delivery";
 import { formatKuwaitPhone } from "@/lib/phone";
 import { useUi } from "@/store/ui";
-import { OversoldTag, SampleTag, StatusChip } from "../status-chip";
+import { OversoldTag, StatusChip } from "../status-chip";
 import { ReceiptActions } from "./receipt-capture";
 import { useFulfillment } from "./use-fulfillment";
 
@@ -35,7 +35,6 @@ function Body({ item }: { item: AdminOrder }) {
       <div className="flex flex-wrap items-center gap-2">
         <StatusChip kind={statusKind(item)} />
         {item.oversold && <OversoldTag />}
-        {item.source === "sample" && <SampleTag />}
       </div>
 
       {item.oversold && (

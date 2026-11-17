@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { PaymentMarks } from "@/components/brand/brand-icons";
 import { CheckoutHeader } from "@/components/layout/checkout-header";
+import { StaleRefresher } from "@/components/layout/stale-refresher";
 
 export default async function CheckoutLayout({
   children,
@@ -14,6 +15,7 @@ export default async function CheckoutLayout({
   const t = await getTranslations("common");
   return (
     <div className="flex min-h-dvh flex-col bg-paper">
+      <StaleRefresher />
       <p className="bg-ink px-4 py-1.5 text-center text-[12px] text-cream/90 print:hidden" role="note">
         {t("simulation")}
       </p>

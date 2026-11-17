@@ -16,8 +16,8 @@ import type { Order, OrderLine } from "@/store/checkout";
 // httpOnly cookie token that matches `orders.checkoutToken` (set at initiateCheckout). This is the
 // IDOR guard — a bare MS-##### from someone else's receipt link resolves to null.
 //
-// `getSiteOrdersForAdmin` is admin-gated and returns PAID site orders only; samples still come from
-// the client ms-admin store (merged in the dashboard) until Phase 7.
+// `getSiteOrdersForAdmin` is admin-gated and returns the PAID site orders the dashboard + analysis
+// render (the demo sample orders were retired in Phase 7).
 
 type OrderRow = typeof schema.orders.$inferSelect;
 type OrderLineRow = typeof schema.orderLines.$inferSelect;
@@ -119,7 +119,7 @@ export async function getOrderForResult(orderId: string, token: string | null): 
 
 /**
  * Every PAID site order, newest first, for the admin dashboard + product analysis. Admin-gated (it
- * returns customer PII and receipts). The dashboard merges these with the client-generated samples.
+ * returns customer PII and receipts).
  */
 export async function getSiteOrdersForAdmin(): Promise<Order[]> {
   await requireAdmin();

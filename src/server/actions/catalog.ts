@@ -78,7 +78,7 @@ function seedProductColumns(p: Product, index: number) {
     related: p.related,
     aliases: p.aliases,
     hidden: p.hidden ?? false,
-    todo: p.todo,
+    todo: p.todo ?? [],
     sort: index,
   };
 }
@@ -196,7 +196,7 @@ export async function createProduct(input: Product): Promise<Product> {
         slug: safe.slug,
         ...editableProductColumns(safe),
         collection: null,
-        todo: safe.todo,
+        todo: safe.todo ?? [],
         sort: (maxSort ?? -1) + 1,
       })
       .returning({ id: schema.products.id });

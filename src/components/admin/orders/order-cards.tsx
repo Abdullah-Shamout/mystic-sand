@@ -7,7 +7,7 @@ import type { Locale } from "@/i18n/routing";
 import { statusKind, type AdminOrder } from "@/lib/admin/orders";
 import { formatDateTime } from "@/lib/delivery";
 import { formatKuwaitPhone } from "@/lib/phone";
-import { OversoldTag, SampleTag, StatusChip } from "../status-chip";
+import { OversoldTag, StatusChip } from "../status-chip";
 import { useFulfillment } from "./use-fulfillment";
 
 /** Phone layout: a card per order instead of the desktop table. */
@@ -63,7 +63,6 @@ export function OrderCards({ rows, onOpen }: { rows: AdminOrder[]; onOpen: (id: 
             </div>
 
             <div className="mt-3 flex items-center gap-4 border-t border-line pt-3">
-              {item.source === "sample" && <SampleTag />}
               <div className="ms-auto flex items-center gap-4">
                 {isDone ? (
                   <button

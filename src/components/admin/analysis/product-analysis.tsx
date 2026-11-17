@@ -100,15 +100,14 @@ export function ProductAnalysis({ siteOrders }: { siteOrders: Order[] }) {
   // Stock is server-authoritative (variants.stock), so there is no client "sold" ledger — availability
   // comes straight from the catalog; `siteOrders` are the paid DB orders, passed from the server page.
   const sold = NO_SOLD;
-  const samples = useAdminStore((s) => s.samples);
   const fulfillment = useAdminStore((s) => s.fulfillment);
 
   const [filters, setFilters] = useState<AnalysisFilters>(() => ({ ...defaultAnalysisFilters }));
   const [exporting, setExporting] = useState<string | null>(null);
 
   const allOrders = useMemo(
-    () => collectOrders(siteOrders, samples, fulfillment),
-    [siteOrders, samples, fulfillment],
+    () => collectOrders(siteOrders, fulfillment),
+    [siteOrders, fulfillment],
   );
 
   const analysis = useMemo(

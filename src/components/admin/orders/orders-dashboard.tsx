@@ -41,9 +41,8 @@ export function OrdersDashboard({ siteOrders }: { siteOrders: Order[] }) {
   const pushToast = useUi((s) => s.pushToast);
   const search = useSearchParams();
 
-  // Site orders are server-authoritative now (read from Postgres, passed in from the server page);
-  // the generated demo samples + fulfilment flags still come from the client ms-admin store.
-  const samples = useAdminStore((s) => s.samples);
+  // Orders are server-authoritative (read from Postgres, passed in from the server page); only the
+  // fulfilment (marked-done) flags come from the client ms-admin store.
   const fulfillment = useAdminStore((s) => s.fulfillment);
 
   const [filters, setFilters] = useState<Filters>(() => ({ ...defaultFilters }));
@@ -54,8 +53,8 @@ export function OrdersDashboard({ siteOrders }: { siteOrders: Order[] }) {
   const [exporting, setExporting] = useState(false);
 
   const allOrders = useMemo(
-    () => collectOrders(siteOrders, samples, fulfillment),
-    [siteOrders, samples, fulfillment],
+    () => collectOrders(siteOrders, fulfillment),
+    [siteOrders, fulfillment],
   );
 
   const kpiList = useMemo(

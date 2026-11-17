@@ -44,18 +44,3 @@ export function OversoldTag({ className }: { className?: string }) {
     </span>
   );
 }
-
-/** A small neutral tag marking demo (sample) orders. */
-export function SampleTag({ className }: { className?: string }) {
-  const t = useTranslations("admin");
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center border border-line bg-paper px-1.5 py-0.5 text-[11px] text-muted whitespace-nowrap",
-        className,
-      )}
-    >
-      {t("orders.source.sample")}
-    </span>
-  );
-}

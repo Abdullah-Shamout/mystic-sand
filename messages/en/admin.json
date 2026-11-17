@@ -66,7 +66,6 @@
   },
   "viewStore": "View store",
   "logout": "Log out",
-  "notice": "Everything here is saved in this browser only · includes sample orders.",
   "signInTitle": "Admin sign in",
   "placeholder": "This section arrives in the next update.",
   "orders": {
@@ -94,10 +93,6 @@
       "badge": "Oversold",
       "hint": "Paid but could not be fulfilled from stock.",
       "notice": "This order was paid but a line could not be fulfilled from stock. The customer was charged — refund or restock and contact them."
-    },
-    "source": {
-      "site": "Website",
-      "sample": "Sample"
     },
     "method": {
       "knet": "KNET",
@@ -153,7 +148,6 @@
         "placed": "Placed",
         "done": "Completed",
         "status": "Status",
-        "source": "Source",
         "customer": "Customer",
         "phone": "Phone",
         "email": "Email",

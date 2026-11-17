@@ -37,7 +37,7 @@ export type Order = {
   /**
    * ADMIN-ONLY flag: a captured payment that could not be fully fulfilled (settleOrder set
    * orders.oversold). Populated by the admin order read (getSiteOrdersForAdmin); the storefront
-   * receipt and the client-generated samples leave it undefined.
+   * receipt leaves it undefined.
    */
   oversold?: boolean;
   /** Set once the result page has applied the outcome (bag cleared etc.). */
@@ -46,24 +46,28 @@ export type Order = {
 
 type Remembered = Partial<Pick<CheckoutForm, (typeof rememberedFields)[number]>>;
 
+/** How many recent order ids to keep for the recordPaidOrder once-only guard. */
+const RECORDED_CAP = 50;
+
 type CheckoutState = {
   draft: CheckoutForm;
   remembered: Remembered | null;
   /**
-   * DEVICE-LOCAL order history (the "My orders" list + the empty-checkout "last order" link). Orders
-   * are server-authoritative now (money + stock live in Postgres); this map is a display-only record
-   * of orders paid on THIS device, written by recordPaidOrder on the result page.
+   * Order ids already applied by recordPaidOrder on THIS device (capped, newest last). Orders are
+   * server-authoritative now (money + stock live in Postgres; the admin reads them from the DB), so
+   * no order payload is kept here — just the ids, so a receipt refresh clears the bag exactly once.
    */
-  orders: Record<string, Order>;
+  recordedIds: string[];
+  /** The last paid order on this device — the empty-checkout "last order" link (never an unpaid one). */
   lastOrderId: string | null;
 
   updateDraft: (patch: Partial<CheckoutForm>) => void;
   /**
-   * Records a server-confirmed paid order into the device-local history, exactly once (a refresh or a
-   * later visit to the receipt is a no-op). On the first call it also saves "remembered" details and
+   * Applies a server-confirmed paid order's side effects on the result page, exactly once (a refresh
+   * or a later visit to the receipt is a no-op). On the first call it saves "remembered" details and
    * points lastOrderId at it. Returns true only on that first call, so the caller clears the bag once.
    */
-  recordPaidOrder: (order: Order, now: Date) => boolean;
+  recordPaidOrder: (order: Order) => boolean;
   forgetDetails: () => void;
   resetAll: () => void;
 };
@@ -82,23 +86,21 @@ export const useCheckout = create<CheckoutState>()(
     (set, get) => ({
       draft: emptyCheckoutForm,
       remembered: null,
-      orders: {},
+      recordedIds: [],
       lastOrderId: null,
 
       updateDraft: (patch) => set({ draft: { ...get().draft, ...patch } }),
 
-      recordPaidOrder: (order, now) => {
-        // Idempotent: a refresh or a later visit to the receipt finds it already recorded and changes
-        // nothing, so the bag is cleared exactly once.
-        if (get().orders[order.id]) return false;
+      recordPaidOrder: (order) => {
+        // Idempotent: a refresh or a later visit to the receipt finds the id already recorded and
+        // changes nothing, so the bag is cleared exactly once.
+        if (get().recordedIds.includes(order.id)) return false;
         const remembered = order.details.saveDetails
           ? pick({ ...order.details, acceptTerms: true })
           : get().remembered;
         set({
-          orders: {
-            ...get().orders,
-            [order.id]: { ...order, finalizedAt: order.finalizedAt ?? now.toISOString() },
-          },
+          // Cap the list so it can't grow unbounded on a device with many orders (newest kept).
+          recordedIds: [...get().recordedIds, order.id].slice(-RECORDED_CAP),
           // Only a paid order ever becomes the "last order" surfaced on the empty checkout page.
           lastOrderId: order.id,
           remembered,
@@ -114,27 +116,42 @@ export const useCheckout = create<CheckoutState>()(
 
       forgetDetails: () => set({ remembered: null, draft: emptyCheckoutForm }),
 
-      resetAll: () => set({ draft: emptyCheckoutForm, remembered: null, orders: {}, lastOrderId: null }),
+      resetAll: () => set({ draft: emptyCheckoutForm, remembered: null, recordedIds: [], lastOrderId: null }),
     }),
     {
       name: "ms-checkout",
-      version: 2,
+      version: 3,
       storage: safeJSONStorage,
-      partialize: (s) => ({ draft: s.draft, remembered: s.remembered, orders: s.orders, lastOrderId: s.lastOrderId }),
-      // v1 priced orders with free delivery over KWD 25. Unpaid ones are dropped so they
-      // can't be paid at the old total; paid ones stay in the order history.
+      partialize: (s) => ({
+        draft: s.draft,
+        remembered: s.remembered,
+        recordedIds: s.recordedIds,
+        lastOrderId: s.lastOrderId,
+      }),
+      // v1/v2 kept a device-local `orders: Record<string, Order>` map. v3 drops the payloads (orders
+      // are server-authoritative; the admin reads the DB). Keep lastOrderId only if its order was
+      // paid, and seed recordedIds from the paid order ids so a receipt refresh stays a no-op.
       migrate: (persisted) => {
-        const p = (persisted ?? {}) as Partial<Pick<CheckoutState, "draft" | "remembered" | "orders" | "lastOrderId">>;
-        const orders = Object.fromEntries(
-          Object.entries(p.orders ?? {}).filter(([, o]) => o.status === "paid" || o.status === "confirming"),
-        );
-        const lastOrderId = p.lastOrderId && orders[p.lastOrderId] ? p.lastOrderId : null;
-        return { draft: currentFields(p.draft), remembered: p.remembered ?? null, orders, lastOrderId };
+        const p = (persisted ?? {}) as Partial<CheckoutState> & { orders?: Record<string, Order> };
+        const paidIds = Object.values(p.orders ?? {})
+          .filter((o) => o && (o.status === "paid" || o.status === "confirming"))
+          .map((o) => o.id);
+        const recordedIds = Array.isArray(p.recordedIds) ? p.recordedIds : paidIds.slice(-RECORDED_CAP);
+        const lastOrderId =
+          p.lastOrderId && (recordedIds.includes(p.lastOrderId) || paidIds.includes(p.lastOrderId))
+            ? p.lastOrderId
+            : null;
+        return { draft: currentFields(p.draft), remembered: p.remembered ?? null, recordedIds, lastOrderId };
       },
       // Old drafts may miss fields added later, or keep removed ones (the gift options).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<CheckoutState>;
-        return { ...current, ...p, draft: currentFields(p.draft) };
+        return {
+          ...current,
+          ...p,
+          recordedIds: Array.isArray(p.recordedIds) ? p.recordedIds : [],
+          draft: currentFields(p.draft),
+        };
       },
     },
   ),

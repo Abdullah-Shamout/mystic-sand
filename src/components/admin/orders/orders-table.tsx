@@ -9,7 +9,7 @@ import { statusKind, type AdminOrder, type SortDir, type SortKey } from "@/lib/a
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/delivery";
 import { formatKuwaitPhone } from "@/lib/phone";
-import { OversoldTag, SampleTag, StatusChip } from "../status-chip";
+import { OversoldTag, StatusChip } from "../status-chip";
 import { useFulfillment } from "./use-fulfillment";
 
 type Sort = { key: SortKey; dir: SortDir };
@@ -118,7 +118,6 @@ export function OrdersTable({
                       {order.id}
                     </bdi>
                   </button>
-                  {item.source === "sample" && <SampleTag className="ms-2 align-middle" />}
                 </td>
                 <td className="px-3 py-3 whitespace-nowrap text-muted">
                   <bdi>{formatDateTime(item.placedAt, locale)}</bdi>

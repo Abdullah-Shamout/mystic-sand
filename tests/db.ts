@@ -191,37 +191,76 @@ const SAMPLE_DETAILS = {
   saveDetails: true,
 };
 
+/** One order line for insertPaidOrder (size defaults to 50 ml). */
+export type PaidOrderLine = {
+  sku: string;
+  slug: string;
+  name: string;
+  qty: number;
+  priceFils: number;
+  sizeEn?: string;
+  sizeAr?: string;
+};
+
 /**
- * Inserts a fully-paid site order (order + one line + a CAPTURED attempt) directly, for the admin
- * dashboard specs that just need a real Website order present without driving the whole purchase flow.
+ * Inserts a fully-paid site order (order + its lines + a CAPTURED attempt with a full receipt record)
+ * directly, for the admin dashboard / analysis specs that need real Website orders without driving the
+ * whole purchase flow. Totals are derived from the lines (+ a 1.000 KWD delivery fee); `daysAgo`
+ * backdates the order so the period filters can be exercised. The attempt carries track/tran/ref/auth
+ * (and a bank id for KNET) so the receipt PDF renders a full invoice.
  */
 export async function insertPaidOrder(opts: {
   id: string;
+  name?: string;
+  phone?: string;
+  method?: "knet" | "applepay" | "card";
+  locale?: "en" | "ar";
+  bankId?: string;
+  daysAgo?: number;
+  lines?: PaidOrderLine[];
+  /** Legacy single-line convenience (ignored when `lines` is given). */
   sku?: string;
   slug?: string;
-  name?: string;
+  lineName?: string;
 }): Promise<void> {
-  const sku = opts.sku ?? "MS-I-50";
-  const slug = opts.slug ?? "i";
-  const name = opts.name ?? "I";
+  const method = opts.method ?? "knet";
+  const locale = opts.locale ?? "en";
+  const customer = opts.name ?? "Website Tester";
+  const phone = opts.phone ?? "99887766";
+  const lines: PaidOrderLine[] =
+    opts.lines ??
+    [{ sku: opts.sku ?? "MS-I-50", slug: opts.slug ?? "i", name: opts.lineName ?? "I", qty: 1, priceFils: 19000 }];
+
+  const subtotal = lines.reduce((n, l) => n + l.priceFils * l.qty, 0);
+  const delivery = 1000;
+  const total = subtotal + delivery;
+  const details = { ...SAMPLE_DETAILS, name: customer, phone, paymentMethod: method };
+  const bagKey = `${lines.map((l) => `${l.sku}x${l.qty}`).join("+")}|standard|`;
+  const bankId = opts.bankId ?? (method === "knet" ? "nbk" : null);
   const paymentId = `sbx_${opts.id.replace(/\W/g, "")}`;
+  const daysAgo = opts.daysAgo ?? 0;
+
   await dbQuery(
     `INSERT INTO orders
        (id, status, oversold, locale, method, subtotal_fils, discount_fils, delivery_fils, total_fils,
         promo_code, bag_key, details, phone_e164, checkout_token, provider, provider_payment_id,
         created_at, paid_at, finalized_at)
-     VALUES ($1,'paid',false,'en','knet',19000,0,1000,20000,NULL,$2,$3::jsonb,$4,$5,'sandbox',$6, now(), now(), now())`,
-    [opts.id, `${sku}x1|standard|`, JSON.stringify(SAMPLE_DETAILS), "+96599887766", `tok_${opts.id}`, paymentId],
+     VALUES ($1,'paid',false,$2,$3,$4,0,$5,$6,NULL,$7,$8::jsonb,$9,$10,'sandbox',$11,
+             now() - ($12 * interval '1 day'), now() - ($12 * interval '1 day'), now() - ($12 * interval '1 day'))`,
+    [opts.id, locale, method, subtotal, delivery, total, bagKey, JSON.stringify(details), `+965${phone}`, `tok_${opts.id}`, paymentId, daysAgo],
   );
+  for (const l of lines) {
+    await dbQuery(
+      `INSERT INTO order_lines (order_id, sku, slug, qty, price_fils, name, size, image)
+       VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,'products/i/bottle')`,
+      [opts.id, l.sku, l.slug, l.qty, l.priceFils, l.name, JSON.stringify({ en: l.sizeEn ?? "50 ml", ar: l.sizeAr ?? "50 مل" })],
+    );
+  }
   await dbQuery(
-    `INSERT INTO order_lines (order_id, sku, slug, qty, price_fils, name, size, image)
-     VALUES ($1,$2,$3,1,19000,$4,$5::jsonb,'products/i/bottle')`,
-    [opts.id, sku, slug, name, JSON.stringify({ en: "50 ml", ar: "50 مل" })],
-  );
-  await dbQuery(
-    `INSERT INTO payment_attempts (order_id, provider, provider_payment_id, result, amount_fils, verified_at)
-     VALUES ($1,'sandbox',$2,'CAPTURED',20000, now())`,
-    [opts.id, paymentId],
+    `INSERT INTO payment_attempts
+       (order_id, provider, provider_payment_id, result, amount_fils, track_id, tran_id, ref, auth, bank_id, verified_at)
+     VALUES ($1,'sandbox',$2,'CAPTURED',$3,$4,'481032957610423','582104739162','604218',$5, now())`,
+    [opts.id, paymentId, total, opts.id, bankId],
   );
 }
 

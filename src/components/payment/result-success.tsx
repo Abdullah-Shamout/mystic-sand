@@ -38,7 +38,7 @@ export function ResultSuccess({ order, attempt }: { order: Order; attempt: Payme
     // Stock is already decremented server-side by settleOrder (atomic, idempotent). Here we only keep
     // the device-local record + clear the bag, exactly once: recordPaidOrder returns true only on its
     // first call, so a refresh or a later visit to the receipt never re-clears a fresh bag.
-    if (useCheckout.getState().recordPaidOrder(order, new Date())) {
+    if (useCheckout.getState().recordPaidOrder(order)) {
       useBag.getState().clear();
       announce(t("success.announce", { id: order.id }));
     }

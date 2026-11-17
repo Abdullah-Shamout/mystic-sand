@@ -7,7 +7,6 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
 import { logout } from "@/server/actions/auth";
-import { useAdminStore } from "@/store/admin";
 
 const TABS = [
   { href: "/admin", key: "orders" },
@@ -30,11 +29,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const activeTabRef = useRef<HTMLAnchorElement>(null);
   const clean = pathname.replace(/\/+$/, "") || "/";
-
-  // Seed the demo sample orders once (retired with the real order system in Phase 5).
-  useEffect(() => {
-    useAdminStore.getState().seedSamples(new Date().toISOString());
-  }, []);
 
   // On phones the tab bar scrolls horizontally; keep the active tab in view, and again after fonts
   // load (Arabic measures a few px wider).
@@ -97,12 +91,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </ul>
         </nav>
       </header>
-
-      <div className="border-b border-line bg-sand/40">
-        <p className="mx-auto w-full max-w-[1400px] px-4 py-2 text-[13px] leading-snug text-ink lg:px-6">
-          {t("notice")}
-        </p>
-      </div>
 
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-8 outline-none lg:px-6">
         {children}

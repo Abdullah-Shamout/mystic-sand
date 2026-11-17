@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Request } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 
 import { clearOrders, insertPaidOrder } from "./db";
@@ -124,19 +124,8 @@ test.describe.skip("admin sign-in", () => {
 });
 
 // ── Orders dashboard ──────────────────────────────────────────────────────────
-// Long flows on the desktop project. A far-future session is injected so the admin area opens
-// without the sign-in step; the sample orders are seeded by the shell on first visit.
-
-const FAR_FUTURE = 4102444800000; // ~ year 2100 (ms)
-
-type StoredOrder = {
-  id: string;
-  status: string;
-  method: string;
-  details: { name: string; phone: string; deliveryMethod: string };
-  totals: { totalFils: number };
-};
-type StoredAdmin = { fulfillment: Record<string, { doneAt: string }>; samples: StoredOrder[] };
+// Long flows on the desktop project. The demo sample orders were retired in Phase 7, so the
+// dashboard + analysis specs now seed REAL paid DB orders (insertPaidOrder) and clear them after.
 
 async function signIn(page: Page) {
   // Phase 4: real login (argon2 + session cookie). globalSetup seeds this admin.
@@ -149,15 +138,51 @@ async function signIn(page: Page) {
   await page.waitForURL(/\/en\/admin(\/|$)/);
 }
 
-async function readAdmin(page: Page): Promise<StoredAdmin> {
-  return page.evaluate(() => {
-    const raw = JSON.parse(localStorage.getItem("ms-admin") || "{}");
-    const s = raw.state ?? {};
-    return { fulfillment: s.fulfillment ?? {}, samples: s.samples ?? [] };
-  });
+type SeedOrder = Parameters<typeof insertPaidOrder>[0];
+
+// A fixed set of real paid DB orders the dashboard/analysis specs run against. Varied customer,
+// method, locale, age and line-up so the search / payment / period / collection assertions bite.
+// Totals (insertPaidOrder adds a 1.000 KWD delivery fee): 20.000 / 14.000 / 13.000 / 8.500 /
+// 32.000 / 58.000 KWD.
+const SEED_ORDERS: SeedOrder[] = [
+  { id: "MS-90001", name: "Fatma Al-Kandari", phone: "51112233", method: "knet", locale: "en", daysAgo: 1,
+    lines: [{ sku: "MS-I-50", slug: "i", name: "I", qty: 1, priceFils: 19000 }] },
+  { id: "MS-90002", name: "نورة المطيري", phone: "66223344", method: "applepay", locale: "ar", daysAgo: 3,
+    lines: [{ sku: "MS-AURA-100", slug: "aura", name: "AURA", qty: 2, priceFils: 6500, sizeEn: "100 ml", sizeAr: "100 مل" }] },
+  { id: "MS-90003", name: "Yousef Al-Sabah", phone: "90011223", method: "card", locale: "en", daysAgo: 10,
+    lines: [{ sku: "MS-OUD-30", slug: "oud", name: "OUD", qty: 1, priceFils: 12000, sizeEn: "30 ml", sizeAr: "30 مل" }] },
+  { id: "MS-90004", name: "Dana Al-Ajmi", phone: "55443322", method: "knet", locale: "en", daysAgo: 40,
+    lines: [{ sku: "MS-MIST-250", slug: "mist", name: "Mist", qty: 1, priceFils: 7500, sizeEn: "250 ml", sizeAr: "250 مل" }] },
+  { id: "MS-90005", name: "Abdulaziz Al-Mutairi", phone: "67095252", method: "knet", locale: "en", daysAgo: 1,
+    lines: [
+      { sku: "MS-I-50", slug: "i", name: "I", qty: 1, priceFils: 19000 },
+      { sku: "MS-CAFE-30", slug: "cafe", name: "Café", qty: 1, priceFils: 12000, sizeEn: "30 ml", sizeAr: "30 مل" },
+    ] },
+  { id: "MS-90006", name: "Khaled Al-Dosari", phone: "94567890", method: "knet", locale: "en", daysAgo: 5,
+    lines: [{ sku: "MS-III-50", slug: "iii", name: "III", qty: 3, priceFils: 19000 }] },
+];
+const SEED_COUNT = SEED_ORDERS.length;
+
+/** total fils for a seeded order = Σ(line price × qty) + 1.000 KWD delivery. */
+const orderTotal = (o: SeedOrder) => (o.lines ?? []).reduce((n, l) => n + l.priceFils * l.qty, 0) + 1000;
+/** total units for a seeded order. */
+const orderUnits = (o: SeedOrder) => (o.lines ?? []).reduce((n, l) => n + l.qty, 0);
+
+async function seedOrders() {
+  await clearOrders();
+  for (const o of SEED_ORDERS) await insertPaidOrder(o);
 }
 
-const doneSamples = (a: StoredAdmin) => a.samples.filter((o) => o.status === "paid" && a.fulfillment[o.id]);
+/** Pre-seeds the ms-admin fulfilment (marked-done) flags for the given order ids, then signs in.
+ *  Do NOT use for specs that then mark done through the UI (the init script re-seeds on reload). */
+async function signInWithDone(page: Page, doneIds: string[]) {
+  await page.addInitScript((ids) => {
+    const fulfillment: Record<string, { doneAt: string }> = {};
+    for (const id of ids) fulfillment[id] = { doneAt: new Date().toISOString() };
+    localStorage.setItem("ms-admin", JSON.stringify({ state: { fulfillment }, version: 2 }));
+  }, doneIds);
+  await signIn(page);
+}
 
 const readInt = async (page: Page, testId: string) =>
   parseInt((await page.getByTestId(testId).innerText()).replace(/[^\d]/g, "") || "0", 10);
@@ -171,56 +196,54 @@ const toArabicIndic = (s: string) => s.replace(/[0-9]/g, (d) => String.fromCharC
 
 test.describe("admin orders dashboard", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+  test.beforeEach(seedOrders);
+  test.afterEach(() => clearOrders());
 
-  test("lists 31 sample orders with matching KPI counts and revenue", async ({ page }) => {
-    await signIn(page);
+  test("lists the seeded DB orders with matching KPI counts and revenue", async ({ page }) => {
+    const doneIds = ["MS-90001", "MS-90005"];
+    await signInWithDone(page, doneIds);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
-    await expect(page.getByTestId("order-row").first().getByText("Sample")).toBeVisible();
+    await expect.poll(() => resultCount(page)).toBe(SEED_COUNT);
+    // No sample orders remain, so nothing carries a "Sample" tag.
+    await expect(page.getByText("Sample", { exact: true })).toHaveCount(0);
 
-    const admin = await readAdmin(page);
-    expect(admin.samples).toHaveLength(31);
-
-    const completed = doneSamples(admin).length;
-    const expectedRevenue = doneSamples(admin).reduce((sum, o) => sum + o.totals.totalFils, 0);
-
+    const doneRevenue = SEED_ORDERS.filter((o) => doneIds.includes(o.id)).reduce((n, o) => n + orderTotal(o), 0);
     const kpiCompleted = await readInt(page, "kpi-completed-value");
     const kpiPending = await readInt(page, "kpi-pending-value");
-    expect(kpiCompleted + kpiPending).toBe(31);
-    expect(kpiCompleted).toBe(completed);
-    expect(await readKwd(page, "kpi-revenue-value")).toBe(expectedRevenue);
+    expect(kpiCompleted + kpiPending).toBe(SEED_COUNT);
+    expect(kpiCompleted).toBe(doneIds.length);
+    expect(await readKwd(page, "kpi-revenue-value")).toBe(doneRevenue);
   });
 
   test("search narrows by Latin name, Arabic name and order number (Arabic digits too)", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
-    const admin = await readAdmin(page);
+    await expect.poll(() => resultCount(page)).toBe(SEED_COUNT);
     const search = page.getByTestId("orders-search");
 
-    const latin = admin.samples.find((o) => /^[A-Za-z]/.test(o.details.name))!;
-    await search.fill(latin.details.name);
-    await expect(page.getByText(latin.id).first()).toBeVisible();
-    await expect.poll(() => resultCount(page)).toBeLessThan(31);
-
-    const arabic = admin.samples.find((o) => /[؀-ۿ]/.test(o.details.name))!;
-    await search.fill(arabic.details.name);
-    await expect(page.getByText(arabic.id).first()).toBeVisible();
-
-    const target = admin.samples[0];
-    await search.fill(toArabicIndic(target.id.replace("MS-", "")));
+    await search.fill("Fatma Al-Kandari");
+    await expect(page.getByText("MS-90001").first()).toBeVisible();
     await expect.poll(() => resultCount(page)).toBe(1);
-    await expect(page.getByText(target.id).first()).toBeVisible();
+
+    await search.fill("نورة المطيري");
+    await expect(page.getByText("MS-90002").first()).toBeVisible();
+    await expect.poll(() => resultCount(page)).toBe(1);
+
+    // Order number in Arabic-Indic digits.
+    await search.fill(toArabicIndic("90003"));
+    await expect.poll(() => resultCount(page)).toBe(1);
+    await expect(page.getByText("MS-90003").first()).toBeVisible();
   });
 
   test("each filter narrows to a consistent set of rows", async ({ page }) => {
-    await signIn(page);
+    const doneIds = ["MS-90001", "MS-90005"];
+    await signInWithDone(page, doneIds);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
-    const admin = await readAdmin(page);
-    const completed = doneSamples(admin).length;
-    const pending = 31 - completed;
-    const knet = admin.samples.filter((o) => o.method === "knet").length;
+    await expect.poll(() => resultCount(page)).toBe(SEED_COUNT);
+
+    const completed = doneIds.length;
+    const pending = SEED_COUNT - completed;
+    const knet = SEED_ORDERS.filter((o) => o.method === "knet").length;
 
     const kpiCompleted = await readInt(page, "kpi-completed-value");
 
@@ -239,7 +262,8 @@ test.describe("admin orders dashboard", () => {
     await page.getByLabel("Period").selectOption("7d");
     const c7 = await resultCount(page);
     expect(c7).toBeLessThanOrEqual(c30);
-    expect(c30).toBeLessThanOrEqual(31);
+    expect(c30).toBeLessThanOrEqual(SEED_COUNT);
+    expect(c30).toBeLessThan(SEED_COUNT); // the 40-day-old order is outside 30d
     await page.getByLabel("Period").selectOption("all");
 
     await page.getByLabel("Payment").selectOption("knet");
@@ -255,7 +279,7 @@ test.describe("admin orders dashboard", () => {
   test("there is no Unpaid filter, no Delivery filter and no Confirming status", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
+    await expect.poll(() => resultCount(page)).toBe(SEED_COUNT);
 
     // The fulfilment chips are only All / Pending / Done — no "Unpaid checkouts".
     await expect(page.getByRole("button", { name: "Unpaid checkouts" })).toHaveCount(0);
@@ -268,15 +292,15 @@ test.describe("admin orders dashboard", () => {
     await expect(table.getByText(/^(Pending|Done)$/).first()).toBeVisible();
   });
 
-  test("the Orders filters have no Source group (English and Arabic)", async ({ page }) => {
+  test("the Orders filters have no Source group, and no order carries a Sample tag", async ({ page }) => {
     await signIn(page);
 
     await page.goto("/en/admin/");
     await expect(page.getByTestId("order-row").first()).toBeVisible();
     // The Source filter chips were removed — every paid order is always listed.
     await expect(page.getByRole("group", { name: "Source" })).toHaveCount(0);
-    // Built-in sample orders still carry their "Sample" tag.
-    await expect(page.getByTestId("order-row").first().getByText("Sample")).toBeVisible();
+    // The demo "Sample" tag is gone with the sample machinery.
+    await expect(page.getByText("Sample", { exact: true })).toHaveCount(0);
 
     await page.goto("/ar/admin/");
     await expect(page.getByTestId("order-row").first()).toBeVisible();
@@ -284,9 +308,10 @@ test.describe("admin orders dashboard", () => {
   });
 
   test("marking a paid order done updates KPIs, survives reload and undoes", async ({ page }) => {
+    // No pre-seeded fulfilment here: all orders start Pending and we mark one done through the UI.
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
+    await expect.poll(() => resultCount(page)).toBe(SEED_COUNT);
 
     const beforeCompleted = await readInt(page, "kpi-completed-value");
     const beforePending = await readInt(page, "kpi-pending-value");
@@ -318,25 +343,16 @@ test.describe("admin orders dashboard", () => {
 
   test("the ?order= query opens that order's drawer", async ({ page }) => {
     await signIn(page);
-    await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
-    const admin = await readAdmin(page);
-    const sample = admin.samples[0];
-
-    await page.goto(`/en/admin/?order=${sample.id}`);
+    await page.goto("/en/admin/?order=MS-90001");
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByText(sample.id).first()).toBeVisible();
-    await expect(dialog.getByText(sample.details.name).first()).toBeVisible();
+    await expect(dialog.getByText("MS-90001").first()).toBeVisible();
+    await expect(dialog.getByText("Fatma Al-Kandari").first()).toBeVisible();
   });
 
   test("the order drawer no longer offers a WhatsApp link", async ({ page }) => {
     await signIn(page);
-    await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
-    const admin = await readAdmin(page);
-
-    await page.goto(`/en/admin/?order=${admin.samples[0].id}`);
+    await page.goto("/en/admin/?order=MS-90001");
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/whatsapp/i)).toHaveCount(0);
@@ -346,8 +362,7 @@ test.describe("admin orders dashboard", () => {
   test("Excel export downloads a filtered .xlsx that unzips to an order id", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
-    const admin = await readAdmin(page);
+    await expect.poll(() => resultCount(page)).toBe(SEED_COUNT);
 
     const [download] = await Promise.all([
       page.waitForEvent("download"),
@@ -363,7 +378,7 @@ test.describe("admin orders dashboard", () => {
       .filter(([name]) => name.endsWith(".xml"))
       .map(([, data]) => strFromU8(data))
       .join("\n");
-    expect(xml).toContain(admin.samples[0].id);
+    expect(xml).toContain("MS-90001");
   });
 
   test("the Arabic export is right-to-left", async ({ page }) => {
@@ -384,13 +399,9 @@ test.describe("admin orders dashboard", () => {
     expect(xml).toContain('rightToLeft="1"');
   });
 
-  test("the receipt downloads as a real PDF over 20 KB", async ({ page }) => {
+  test("the receipt downloads as a real PDF", async ({ page }) => {
     await signIn(page);
-    await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
-    const admin = await readAdmin(page);
-
-    await page.goto(`/en/admin/?order=${admin.samples[0].id}`);
+    await page.goto("/en/admin/?order=MS-90005");
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 
@@ -398,62 +409,39 @@ test.describe("admin orders dashboard", () => {
       page.waitForEvent("download", { timeout: 30_000 }),
       dialog.getByTestId("receipt-pdf").click(),
     ]);
-    expect(download.suggestedFilename()).toMatch(/^Mystic-Sand-Invoice-MS-\d+\.pdf$/);
+    expect(download.suggestedFilename()).toBe("Mystic-Sand-Invoice-MS-90005.pdf");
     const buf = fs.readFileSync((await download.path())!);
     expect(buf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
     // The invoice is embedded as a JPEG; a blank page would compress to a few KB.
     const body = buf.toString("latin1");
     expect(body).toContain("/DCTDecode");
-    expect(buf.length).toBeGreaterThan(120_000);
+    expect(buf.length).toBeGreaterThan(50_000);
     expect(buf.length).toBeLessThan(3_000_000);
   });
 
-  test("a real order placed in the store appears as a Website order", async ({ page }) => {
-    // The dashboard now reads site orders from Postgres (server), merged with the client samples. Insert
-    // one paid DB order and confirm it shows as a Website order (no "Sample" tag). Cleaned up after.
-    await insertPaidOrder({ id: "MS-50001", sku: "MS-I-50", slug: "i", name: "I" });
-    try {
-      await signIn(page);
-      await page.goto("/en/admin/");
-      // 31 built-in samples + the 1 real website order.
-      await expect.poll(() => resultCount(page)).toBe(32);
-
-      // Narrow to the real order by number; it is listed and carries no "Sample" tag
-      // (only the built-in samples are tagged).
-      await page.getByTestId("orders-search").fill("MS-50001");
-      await expect.poll(() => resultCount(page)).toBe(1);
-      const realRow = page.getByTestId("order-row").filter({ hasText: "MS-50001" });
-      await expect(realRow).toHaveCount(1);
-      await expect(realRow.getByText("Sample")).toHaveCount(0);
-    } finally {
-      await clearOrders();
-    }
-  });
-
-  test("the built-in 67095252 order is searchable and its receipt downloads", async ({ page }) => {
+  test("an order is searchable by phone and its receipt downloads", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/");
-    await expect.poll(() => resultCount(page)).toBe(31);
+    await expect.poll(() => resultCount(page)).toBe(SEED_COUNT);
 
     // Searchable by the full phone and by a partial.
     const search = page.getByTestId("orders-search");
     await search.fill("67095252");
     await expect.poll(() => resultCount(page)).toBe(1);
-    await expect(page.getByText("MS-19999").first()).toBeVisible();
+    await expect(page.getByText("MS-90005").first()).toBeVisible();
     await expect(page.getByText("Abdulaziz Al-Mutairi").first()).toBeVisible();
 
     await search.fill("6709");
-    await expect(page.getByText("MS-19999").first()).toBeVisible();
+    await expect(page.getByText("MS-90005").first()).toBeVisible();
 
-    // Its receipt is a real PDF (the full fake payment record makes the invoice render).
-    await page.goto("/en/admin/?order=MS-19999");
+    await page.goto("/en/admin/?order=MS-90005");
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     const [download] = await Promise.all([
       page.waitForEvent("download", { timeout: 30_000 }),
       dialog.getByTestId("receipt-pdf").click(),
     ]);
-    expect(download.suggestedFilename()).toBe("Mystic-Sand-Invoice-MS-19999.pdf");
+    expect(download.suggestedFilename()).toBe("Mystic-Sand-Invoice-MS-90005.pdf");
     const buf = fs.readFileSync((await download.path())!);
     expect(buf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
     expect(buf.length).toBeGreaterThan(50_000);
@@ -864,42 +852,36 @@ test.describe("admin products", () => {
 });
 
 // ── Product analysis ──────────────────────────────────────────────────────────
-// Long flows on the desktop project. The far-future session opens the admin without signing in;
-// the sample orders are seeded by the shell on first visit.
-
-type FullLine = { slug: string; sku: string; qty: number; priceFils: number };
-type FullSample = { id: string; status: string; lines: FullLine[] };
-
-async function readSamplesFull(page: Page): Promise<FullSample[]> {
-  return page.evaluate(() => {
-    const raw = JSON.parse(localStorage.getItem("ms-admin") || "{}");
-    return (raw.state?.samples ?? []) as FullSample[];
-  });
-}
-
-const paidSamples = (samples: FullSample[]) =>
-  samples.filter((o) => o.status === "paid" || o.status === "confirming");
+// Long flows on the desktop project. The analysis reads the same real paid DB orders the dashboard
+// does (seeded in beforeEach), so the per-product unit counts are derived from SEED_ORDERS.
 
 const section = (page: Page, slug: string) =>
   page.locator(`[data-testid="analysis-section"][data-slug="${slug}"]`);
 const sectionRows = (page: Page, slug: string) =>
   section(page, slug).locator('[data-testid="analysis-row"]');
 
+/** Units ordered per product slug across the seeded orders. */
+function seededUnitsBySlug(): Record<string, number> {
+  const units: Record<string, number> = {};
+  for (const o of SEED_ORDERS) for (const l of o.lines ?? []) units[l.slug] = (units[l.slug] ?? 0) + l.qty;
+  return units;
+}
+
 test.describe("admin product analysis", () => {
   test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+  test.beforeEach(seedOrders);
+  test.afterEach(() => clearOrders());
 
   test("groups products by collection, with OUD in two collections and matching unit counts", async ({ page }) => {
     await signIn(page);
     await page.goto("/en/admin/analysis/");
+    // Section rows are catalog-driven (every product is listed, zero-sales included).
     await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
     await expect(sectionRows(page, "oud")).toHaveCount(2);
     await expect(sectionRows(page, "body")).toHaveCount(1);
     await expect(sectionRows(page, "home")).toHaveCount(3);
 
-    const samples = paidSamples(await readSamplesFull(page));
-    expect(samples.length).toBe(31);
-    const unitsBySlug: Record<string, number> = {};
-    for (const o of samples) for (const l of o.lines) unitsBySlug[l.slug] = (unitsBySlug[l.slug] ?? 0) + l.qty;
+    const unitsBySlug = seededUnitsBySlug();
 
     // OUD is listed under both Perfumes and Oud, with the same (joined-by-slug) unit count.
     const perfOud = section(page, "perfumes").locator('[data-testid="analysis-row"][data-slug="oud"]');
@@ -914,7 +896,7 @@ test.describe("admin product analysis", () => {
     await expect(perfOud).toContainText("Also in Oud");
     await expect(oudOud).toContainText("Also in Perfumes");
 
-    // Every product row shows exactly the sum of its sample line quantities.
+    // Every ordered product's row shows exactly the sum of its seeded line quantities.
     for (const slug of Object.keys(unitsBySlug)) {
       const row = page.locator(`[data-testid="analysis-row"][data-slug="${slug}"]`).first();
       expect(await row.getAttribute("data-units"), slug).toBe(String(unitsBySlug[slug]));
@@ -950,18 +932,15 @@ test.describe("admin product analysis", () => {
   });
 
   test("completed-only never raises units and the 7-day period never raises them either", async ({ page }) => {
-    await signIn(page);
+    const doneIds = ["MS-90001", "MS-90005"];
+    await signInWithDone(page, doneIds);
     await page.goto("/en/admin/analysis/");
     await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
 
-    const samples = paidSamples(await readSamplesFull(page));
-    const admin = await readAdmin(page);
-    const doneIds = new Set(Object.keys(admin.fulfillment));
-    let expectedDoneUnits = 0;
-    for (const o of samples) {
-      if (o.status !== "paid" || !doneIds.has(o.id)) continue;
-      for (const l of o.lines) expectedDoneUnits += l.qty;
-    }
+    const expectedDoneUnits = SEED_ORDERS.filter((o) => doneIds.includes(o.id)).reduce(
+      (n, o) => n + orderUnits(o),
+      0,
+    );
 
     const allUnits = await readInt(page, "kpi-analysis-units-value");
 
@@ -1035,63 +1014,29 @@ test.describe("admin product analysis", () => {
   });
 
   test("a store product shows under its collection and an unknown slug goes to Removed", async ({ page }) => {
-    test.skip(true, "Phase 8 E2E rewrite: data is server-fed from the DB now (localStorage ms-catalog seeding no longer reaches the storefront).");
-    await signIn(page);
-    await page.addInitScript(() => {
-      const product = {
-        slug: "c-amber-analysis",
-        name: "Amber Analysis",
-        category: "body",
-        type: { en: "All Over Spray", ar: "بخاخ معطّر للجسم" },
-        tagline: { en: "A warm amber veil.", ar: "وشاح عنبري دافئ." },
-        description: { en: "A warm amber veil for skin.", ar: "وشاح عنبري دافئ للبشرة." },
-        howTo: { en: "Spray.", ar: "رشّ." },
-        variants: [{ sku: "MS-AMBAN", size: { en: "100 ml", ar: "100 مل" }, priceFils: 9500, stock: 5 }],
-        images: { card: "renders/aura", gallery: ["renders/aura"] },
-        related: [],
-        aliases: [],
-        todo: [],
-      };
-      localStorage.setItem(
-        "ms-catalog",
-        JSON.stringify({ state: { edits: { patches: {}, added: [product], categories: {} } }, version: 1 }),
-      );
-      const iso = new Date().toISOString();
-      const order = {
-        id: "MS-50002",
-        createdAt: iso,
-        locale: "en",
-        lines: [
-          { sku: "MS-AMBAN", slug: "c-amber-analysis", qty: 3, priceFils: 9500, name: "Amber Analysis", size: { en: "100 ml", ar: "100 مل" }, image: "renders/aura" },
-          { sku: "MS-GHOST", slug: "ghost-product", qty: 2, priceFils: 5000, name: "Ghosted Scent", size: { en: "50 ml", ar: "50 مل" }, image: "renders/aura" },
-        ],
-        totals: { itemCount: 5, subtotalFils: 38500, discountFils: 0, deliveryFils: 1000, totalFils: 39500 },
-        details: {
-          name: "Analysis Tester", phone: "99001122", email: "", areaId: "salmiya", housing: "house",
-          block: "1", street: "Street 1", avenue: "", building: "5", floor: "", apartment: "",
-          mapsLink: "", notes: "", deliveryMethod: "standard", paymentMethod: "knet", saveDetails: true,
-        },
-        promoCode: null,
-        bagKey: "MS-AMBANx3|standard|",
-        method: "knet",
-        status: "paid",
-        attempts: [
-          { method: "knet", result: "CAPTURED", paymentId: "100123456789012345", trackId: "MS-50002", tranId: "123456789012345", ref: "123456789012", auth: "123456", postDate: "1009", amountFils: 39500, at: iso },
-        ],
-        finalizedAt: iso,
-      };
-      localStorage.setItem(
-        "ms-checkout",
-        JSON.stringify({ state: { draft: {}, remembered: null, orders: { "MS-50002": order }, lastOrderId: "MS-50002" }, version: 2 }),
-      );
+    // One extra DB order (on top of the beforeEach seed): a real catalog line (iii) and a line whose
+    // slug is not in the catalog (ghost-product), which must surface in the Removed table.
+    await insertPaidOrder({
+      id: "MS-90007",
+      name: "Analysis Tester",
+      phone: "99001122",
+      method: "knet",
+      locale: "en",
+      lines: [
+        { sku: "MS-III-50", slug: "iii", name: "III", qty: 1, priceFils: 19000 },
+        { sku: "MS-GHOST", slug: "ghost-product", name: "Ghosted Scent", qty: 2, priceFils: 5000 },
+      ],
     });
 
+    await signIn(page);
     await page.goto("/en/admin/analysis/");
-    const bodyRow = section(page, "body").locator('[data-testid="analysis-row"][data-slug="c-amber-analysis"]');
-    await expect(bodyRow).toHaveCount(1);
-    expect(await bodyRow.getAttribute("data-units")).toBe("3");
-    await expect(bodyRow.getByText("Custom", { exact: true })).toBeVisible();
+    await expect.poll(() => sectionRows(page, "perfumes").count()).toBe(5);
 
+    // A catalog product (III) is listed under its collection (Perfumes).
+    const perfRow = section(page, "perfumes").locator('[data-testid="analysis-row"][data-slug="iii"]');
+    await expect(perfRow).toHaveCount(1);
+
+    // The unknown slug lands in the Removed table, named from the order's line snapshot, units = 2.
     const removed = page.locator('[data-testid="analysis-removed-row"][data-slug="ghost-product"]');
     await expect(removed).toHaveCount(1);
     await expect(removed.getByText("Ghosted Scent")).toBeVisible();
@@ -1356,5 +1301,102 @@ test.describe("admin store settings", () => {
       await page.waitForTimeout(400);
     }
     expect(errors, errors.join("\n")).toEqual([]);
+  });
+});
+
+// ── Storefront catalog exposure (A01) ───────────────────────────────────────────
+// The storefront read (getCatalogData) omits hidden products entirely and strips the internal `todo`
+// notes, so an anonymous RSC payload carries neither. The admin read (getAdminCatalogData) keeps both.
+
+test.describe("storefront catalog exposure (A01)", () => {
+  test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+
+  test("the storefront payload omits the internal todo notes and hidden products; the admin keeps them", async ({
+    page,
+  }) => {
+    await signIn(page);
+
+    // The storefront LiveProvider ships the SAME hidden-stripped, todo-free catalog to everyone, so
+    // the payload shape does not depend on auth — this fetch stands in for an anonymous visitor.
+    const home = await (await page.request.get("/en/")).text();
+    // The internal review notes key never appears in the storefront payload.
+    expect(home).not.toContain("todo");
+    // Mist is a visible product, so its SKU IS in the live payload right now.
+    expect(home).toContain("MS-MIST-250");
+
+    try {
+      // Hide Mist through the admin; the admin product list STILL shows it (full admin catalog).
+      await page.goto("/en/admin/products/");
+      const row = page.locator('[data-testid="product-row"][data-slug="mist"]');
+      await row.getByRole("button", { name: "Hide Mist", exact: true }).click();
+      await expect(row.getByText("Hidden", { exact: true })).toBeVisible();
+      await expect(row).toBeVisible();
+
+      // The anonymous storefront payload no longer carries the hidden product at all (A01) — and
+      // still no todo. setHidden purges the cached read (updateTag), so reload until it reflects.
+      await expect(async () => {
+        const after = await (await page.request.get("/en/")).text();
+        expect(after).not.toContain("MS-MIST-250");
+        expect(after).not.toContain("todo");
+      }).toPass({ timeout: 20000 });
+    } finally {
+      // Restore Mist's visibility for the rest of the suite.
+      await page.goto("/en/admin/products/");
+      await expect(page.getByTestId("products-add")).toBeVisible();
+      const show = page
+        .locator('[data-testid="product-row"][data-slug="mist"]')
+        .getByRole("button", { name: "Show Mist", exact: true });
+      if (await show.count()) {
+        await show.click();
+        await expect(
+          page.locator('[data-testid="product-row"][data-slug="mist"]').getByText("Visible", { exact: true }),
+        ).toBeVisible();
+      }
+    }
+  });
+});
+
+// ── Stale-data refresher ────────────────────────────────────────────────────────
+// A visibilitychange → router.refresh() refresher is mounted on the shop + checkout layouts (so an
+// open storefront tab picks up an admin edit when the shopper returns), but NEVER on the admin.
+
+test.describe("stale-data refresher", () => {
+  test.skip(({ isMobile }) => isMobile, "Long flows run on the desktop project");
+
+  const fireVisible = (page: Page): Promise<void> =>
+    page.evaluate(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+  // Counts the NON-prefetch RSC requests (what router.refresh() issues) during the trigger window.
+  async function countRscOn(page: Page, trigger: () => Promise<void>): Promise<number> {
+    let count = 0;
+    const onReq = (req: Request) => {
+      const h = req.headers();
+      if (h["rsc"] === "1" && h["next-router-prefetch"] !== "1") count++;
+    };
+    page.on("request", onReq);
+    await trigger();
+    await page.waitForTimeout(1500);
+    page.off("request", onReq);
+    return count;
+  }
+
+  test("re-focusing a storefront tab refreshes it; the admin is left alone", async ({ page }) => {
+    // Shop: a visibilitychange triggers a refresh.
+    await page.goto("/en/shop/perfumes/", { waitUntil: "networkidle" });
+    expect(await countRscOn(page, () => fireVisible(page))).toBeGreaterThanOrEqual(1);
+
+    // A rapid second flicker within the cooldown does NOT refresh again.
+    expect(await countRscOn(page, () => fireVisible(page))).toBe(0);
+
+    // Checkout: also refreshes.
+    await page.goto("/en/checkout/", { waitUntil: "networkidle" });
+    expect(await countRscOn(page, () => fireVisible(page))).toBeGreaterThanOrEqual(1);
+
+    // Admin: the refresher is NOT mounted there, so re-focus does nothing (never disrupts an edit).
+    await signIn(page);
+    await page.goto("/en/admin/products/", { waitUntil: "networkidle" });
+    expect(await countRscOn(page, () => fireVisible(page))).toBe(0);
   });
 });

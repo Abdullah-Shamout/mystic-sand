@@ -68,7 +68,7 @@ async function main() {
         related: p.related,
         aliases: p.aliases,
         hidden: p.hidden ?? false,
-        todo: p.todo,
+        todo: p.todo ?? [],
         sort: i,
       };
       const [inserted] = await tx

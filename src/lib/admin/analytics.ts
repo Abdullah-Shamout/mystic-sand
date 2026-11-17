@@ -5,9 +5,9 @@ import { normalizeSearch } from "@/lib/search";
 import { availableFromStock, type SoldMap } from "@/lib/stock";
 import { inDateRange, type RangeFilter, type AdminOrder } from "./orders";
 
-// Pure, React-free product analytics. From the paid + confirming orders of both sources and the
-// live catalog it rolls up units ordered, orders and revenue per product (joined by line.slug so
-// sales survive renames / SKU changes), grouped into the catalog's categories. "Now" is passed in.
+// Pure, React-free product analytics. From the paid + confirming DB site orders and the live
+// catalog it rolls up units ordered, orders and revenue per product (joined by line.slug so sales
+// survive renames / SKU changes), grouped into the catalog's categories. "Now" is passed in.
 
 export type AnalysisFilters = {
   query: string;
@@ -111,7 +111,7 @@ function matchesRemoved(stat: RemovedStat, query: string): boolean {
   return normalizeSearch(`${stat.name} ${stat.slug}`).includes(q);
 }
 
-/** Orders counted: paid + confirming (all sources), passing the date-range and completed-only filters. */
+/** Orders counted: paid + confirming, passing the date-range and completed-only filters. */
 function selectOrders(orders: AdminOrder[], filters: AnalysisFilters, now: Date): AdminOrder[] {
   return orders.filter((item) => {
     if (!item.paid) return false;

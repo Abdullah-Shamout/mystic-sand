@@ -5,16 +5,14 @@ import { normalizeSearch } from "@/lib/search";
 import type { FulfillmentMap } from "@/store/admin";
 import type { Order } from "@/store/checkout";
 
-// Pure, React-free logic for the orders dashboard: joining site + sample orders, filtering,
-// searching and the KPI roll-up. "Now" is always passed in (never read here).
+// Pure, React-free logic for the orders dashboard: shaping the DB site orders, filtering, searching
+// and the KPI roll-up. "Now" is always passed in (never read here). The demo sample orders were
+// retired in Phase 7, so every listed order is a real DB site order.
 
 const DAY = 24 * 60 * 60 * 1000;
 
-export type OrderSource = "site" | "sample";
-
 export type AdminOrder = {
   order: Order;
-  source: OrderSource;
   /** True for paid and confirming orders (a confirming order is paid-pending, shown as Pending). */
   paid: boolean;
   /** A captured-but-unfulfillable order (settleOrder's oversold flag) — a human must act on it. */
@@ -60,13 +58,12 @@ function receiptAttemptFor(order: Order): PaymentRecord | null {
   return attempts.length > 0 ? attempts[attempts.length - 1] : null;
 }
 
-function toAdminOrder(order: Order, source: OrderSource, fulfillment: FulfillmentMap): AdminOrder {
+function toAdminOrder(order: Order, fulfillment: FulfillmentMap): AdminOrder {
   const paid = order.status === "paid" || order.status === "confirming";
   // Paid and confirming orders alike can be marked done.
   const done = paid && Boolean(fulfillment[order.id]);
   return {
     order,
-    source,
     paid,
     oversold: Boolean(order.oversold),
     fulfillment: done ? "done" : "pending",
@@ -77,18 +74,12 @@ function toAdminOrder(order: Order, source: OrderSource, fulfillment: Fulfillmen
 }
 
 /**
- * Site orders plus the sample orders. Site orders are `paid` only when their status is paid or
- * confirming; abandoned checkouts (pending/failed/canceled) are carried through but filtered out
- * of the dashboard by applyFilters (only paid/confirming orders are ever listed).
+ * The DB site orders shaped for the dashboard. An order is `paid` only when its status is paid or
+ * confirming; abandoned checkouts (pending/failed/canceled) are carried through but filtered out of
+ * the dashboard by applyFilters (only paid/confirming orders are ever listed).
  */
-export function collectOrders(
-  siteOrders: Order[],
-  samples: Order[],
-  fulfillment: FulfillmentMap,
-): AdminOrder[] {
-  const site = siteOrders.map((o) => toAdminOrder(o, "site", fulfillment));
-  const sample = samples.map((o) => toAdminOrder(o, "sample", fulfillment));
-  return [...site, ...sample];
+export function collectOrders(siteOrders: Order[], fulfillment: FulfillmentMap): AdminOrder[] {
+  return siteOrders.map((o) => toAdminOrder(o, fulfillment));
 }
 
 /** A Kuwait-time day number (days since the epoch, UTC+3), for bucketing by calendar day. */

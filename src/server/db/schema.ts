@@ -86,7 +86,7 @@ export const products = pgTable(
     todo: text("todo")
       .array()
       .notNull()
-      .$type<Product["todo"]>()
+      .$type<NonNullable<Product["todo"]>>()
       .default(sql`'{}'::text[]`),
     sort: integer("sort").notNull(),
     createdAt: timestamptz("created_at").notNull().defaultNow(),
