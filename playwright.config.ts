@@ -43,6 +43,12 @@ export default defineConfig({
       APP_ENV: "test",
       PAYMENT_PROVIDER: "sandbox",
       PAYMENT_SANDBOX_OK: "true",
+      // Tests must NEVER send real email. Pin the notifier to the log adapter so a developer whose
+      // local `.env` sets NOTIFIER=resend (with a live RESEND_API_KEY) does not fire real order emails
+      // — and burn the Resend quota — on every sandbox-purchase spec. `next start` would otherwise read
+      // NOTIFIER from `.env` since this env block doesn't set it. CI sets no RESEND_* vars, so it already
+      // falls back to log; this makes the guarantee explicit and local-safe.
+      NOTIFIER: "log",
       // Lets the /api/payments/sandbox/webhook path authenticate signed test webhooks (the sandbox
       // gateway's parseWebhook rejects when no secret is configured).
       SANDBOX_WEBHOOK_SECRET: "test-sandbox-webhook-secret",
