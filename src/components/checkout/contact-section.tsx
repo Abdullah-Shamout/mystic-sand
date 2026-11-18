@@ -37,7 +37,7 @@ export function ContactSection() {
             />
           )}
         </CheckoutField>
-        <CheckoutField name="email" label={t("email")} optional hint={t("emailHint")}>
+        <CheckoutField name="email" label={t("email")} hint={t("emailHint")}>
           {({ id, describedBy, invalid }) => (
             <TextInput
               id={id}

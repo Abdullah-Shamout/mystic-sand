@@ -37,6 +37,7 @@ async function addToBag(page: Page, slug: string) {
 async function fillCheckout(page: Page, phone = "99123456") {
   await page.getByLabel("Full name").fill("Fatma Al-Kandari");
   await page.getByLabel("Mobile number").fill(phone);
+  await page.getByLabel("Email").fill("fatma@example.com"); // required at checkout now
   const area = page.getByRole("combobox", { name: "Area" });
   await area.fill("salm");
   await area.press("Enter");
@@ -154,6 +155,68 @@ test.describe("stock (server-backed)", () => {
 
     expect((await readLatestOrder())?.status).toBe("paid");
     expect(await readVariantStock("MS-I-50")).toBe(before - 1);
+  });
+
+  test("express Apple Pay (button tap) with a blank (now-required) email focuses the email field and surfaces its error", async ({ page }) => {
+    // Guards the express blank-email UX from the DIRECT button tap. (This entry keeps window.event set, so
+    // React flushes trigger's state update ahead of the post-trigger microtask and even the pre-Fix-1 read
+    // happened to see the email error here — the stale-snapshot case is exercised by the ?express deep-link
+    // test below, which is the one that actually isolates Fix 1.)
+    await addToBag(page, "i");
+    await page.goto("/en/checkout/");
+    // Fill every required detail VALIDLY except email — and never focus/blur email, so no onBlur
+    // validation pre-populates the snapshot before the express tap. Name is valid, so "name" is NOT the
+    // correct focus target: only a live read puts focus on the blank email.
+    await page.getByLabel("Full name").fill("Fatma Al-Kandari");
+    await page.getByLabel("Mobile number").fill("99123456");
+    const area = page.getByRole("combobox", { name: "Area" });
+    await area.fill("salm");
+    await area.press("Enter");
+    await page.getByLabel("Block").fill("10");
+    await page.getByLabel("Street").fill("Baghdad Street");
+    await page.getByLabel("House no.").fill("15");
+
+    await page.getByTestId("express-applepay").click();
+
+    // Focus lands on EMAIL (the distinguishing signal — the error summary would show email either way).
+    await expect(page.getByLabel("Email")).toBeFocused();
+    // The error summary explains WHY, linking to the email field, and the Apple Pay sheet stays closed.
+    const summary = page.getByTestId("error-summary");
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText("Please enter your email");
+    await expect(summary.locator('a[href="#ck-email"]')).toBeVisible();
+    await expect(page.getByTestId("applepay-confirm")).toHaveCount(0);
+  });
+
+  test("express Apple Pay via the ?express=applepay deep link focuses the blank email, not Name (Fix 1)", async ({ page }) => {
+    // This entry calls openExpressSheet from a setTimeout (macrotask) with no window.event, so the render
+    // from trigger's state update is DEFERRED and the post-trigger microtask reads the STALE form.formState
+    // snapshot — the exact case Fix 1 hardens. A live getFieldState read focuses EMAIL; the stale snapshot
+    // (no email error yet) would fall back to focusing "Name".
+    await addToBag(page, "i");
+    await page.goto("/en/checkout/");
+    await page.getByLabel("Full name").fill("Fatma Al-Kandari");
+    await page.getByLabel("Mobile number").fill("99123456");
+    const area = page.getByRole("combobox", { name: "Area" });
+    await area.fill("salm");
+    await area.press("Enter");
+    await page.getByLabel("Block").fill("10");
+    await page.getByLabel("Street").fill("Baghdad Street");
+    await page.getByLabel("House no.").fill("15");
+    await page.getByLabel("House no.").blur(); // flush the autosaved draft before navigating away
+
+    // Re-enter checkout through the express deep link; the saved draft rehydrates (email still blank) and
+    // the express sheet is requested from a timer.
+    await page.goto("/en/checkout/?express=applepay");
+    await expect(page.getByLabel("Full name")).toHaveValue("Fatma Al-Kandari"); // the draft survived
+    await expect(page.getByLabel("Email")).toHaveValue(""); // email is genuinely blank/required
+
+    // Focus must land on EMAIL (live read), not fall back to "Name" (stale snapshot).
+    await expect(page.getByLabel("Email")).toBeFocused();
+    const summary = page.getByTestId("error-summary");
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText("Please enter your email");
+    await expect(page.getByTestId("applepay-confirm")).toHaveCount(0); // sheet stays closed
   });
 
   test("a sold-out item cannot be purchased — the server reprice refuses it, no order is created", async ({ page }) => {

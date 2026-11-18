@@ -23,6 +23,7 @@ const SECRET = "test-reconcile-secret";
 async function fillCheckout(page: Page, phone = "99123456") {
   await page.getByLabel("Full name").fill("Reconcile Tester");
   await page.getByLabel("Mobile number").fill(phone);
+  await page.getByLabel("Email").fill("reconcile@example.com"); // required at checkout now
   const area = page.getByRole("combobox", { name: "Area" });
   await area.fill("salm");
   await area.press("Enter");

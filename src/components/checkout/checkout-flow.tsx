@@ -191,13 +191,27 @@ export function CheckoutFlow() {
     }
     const values = getValues();
     if (!detailsComplete(values)) {
-      // No sample fallback now: the shopper fills the real address before Apple Pay can run.
+      // The shopper fills the real contact + address before Apple Pay can run. Surface WHY (e.g. a now-
+      // required but blank email) instead of silently focusing the first field: expand, validate the
+      // delivery fields, show the error summary and focus the first invalid one. (Terms are confirmed in
+      // the Apple Pay sheet, so they are not required on this path — only the saved detail fields are.)
       flushSync(() => setCollapsed(false));
-      focusField("name");
+      void form.trigger(rememberedFields).then(() => {
+        setAttempt((n) => n + 1);
+        // form.formState is a RENDER SNAPSHOT (react-hook-form 7.89 exposes it as useMemo(() => M(i, l)),
+        // a proxy over the React-state copy `i` of _formState — not the live control state). On the deferred
+        // express entries (the ?express=applepay effect and the drawer event both call this from a
+        // setTimeout, so there is no window.event and React defers the re-render), this post-trigger
+        // microtask reads the PRE-trigger errors (empty for a clean blank email) and would focus "Name"
+        // instead of the now-invalid email. getFieldState reads the LIVE control _formState, so it always
+        // reflects the trigger regardless of React's flush timing.
+        const first = FIELD_ORDER.find((name) => detailFields.has(name) && form.getFieldState(name).invalid) ?? "name";
+        focusField(first);
+      });
       return;
     }
     setSheet({ open: true, details: withoutTerms(values) });
-  }, [getValues, openBag, pushToast, tc]);
+  }, [form, getValues, openBag, pushToast, tc]);
 
   // "Apple Pay" from the bag drawer or product page lands here with ?express=applepay (once).
   useEffect(() => {

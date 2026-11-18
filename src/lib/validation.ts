@@ -25,7 +25,15 @@ export const checkoutSchema = z
   .object({
     name: z.string().trim().min(2, { error: "nameRequired" }).max(80, { error: "tooLong" }),
     phone: phoneField("phoneRequired"),
-    email: z.union([z.literal(""), z.email({ error: "emailInvalid" })]),
+    // Required now (the receipt + delivery updates are emailed): trimmed, non-empty, length-capped,
+    // then format-checked. The leading min(1) gives a distinct "required" message for a blank value,
+    // while a non-empty bad address falls through to the "invalid" message (mirrors the phone field).
+    email: z
+      .string()
+      .trim()
+      .min(1, { error: "emailRequired" })
+      .max(254, { error: "tooLong" })
+      .pipe(z.email({ error: "emailInvalid" })),
     areaId: z.string().min(1, { error: "areaRequired" }),
     housing: z.enum(["house", "apartment", "office"]),
     block: z.string().trim().min(1, { error: "blockRequired" }).max(10, { error: "tooLong" }),

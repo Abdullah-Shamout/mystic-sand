@@ -267,6 +267,7 @@ test.describe("security headers / CSP (A05)", () => {
       await page.waitForURL(/\/checkout\/$/);
       await page.getByLabel("Full name").fill("Fatma Al-Kandari");
       await page.getByLabel("Mobile number").fill("99123456");
+      await page.getByLabel("Email").fill("fatma@example.com"); // required at checkout now
       const area = page.getByRole("combobox", { name: "Area" });
       await area.fill("salm");
       await area.press("Enter");

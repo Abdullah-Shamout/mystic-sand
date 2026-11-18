@@ -111,6 +111,7 @@
     "phoneRequired": "Please enter your mobile number.",
     "phoneInvalid": "Please enter an 8-digit Kuwaiti mobile number.",
     "phoneLandline": "Please use a mobile number — the courier will call it.",
+    "emailRequired": "Please enter your email — we’ll send your receipt and delivery updates to it.",
     "emailInvalid": "Please check your email address.",
     "areaRequired": "Please choose your area from the list.",
     "blockRequired": "Please enter the block number.",

@@ -17,6 +17,7 @@ async function addFromProductPage(page: Page, slug: string) {
 async function fillCheckout(page: Page, phone = "٩٩١٢٣٤٥٦") {
   await page.getByLabel("Full name").fill("Fatma Al-Kandari");
   await page.getByLabel("Mobile number").fill(phone);
+  await page.getByLabel("Email").fill("fatma@example.com"); // required at checkout now
   const area = page.getByRole("combobox", { name: "Area" });
   await area.fill("salm");
   await area.press("Enter");

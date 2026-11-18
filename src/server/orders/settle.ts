@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
+import { after } from "next/server";
 
 import { getDb, schema } from "@/server/db";
 import { logger } from "@/server/log";
@@ -203,8 +204,19 @@ export async function settleOrder(orderId: string): Promise<SettleOutcome> {
   // Only a transitioning capture ("paid"/"oversold") attaches a payload, and a later settle returns
   // "already" before the tx body runs, so this fires EXACTLY once per order. safeNotify swallows any
   // channel error: a notification must never break the (already-committed) settle.
+  //
+  // DEFER past the response with Next's after(): a real email adapter's provider latency would otherwise
+  // land on the shopper's /checkout/result render AND the webhook/reconcile response (settle.ts is
+  // awaited by all three, which are request-scoped). The adapter still hard-bounds each send, so the
+  // deferred work can't run unbounded either. If after() is ever unavailable (a non-request caller), fall
+  // back to awaiting inline so the (best-effort) notification is never silently dropped.
   if (result.notify && (result.outcome === "paid" || result.outcome === "oversold")) {
-    await safeNotify(() => getNotifier().orderPaid(result.notify!));
+    const notify = result.notify;
+    try {
+      after(() => safeNotify(() => getNotifier().orderPaid(notify)));
+    } catch {
+      await safeNotify(() => getNotifier().orderPaid(notify));
+    }
   }
   return result.outcome;
 }
